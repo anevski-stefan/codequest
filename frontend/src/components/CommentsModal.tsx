@@ -41,9 +41,9 @@ export default function CommentsModal({
 
   // Update displayed comments when comments prop changes
   useEffect(() => {
-    // Sort comments by date, newest first
+    // Sort comments by date, oldest first
     const sortedComments = [...comments].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
     setDisplayedComments(sortedComments);
   }, [comments]);
@@ -111,23 +111,6 @@ export default function CommentsModal({
                     </Dialog.Title>
                     
                     <div className="mt-2 space-y-4 max-h-[400px] overflow-y-auto">
-                      {hasMoreComments && (
-                        <div className="flex justify-center py-2">
-                          <button
-                            onClick={onLoadMore}
-                            disabled={isLoadingMore}
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isLoadingMore ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                              <ChevronUp className="h-4 w-4 mr-2" />
-                            )}
-                            Load earlier comments
-                          </button>
-                        </div>
-                      )}
-
                       {isLoading ? (
                         <div className="flex justify-center py-8">
                           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -135,24 +118,42 @@ export default function CommentsModal({
                       ) : displayedComments.length === 0 ? (
                         <p className="text-center text-gray-500 py-4">No comments yet</p>
                       ) : (
-                        displayedComments.map((comment) => (
-                          <div key={comment.id} className="mb-4 p-4 bg-white rounded-lg shadow">
-                            <div className="flex items-center mb-2">
-                              <img
-                                src={comment.user.avatar_url}
-                                alt={comment.user.login}
-                                className="w-8 h-8 rounded-full mr-2"
-                              />
-                              <span className="font-medium">{comment.user.login}</span>
-                              <span className="text-gray-500 text-sm ml-2">
-                                {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                              </span>
+                        <>
+                          {hasMoreComments && (
+                            <div className="flex justify-center py-2 sticky top-0 bg-white shadow-sm">
+                              <button
+                                onClick={onLoadMore}
+                                disabled={isLoadingMore}
+                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isLoadingMore ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : (
+                                  <ChevronUp className="h-4 w-4 mr-2" />
+                                )}
+                                Load earlier comments
+                              </button>
                             </div>
-                            <div className="prose max-w-none">
-                              {comment.body}
+                          )}
+                          {displayedComments.map((comment) => (
+                            <div key={comment.id} className="mb-4 p-4 bg-white rounded-lg shadow">
+                              <div className="flex items-center mb-2">
+                                <img
+                                  src={comment.user.avatar_url}
+                                  alt={comment.user.login}
+                                  className="w-8 h-8 rounded-full mr-2"
+                                />
+                                <span className="font-medium">{comment.user.login}</span>
+                                <span className="text-gray-500 text-sm ml-2">
+                                  {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                                </span>
+                              </div>
+                              <div className="prose max-w-none">
+                                {comment.body}
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          ))}
+                        </>
                       )}
                     </div>
 
