@@ -38,6 +38,7 @@ export interface IssueParams {
   state: 'open' | 'closed';
   page: number;
   timeFrame?: 'day' | 'week' | 'month' | 'year' | 'all';
+  unassigned?: boolean;
 }
 export interface Activity {
   id: string;
