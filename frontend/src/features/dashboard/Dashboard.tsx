@@ -6,6 +6,7 @@ import { Search, ChevronDown, MessageCircle, GitPullRequest, MessageSquare } fro
 import type { Issue, IssueParams, Language } from '../../types/github';
 import debounce from 'lodash/debounce';
 import CommentsModal from '../../components/CommentsModal';
+import LabelsFilter from '../../components/LabelsFilter';
 const getStateColor = (state: string) => {
   switch (state.toLowerCase()) {
     case 'open':
@@ -74,7 +75,8 @@ const Dashboard = () => {
     page: 1,
     timeFrame: 'all',
     unassigned: false,
-    commentsRange: ''
+    commentsRange: '',
+    labels: []
   });
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
@@ -160,12 +162,15 @@ const Dashboard = () => {
       }
     }
   });
-  const handleFilterChange = (key: keyof IssueParams, value: string | boolean) => {
+  const handleFilterChange = (key: keyof IssueParams, value: string | boolean | string[]) => {
     const newFilter = {
       ...filter,
       [key]: value,
       page: 1
     };
+    if (key === 'labels' && Array.isArray(value) && value.length > 0 && filter.timeFrame === 'all') {
+      newFilter.timeFrame = 'month';
+    }
     if (key === 'unassigned' && value === false) {
       delete newFilter.unassigned;
     }
@@ -208,6 +213,7 @@ const Dashboard = () => {
         </div>
         
         <div className="flex space-x-4">
+          <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={labels => handleFilterChange('labels', labels)} />
           <FilterDropdown label="Language" options={['', 'javascript', 'typescript', 'python', 'java', 'go', 'rust']} value={filter.language} onChange={value => handleFilterChange('language', value as Language)} />
           <FilterDropdown label="Sort" options={sortOptions} value={filter.sort} onChange={value => handleFilterChange('sort', value as IssueParams['sort'])} />
           <FilterDropdown label="State" options={['open', 'closed']} value={filter.state} onChange={value => handleFilterChange('state', value as 'open' | 'closed')} />

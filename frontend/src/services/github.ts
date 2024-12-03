@@ -18,6 +18,30 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   if (params.state) {
     searchQuery += `is:${params.state} `;
   }
+  if (params.labels && params.labels.length > 0) {
+    params.labels.forEach(label => {
+      const encodedLabel = label.includes(' ') ? `"${label}"` : label;
+      searchQuery += `label:${encodedLabel} `;
+    });
+  }
+  if (params.timeFrame && params.timeFrame !== 'all') {
+    const date = new Date();
+    switch (params.timeFrame) {
+      case 'day':
+        date.setDate(date.getDate() - 1);
+        break;
+      case 'week':
+        date.setDate(date.getDate() - 7);
+        break;
+      case 'month':
+        date.setMonth(date.getMonth() - 1);
+        break;
+      case 'year':
+        date.setFullYear(date.getFullYear() - 1);
+        break;
+    }
+    searchQuery += `created:>=${date.toISOString().split('T')[0]} `;
+  }
   if (params.commentsRange) {
     switch (params.commentsRange) {
       case '0':
