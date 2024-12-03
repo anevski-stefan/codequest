@@ -39,6 +39,7 @@ export interface IssueParams {
   page: number;
   timeFrame?: 'day' | 'week' | 'month' | 'year' | 'all';
   unassigned?: boolean;
+  commentsRange?: string;
 }
 export interface Activity {
   id: string;

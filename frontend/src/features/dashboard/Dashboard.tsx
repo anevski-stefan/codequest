@@ -49,6 +49,22 @@ const sortOptions = [{
   value: 'comments',
   label: 'Most Comments'
 }];
+const commentRanges = [{
+  value: '',
+  label: 'Any Comments'
+}, {
+  value: '0',
+  label: 'No Comments'
+}, {
+  value: '1-5',
+  label: '1-5 Comments'
+}, {
+  value: '6-10',
+  label: '6-10 Comments'
+}, {
+  value: '10+',
+  label: '10+ Comments'
+}];
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<IssueParams>({
@@ -57,7 +73,8 @@ const Dashboard = () => {
     state: 'open',
     page: 1,
     timeFrame: 'all',
-    unassigned: false
+    unassigned: false,
+    commentsRange: ''
   });
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
@@ -198,6 +215,7 @@ const Dashboard = () => {
           value: opt.value,
           label: opt.label
         }))} value={filter.timeFrame || 'all'} onChange={value => handleFilterChange('timeFrame', value)} />
+          <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange || ''} onChange={value => handleFilterChange('commentsRange', value)} />
           <div className="flex items-center">
             <label className="inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={filter.unassigned} onChange={e => handleFilterChange('unassigned', e.target.checked)} className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
@@ -213,7 +231,7 @@ const Dashboard = () => {
 
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <ul className="divide-y divide-gray-200">
-          {allIssues.map(issue => <li key={`${issue.id}-${issue.number}`}>
+          {allIssues?.map(issue => <li key={`${issue.id}-${issue.number}`}>
               <div className="block hover:bg-gray-50">
                 <div className="px-4 py-4 sm:px-6">
                   <div className="flex items-center justify-between">
@@ -243,9 +261,10 @@ const Dashboard = () => {
                     <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
                       <p>
                         Opened by <span className="font-medium text-gray-900">{issue.user.login}</span>
-                        {' '}{formatDistanceToNow(new Date(issue.createdAt), {
+                        {' '}
+                        {issue.createdAt ? formatDistanceToNow(new Date(issue.createdAt), {
                       addSuffix: true
-                    })}
+                    }) : 'unknown time ago'}
                       </p>
                     </div>
                   </div>
