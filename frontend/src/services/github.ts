@@ -14,25 +14,59 @@ api.interceptors.request.use((config) => {
 });
 
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
-  const queryParams = new URLSearchParams();
+  // Build the base search query
+  let searchQuery = 'is:issue '; // Ensure we're only getting issues
   
-  // Add existing params
-  if (params.language) queryParams.append('language', params.language);
-  if (params.sort) queryParams.append('sort', params.sort);
-  if (params.state) queryParams.append('state', params.state);
-  if (params.page) queryParams.append('page', params.page.toString());
-  if (params.timeFrame) queryParams.append('timeFrame', params.timeFrame);
+  // Add language filter
+  if (params.language) {
+    searchQuery += `language:${params.language} `;
+  }
   
-  // Only add unassigned parameter if it's true
+  // Add state filter
+  if (params.state) {
+    searchQuery += `is:${params.state} `;
+  }
+  
+  // Add comments range filter using GitHub's search syntax
+  if (params.commentsRange) {
+    switch (params.commentsRange) {
+      case '0':
+        searchQuery += 'comments:0 ';
+        break;
+      case '1-5':
+        searchQuery += 'comments:1..5 ';
+        break;
+      case '6-10':
+        searchQuery += 'comments:6..10 ';
+        break;
+      case '10+':
+        searchQuery += 'comments:>10 ';
+        break;
+    }
+  }
+  
+  // Add unassigned filter
   if (params.unassigned === true) {
-    queryParams.append('assignee', 'none');
+    searchQuery += 'no:assignee ';
   }
 
+  // Create query parameters
+  const queryParams = new URLSearchParams({
+    q: searchQuery.trim(),
+    sort: params.sort || 'created',
+    order: 'desc',
+    per_page: '30',
+    page: params.page?.toString() || '1'
+  });
+
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/issues?${queryParams}`, {
+    console.log('Search query:', searchQuery);
+    
+    const response = await fetch(`https://api.github.com/search/issues?${queryParams}`, {
       headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'X-GitHub-Api-Version': '2022-11-28'
       }
     });
 
@@ -41,13 +75,46 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
       console.error('API Error:', {
         status: response.status,
         statusText: response.statusText,
-        body: errorText
+        body: errorText,
+        query: searchQuery
       });
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    return data;
+    
+    // Transform the response data to match our types
+    const transformedIssues = data.items.map((item: any) => ({
+      id: item.id,
+      number: item.number,
+      title: item.title,
+      body: item.body,
+      state: item.state,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      commentsCount: item.comments,
+      labels: item.labels.map((label: any) => ({
+        name: label.name,
+        color: label.color
+      })),
+      repository: {
+        id: item.repository_url.split('/').pop(),
+        fullName: item.repository_url.split('/').slice(-2).join('/'),
+        url: item.repository_url
+      },
+      user: {
+        login: item.user.login,
+        avatarUrl: item.user.avatar_url
+      },
+      url: item.html_url
+    }));
+
+    return {
+      issues: transformedIssues,
+      totalCount: data.total_count,
+      hasMore: transformedIssues.length === 30,
+      currentPage: parseInt(params.page?.toString() || '1')
+    };
   } catch (error) {
     console.error('Failed to fetch issues:', error);
     throw error;
