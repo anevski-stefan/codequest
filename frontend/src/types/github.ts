@@ -34,9 +34,10 @@ export interface IssueResponse {
 export type Language = '' | 'javascript' | 'typescript' | 'python' | 'java' | 'go' | 'rust' | 'cpp' | 'ruby' | 'php';
 export interface IssueParams {
   language: Language;
-  sort: 'created' | 'updated' | 'comments';
+  sort: 'created' | 'updated' | 'comments' | 'oldest' | 'newest';
   state: 'open' | 'closed';
   page: number;
+  timeFrame?: 'day' | 'week' | 'month' | 'year' | 'all';
 }
 export interface Activity {
   id: string;
