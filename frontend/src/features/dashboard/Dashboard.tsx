@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
-import { useQuery } from 'react-query';
-import { getIssues } from '../../services/github';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
+import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
 import { formatDistanceToNow } from 'date-fns';
-import { Search, ChevronDown, MessageCircle, GitPullRequest } from 'lucide-react';
+import { Search, ChevronDown, MessageCircle, GitPullRequest, MessageSquare } from 'lucide-react';
 import type { Issue, IssueParams, Language } from '../../types/github';
 import debounce from 'lodash/debounce';
+import CommentsModal from '../../components/CommentsModal';
 
 const getStateColor = (state: string) => {
   switch (state.toLowerCase()) {
@@ -30,6 +31,69 @@ const Dashboard = () => {
     page: 1
   });
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
+  const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
+  const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+
+  // Comments query
+  const { 
+    data: commentsData, 
+    isLoading: isLoadingComments, 
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage
+  } = useInfiniteQuery(
+    ['comments', selectedIssueId, selectedRepo],
+    async ({ pageParam = 1 }) => {
+      console.log('Fetching comments with params:', {
+        issueNumber: selectedIssueId,
+        repo: selectedRepo,
+        page: pageParam
+      });
+      if (selectedIssueId && selectedRepo) {
+        const result = await getIssueComments(selectedIssueId, selectedRepo, pageParam);
+        console.log('Comments API result:', {
+          commentsCount: result.comments.length,
+          totalCount: result.totalCount,
+          hasMore: result.hasMore,
+          nextPage: result.nextPage,
+          firstComment: result.comments[0]
+        });
+        return result;
+      }
+      return null;
+    },
+    {
+      enabled: !!selectedIssueId && !!selectedRepo,
+      getNextPageParam: (lastPage) => {
+        if (!lastPage) return undefined;
+        return lastPage.hasMore ? lastPage.nextPage : undefined;
+      },
+    }
+  );
+
+  // Update how we flatten comments to maintain order
+  const allComments = commentsData?.pages?.flatMap(page => page?.comments ?? []) ?? [];
+  console.log('Flattened comments:', allComments);
+
+  // Add comment mutation
+  const queryClient = useQueryClient();
+  const addCommentMutation = useMutation({
+    mutationFn: ({ issueId, comment }: { issueId: number; comment: string }) => {
+      if (!selectedRepo) {
+        throw new Error('No repository selected');
+      }
+      return addIssueComment(issueId, selectedRepo, comment);
+    },
+    onSuccess: () => {
+      console.log('Comment added successfully, invalidating queries');
+      // Invalidate and refetch comments
+      queryClient.invalidateQueries(['comments', selectedIssueId, selectedRepo]);
+    },
+    onError: (error) => {
+      console.error('Error in mutation:', error);
+    }
+  });
 
   // Debounced filter updates
   const debouncedSetFilter = useCallback(
@@ -72,6 +136,30 @@ const Dashboard = () => {
 
   const handleLoadMore = () => {
     setFilter(prev => ({ ...prev, page: prev.page + 1 }));
+  };
+
+  const handleViewComments = (issue: Issue) => {
+    console.log('Opening comments for issue:', {
+      issueNumber: issue.number,
+      repoFullName: issue.repository.fullName,
+      totalComments: issue.commentsCount,
+      issueTitle: issue.title
+    });
+    setSelectedIssueId(issue.number);
+    setSelectedRepo(issue.repository.fullName);
+    setIsCommentsModalOpen(true);
+  };
+
+  const handleAddComment = async (comment: string) => {
+    if (!selectedIssueId) return;
+    try {
+      await addCommentMutation.mutateAsync({
+        issueId: selectedIssueId,
+        comment
+      });
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
   };
 
   return (
@@ -118,9 +206,9 @@ const Dashboard = () => {
 
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <ul className="divide-y divide-gray-200">
-          {allIssues.map((issue: Issue) => (
-            <li key={issue.id}>
-              <a href={issue.url} target="_blank" rel="noopener noreferrer" className="block hover:bg-gray-50">
+          {allIssues.map((issue) => (
+            <li key={`${issue.id}-${issue.number}`}>
+              <div className="block hover:bg-gray-50">
                 <div className="px-4 py-4 sm:px-6">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-blue-600 truncate">{issue.title}</p>
@@ -159,8 +247,27 @@ const Dashboard = () => {
                       </p>
                     </div>
                   </div>
+                  <div className="mt-2 sm:flex sm:justify-between">
+                    <div className="sm:flex">
+                      <button
+                        onClick={() => handleViewComments(issue)}
+                        className="flex items-center hover:text-blue-600"
+                      >
+                        <MessageSquare className="flex-shrink-0 mr-1.5 h-5 w-5" />
+                        View Comments
+                      </button>
+                      <a
+                        href={issue.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-sm text-gray-600 hover:text-blue-600 ml-4"
+                      >
+                        View on GitHub
+                      </a>
+                    </div>
+                  </div>
                 </div>
-              </a>
+              </div>
             </li>
           ))}
         </ul>
@@ -188,6 +295,20 @@ const Dashboard = () => {
           No more issues to load
         </div>
       )}
+
+      <CommentsModal
+        isOpen={isCommentsModalOpen}
+        onClose={() => {
+          setIsCommentsModalOpen(false);
+          setSelectedIssueId(null);
+        }}
+        comments={allComments}
+        isLoading={isLoadingComments}
+        onAddComment={handleAddComment}
+        onLoadMore={() => fetchNextPage()}
+        hasMoreComments={!!hasNextPage}
+        isLoadingMore={isFetchingNextPage}
+      />
     </>
   );
 };

@@ -26,4 +26,63 @@ export const getIssues = async (params: IssueParams = {
 export const getActivity = async () => {
   const { data } = await api.get('/api/activity');
   return data;
+};
+
+export const getIssueComments = async (issueNumber: number, repoFullName: string, page = 1) => {
+  try {
+    const [owner, repo] = repoFullName.split('/');
+    console.log('Fetching comments for:', { issueNumber, owner, repo, page });
+
+    const response = await api.get(`/api/issues/${issueNumber}/comments`, {
+      params: {
+        owner,
+        repo,
+        page
+      }
+    });
+
+    console.log('Comments response:', response);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    throw error;
+  }
+};
+
+export const addIssueComment = async (issueNumber: number, repoFullName: string, comment: string) => {
+  try {
+    const [owner, repo] = repoFullName.split('/');
+    if (!owner || !repo) {
+      throw new Error(`Invalid repository name: ${repoFullName}`);
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    console.log('Adding comment:', {
+      owner,
+      repo,
+      issueNumber,
+      comment
+    });
+
+    const response = await api.post(
+      `/api/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
+      { body: comment },
+      {
+        headers: {
+          Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('Comment created:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    throw error;
+  }
 }; 

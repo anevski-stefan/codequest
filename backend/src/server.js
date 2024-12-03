@@ -100,11 +100,31 @@ const authenticateToken = (req, res, next) => {
 
 // Rate limiting middleware
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000, // 15 minutes
+  max: process.env.RATE_LIMIT_MAX_REQUESTS || 100 // limit each IP to 100 requests per windowMs
 });
 
-app.use('/api/', limiter);
+app.use(limiter);
+
+// Cache middleware
+const cacheMiddleware = (duration) => {
+  return (req, res, next) => {
+    const key = `__express__${req.originalUrl || req.url}`;
+    const cachedBody = cache.get(key);
+
+    if (cachedBody) {
+      res.send(cachedBody);
+      return;
+    }
+
+    res.sendResponse = res.send;
+    res.send = (body) => {
+      cache.put(key, body, duration * 1000);
+      res.sendResponse(body);
+    };
+    next();
+  };
+};
 
 // Add activity endpoint
 app.get('/api/activity', authenticateToken, async (req, res) => {
@@ -230,6 +250,138 @@ app.get('/api/issues', authenticateToken, async (req, res) => {
     console.error('Error fetching issues:', error.response?.data);
     res.status(error.response?.status || 500).json({ 
       error: error.response?.data?.message || 'Failed to fetch issues'
+    });
+  }
+});
+
+// Keep both endpoints for now until we debug the issue
+app.get('/api/issues/:issueNumber/comments', authenticateToken, async (req, res) => {
+  try {
+    const { issueNumber } = req.params;
+    const { owner, repo } = req.query;
+
+    if (!owner || !repo) {
+      return res.status(400).json({ error: 'Owner and repo are required' });
+    }
+
+    console.log('Fetching comments:', { owner, repo, issueNumber });
+
+    const response = await axios.get(
+      `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
+      {
+        headers: {
+          Authorization: `token ${req.user.accessToken}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+
+    const comments = response.data.map(comment => ({
+      id: comment.id,
+      body: comment.body,
+      user: {
+        login: comment.user.login,
+        avatar_url: comment.user.avatar_url
+      },
+      createdAt: new Date(comment.created_at).toISOString(),
+      updatedAt: new Date(comment.updated_at).toISOString()
+    }));
+
+    console.log('Returning comments:', { count: comments.length });
+
+    res.json({
+      comments,
+      totalCount: comments.length,
+      hasMore: false,
+      nextPage: null
+    });
+  } catch (error) {
+    console.error('Error fetching comments:', error.response?.data);
+    res.status(error.response?.status || 500).json({ 
+      error: error.response?.data?.message || 'Failed to fetch comments'
+    });
+  }
+});
+
+// Keep the POST endpoint as is
+app.post('/api/repos/:owner/:repo/issues/:number/comments', authenticateToken, express.json(), async (req, res) => {
+  try {
+    const { owner, repo, number } = req.params;
+    const { body } = req.body;
+
+    console.log('Creating comment:', {
+      owner,
+      repo,
+      issueNumber: number,
+      body,
+      token: req.user.accessToken ? 'present' : 'missing',
+      requestBody: req.body,
+      headers: req.headers,
+      params: req.params
+    });
+
+    if (!body) {
+      return res.status(422).json({ 
+        message: 'Validation Failed',
+        errors: [{ resource: 'IssueComment', field: 'body', code: 'missing_field' }]
+      });
+    }
+
+    // Create comment using GitHub's API
+    const response = await axios.post(
+      `https://api.github.com/repos/${owner}/${repo}/issues/${number}/comments`,
+      { body },
+      {
+        headers: {
+          Authorization: `token ${req.user.accessToken}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('GitHub API Response:', {
+      status: response.status,
+      data: response.data,
+      headers: response.headers
+    });
+
+    // GitHub returns 201 for successful creation
+    res.status(201).json(response.data);
+  } catch (error) {
+    console.error('Error creating comment:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers,
+      requestConfig: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        data: error.config?.data
+      }
+    });
+    
+    // Forward GitHub's status codes
+    if (error.response?.status === 404) {
+      return res.status(404).json({ message: 'Issue not found' });
+    }
+    
+    if (error.response?.status === 403) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    
+    if (error.response?.status === 422) {
+      return res.status(422).json(error.response.data);
+    }
+    
+    res.status(500).json({ 
+      message: error.response?.data?.message || error.message || 'Failed to create comment',
+      details: process.env.NODE_ENV === 'development' ? {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      } : undefined
     });
   }
 });
