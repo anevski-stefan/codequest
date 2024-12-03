@@ -49,13 +49,14 @@ export type Language =
   | 'php';
 
 export interface IssueParams {
-  language: Language;
-  sort: 'created' | 'updated' | 'comments' | 'oldest' | 'newest';
+  language: string;
+  sort: string;
   state: 'open' | 'closed';
   page: number;
-  timeFrame?: 'day' | 'week' | 'month' | 'year' | 'all';
+  timeFrame: string;
   unassigned?: boolean;
-  commentsRange?: string;
+  commentsRange: string;
+  labels?: string[];
 }
 
 export interface Activity {

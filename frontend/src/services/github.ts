@@ -27,6 +27,35 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     searchQuery += `is:${params.state} `;
   }
   
+  // Add labels filter with proper formatting
+  if (params.labels && params.labels.length > 0) {
+    params.labels.forEach(label => {
+      // Properly encode label names with spaces
+      const encodedLabel = label.includes(' ') ? `"${label}"` : label;
+      searchQuery += `label:${encodedLabel} `;
+    });
+  }
+
+  // Add time frame filter
+  if (params.timeFrame && params.timeFrame !== 'all') {
+    const date = new Date();
+    switch (params.timeFrame) {
+      case 'day':
+        date.setDate(date.getDate() - 1);
+        break;
+      case 'week':
+        date.setDate(date.getDate() - 7);
+        break;
+      case 'month':
+        date.setMonth(date.getMonth() - 1);
+        break;
+      case 'year':
+        date.setFullYear(date.getFullYear() - 1);
+        break;
+    }
+    searchQuery += `created:>=${date.toISOString().split('T')[0]} `;
+  }
+  
   // Add comments range filter using GitHub's search syntax
   if (params.commentsRange) {
     switch (params.commentsRange) {
@@ -50,11 +79,11 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     searchQuery += 'no:assignee ';
   }
 
-  // Create query parameters
+  // Create query parameters with proper sorting
   const queryParams = new URLSearchParams({
     q: searchQuery.trim(),
-    sort: params.sort || 'created',
-    order: 'desc',
+    sort: params.sort || 'created', // Default to created
+    order: 'desc', // Always show newest first
     per_page: '30',
     page: params.page?.toString() || '1'
   });

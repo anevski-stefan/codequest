@@ -6,6 +6,7 @@ import { Search, ChevronDown, MessageCircle, GitPullRequest, MessageSquare } fro
 import type { Issue, IssueParams, Language } from '../../types/github';
 import debounce from 'lodash/debounce';
 import CommentsModal from '../../components/CommentsModal';
+import LabelsFilter from '../../components/LabelsFilter';
 
 const getStateColor = (state: string) => {
   switch (state.toLowerCase()) {
@@ -54,7 +55,8 @@ const Dashboard = () => {
     page: 1,
     timeFrame: 'all',
     unassigned: false,
-    commentsRange: ''
+    commentsRange: '',
+    labels: []
   });
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
@@ -152,12 +154,17 @@ const Dashboard = () => {
   );
 
   // Handle filter changes with debounce
-  const handleFilterChange = (key: keyof IssueParams, value: string | boolean) => {
+  const handleFilterChange = (key: keyof IssueParams, value: string | boolean | string[]) => {
     const newFilter = { 
       ...filter,
       [key]: value,
       page: 1 // Reset page when filter changes
     };
+
+    // If labels are being added and no timeFrame is set, default to recent items
+    if (key === 'labels' && Array.isArray(value) && value.length > 0 && filter.timeFrame === 'all') {
+      newFilter.timeFrame = 'month'; // Default to last month for labeled issues
+    }
 
     // If unassigned is being unchecked, remove it from the filter
     if (key === 'unassigned' && value === false) {
@@ -165,8 +172,6 @@ const Dashboard = () => {
     }
 
     debouncedSetFilter(newFilter);
-    
-    // Reset accumulated issues when filters change
     setAllIssues([]);
   };
 
@@ -213,6 +218,10 @@ const Dashboard = () => {
         </div>
         
         <div className="flex space-x-4">
+          <LabelsFilter
+            selectedLabels={filter.labels || []}
+            onLabelsChange={(labels) => handleFilterChange('labels', labels)}
+          />
           <FilterDropdown
             label="Language"
             options={['', 'javascript', 'typescript', 'python', 'java', 'go', 'rust']}
