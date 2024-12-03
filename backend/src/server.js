@@ -154,20 +154,66 @@ app.get('/api/activity', authenticateToken, async (req, res) => {
 // Add issues endpoint with detailed status
 app.get('/api/issues', authenticateToken, async (req, res) => {
   try {
-    const { language, sort, state, page } = req.query;
-    const cacheKey = `issues-${language}-${sort}-${state}-${page}`;
+    const { language, sort, state, page, timeFrame } = req.query;
+    const cacheKey = `issues-${language}-${sort}-${state}-${page}-${timeFrame}`;
     
+    // Calculate the date threshold based on timeFrame
+    let dateThreshold;
+    const now = new Date();
+    switch (timeFrame) {
+      case 'day':
+        dateThreshold = new Date(now.setDate(now.getDate() - 1));
+        break;
+      case 'week':
+        dateThreshold = new Date(now.setDate(now.getDate() - 7));
+        break;
+      case 'month':
+        dateThreshold = new Date(now.setMonth(now.getMonth() - 1));
+        break;
+      case 'year':
+        dateThreshold = new Date(now.setFullYear(now.getFullYear() - 1));
+        break;
+      default:
+        dateThreshold = null;
+    }
+
+    let q = `is:issue is:${state}`;
+    if (language) {
+      q += ` language:${language}`;
+    }
+    if (dateThreshold) {
+      q += ` created:>=${dateThreshold.toISOString().split('T')[0]}`;
+    }
+
+    // Determine the sort parameter and order for GitHub API
+    let sortParam = sort;
+    let order = 'desc';
+
+    switch (sort) {
+      case 'newest':
+        sortParam = 'created';
+        order = 'desc';
+        break;
+      case 'oldest':
+        sortParam = 'created';
+        order = 'asc';
+        break;
+      case 'updated':
+        sortParam = 'updated';
+        order = 'desc';
+        break;
+      case 'comments':
+        sortParam = 'comments';
+        order = 'desc';
+        break;
+    }
+
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
       return res.json(cachedData);
     }
 
     const perPage = 20;
-    let q = `is:issue is:${state}`;
-    if (language) {
-      q += ` language:${language}`;
-    }
-
     const response = await axios.get('https://api.github.com/search/issues', {
       headers: {
         Authorization: `token ${req.user.accessToken}`,
@@ -175,8 +221,8 @@ app.get('/api/issues', authenticateToken, async (req, res) => {
       },
       params: {
         q,
-        sort,
-        order: 'desc',
+        sort: sortParam,
+        order,
         per_page: perPage,
         page
       }

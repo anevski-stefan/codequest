@@ -22,13 +22,29 @@ const getStateColor = (state: string) => {
   }
 };
 
+const timeFrameOptions = [
+  { value: 'all', label: 'All Time' },
+  { value: 'day', label: 'Last 24 Hours' },
+  { value: 'week', label: 'Last Week' },
+  { value: 'month', label: 'Last Month' },
+  { value: 'year', label: 'Last Year' }
+];
+
+const sortOptions = [
+  { value: 'newest', label: 'Newest First' },
+  { value: 'oldest', label: 'Oldest First' },
+  { value: 'updated', label: 'Recently Updated' },
+  { value: 'comments', label: 'Most Comments' }
+];
+
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<IssueParams>({
     language: '',
     sort: 'created',
     state: 'open',
-    page: 1
+    page: 1,
+    timeFrame: 'all'
   });
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
@@ -185,15 +201,21 @@ const Dashboard = () => {
           />
           <FilterDropdown
             label="Sort"
-            options={['created', 'updated', 'comments']}
+            options={sortOptions}
             value={filter.sort}
-            onChange={(value) => handleFilterChange('sort', value as 'created' | 'updated' | 'comments')}
+            onChange={(value) => handleFilterChange('sort', value as IssueParams['sort'])}
           />
           <FilterDropdown
             label="State"
             options={['open', 'closed']}
             value={filter.state}
             onChange={(value) => handleFilterChange('state', value as 'open' | 'closed')}
+          />
+          <FilterDropdown
+            label="Time"
+            options={timeFrameOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+            value={filter.timeFrame || 'all'}
+            onChange={(value) => handleFilterChange('timeFrame', value)}
           />
         </div>
       </div>
@@ -315,7 +337,7 @@ const Dashboard = () => {
 
 interface FilterDropdownProps {
   label: string;
-  options: string[];
+  options: string[] | { value: string; label: string; }[];
   value: string;
   onChange: (value: string) => void;
 }
@@ -332,8 +354,13 @@ function FilterDropdown({ label, options, value, onChange }: FilterDropdownProps
           {label}
         </option>
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option ? option.charAt(0).toUpperCase() + option.slice(1) : 'All Languages'}
+          <option 
+            key={typeof option === 'string' ? option : option.value} 
+            value={typeof option === 'string' ? option : option.value}
+          >
+            {typeof option === 'string' 
+              ? (option ? option.charAt(0).toUpperCase() + option.slice(1) : 'All Languages')
+              : option.label}
           </option>
         ))}
       </select>
