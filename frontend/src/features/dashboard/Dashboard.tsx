@@ -44,7 +44,8 @@ const Dashboard = () => {
     sort: 'created',
     state: 'open',
     page: 1,
-    timeFrame: 'all'
+    timeFrame: 'all',
+    unassigned: false
   });
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
@@ -142,12 +143,22 @@ const Dashboard = () => {
   );
 
   // Handle filter changes with debounce
-  const handleFilterChange = (key: keyof IssueParams, value: string) => {
-    debouncedSetFilter({ 
-      ...filter, 
+  const handleFilterChange = (key: keyof IssueParams, value: string | boolean) => {
+    const newFilter = { 
+      ...filter,
       [key]: value,
       page: 1 // Reset page when filter changes
-    });
+    };
+
+    // If unassigned is being unchecked, remove it from the filter
+    if (key === 'unassigned' && value === false) {
+      delete newFilter.unassigned;
+    }
+
+    debouncedSetFilter(newFilter);
+    
+    // Reset accumulated issues when filters change
+    setAllIssues([]);
   };
 
   const handleLoadMore = () => {
@@ -217,6 +228,17 @@ const Dashboard = () => {
             value={filter.timeFrame || 'all'}
             onChange={(value) => handleFilterChange('timeFrame', value)}
           />
+          <div className="flex items-center">
+            <label className="inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filter.unassigned}
+                onChange={(e) => handleFilterChange('unassigned', e.target.checked)}
+                className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
+              />
+              <span className="ml-2 text-sm text-gray-600">Unassigned only</span>
+            </label>
+          </div>
         </div>
       </div>
 

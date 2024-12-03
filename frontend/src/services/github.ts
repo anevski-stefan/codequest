@@ -13,14 +13,45 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export const getIssues = async (params: IssueParams = {
-  language: '',
-  sort: 'created',
-  state: 'open',
-  page: 1
-}): Promise<IssueResponse> => {
-  const { data } = await api.get('/api/issues', { params });
-  return data;
+export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
+  const queryParams = new URLSearchParams();
+  
+  // Add existing params
+  if (params.language) queryParams.append('language', params.language);
+  if (params.sort) queryParams.append('sort', params.sort);
+  if (params.state) queryParams.append('state', params.state);
+  if (params.page) queryParams.append('page', params.page.toString());
+  if (params.timeFrame) queryParams.append('timeFrame', params.timeFrame);
+  
+  // Only add unassigned parameter if it's true
+  if (params.unassigned === true) {
+    queryParams.append('assignee', 'none');
+  }
+
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/issues?${queryParams}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch issues:', error);
+    throw error;
+  }
 };
 
 export const getActivity = async () => {
