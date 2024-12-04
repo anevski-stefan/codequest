@@ -214,7 +214,7 @@ const Dashboard = () => {
       console.error('Error adding comment:', error);
     }
   };
-  return <div className="w-full bg-gray-50 dark:bg-gray-800 min-h-screen">
+  return <div className="w-full bg-white dark:bg-gray-800 min-h-screen">
       <div className="bg-white dark:bg-gray-800 shadow mb-6 py-4 px-6">
         <div className="flex flex-wrap gap-4 items-center justify-center">
           <FilterDropdown label="Time Frame" options={timeFrameOptions} value={filter.timeFrame} onChange={value => handleFilterChange('timeFrame', value)} />
@@ -237,8 +237,8 @@ const Dashboard = () => {
               {error.message || 'Failed to load issues'}
             </div>}
 
-          {!isLoading && allIssues?.length > 0 && <div className="bg-gray-800 rounded-lg border border-gray-700/50 shadow-sm divide-y divide-gray-700/50 w-full">
-              {allIssues.map(issue => <div key={`${issue.id}-${issue.number}`} className="p-4 hover:bg-gray-700/50 transition-colors">
+          {!isLoading && allIssues?.length > 0 && <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700/50 shadow-sm divide-y divide-gray-200 dark:divide-gray-700/50 w-full">
+              {allIssues.map(issue => <div key={`${issue.id}-${issue.number}`} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -330,11 +330,11 @@ function FilterDropdown({
   onChange
 }: FilterDropdownProps) {
   return <div className="relative">
-      <select className="appearance-none bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg pl-3 pr-10 py-2 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px] hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" value={value} onChange={e => onChange(e.target.value)}>
-        <option value="" disabled className="bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200">
+      <select className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg pl-3 pr-10 py-2 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" value={value} onChange={e => onChange(e.target.value)}>
+        <option value="" disabled className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200">
           {label}
         </option>
-        {options.map(option => <option key={typeof option === 'string' ? option : option.value} value={typeof option === 'string' ? option : option.value} className="bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200">
+        {options.map(option => <option key={typeof option === 'string' ? option : option.value} value={typeof option === 'string' ? option : option.value} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200">
             {typeof option === 'string' ? option ? option.charAt(0).toUpperCase() + option.slice(1) : 'All Languages' : option.label}
           </option>)}
       </select>
