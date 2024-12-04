@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import useAuth from '../hooks/useAuth';
+import { LogOut } from 'lucide-react';
 import type { RootState } from '../store';
 
 const Layout = () => {
@@ -11,30 +12,44 @@ const Layout = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {isAuthenticated && (
-        <header className="bg-white shadow">
-          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-semibold">GitHub Dashboard</h1>
-              <button
-                onClick={() => navigate('/profile')}
-                className="flex items-center space-x-2 hover:text-blue-600"
-              >
-                <img
-                  src={user?.avatar_url}
-                  alt="Profile"
-                  className="w-8 h-8 rounded-full"
-                />
-                <span>{user?.login}</span>
-              </button>
+        <nav className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center">
+                <button 
+                  onClick={() => navigate('/')}
+                  className="text-2xl font-bold text-indigo-600 hover:text-indigo-500 transition-colors"
+                >
+                  GitHub Dashboard
+                </button>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center space-x-2 hover:text-indigo-600"
+                >
+                  <div className="relative w-10 h-10 overflow-hidden bg-gray-100 rounded-full">
+                    <img
+                      src={user?.avatar_url}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 hover:text-indigo-600">
+                    {user?.login}
+                  </span>
+                </button>
+                <button
+                  onClick={logout}
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition duration-150 ease-in-out flex items-center"
+                >
+                  <LogOut className="h-5 w-5 mr-2" />
+                  Logout
+                </button>
+              </div>
             </div>
-            <button
-              onClick={logout}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-            >
-              Logout
-            </button>
           </div>
-        </header>
+        </nav>
       )}
       <div className="container mx-auto">
         <Outlet />
