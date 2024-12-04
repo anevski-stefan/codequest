@@ -65,8 +65,8 @@ const MyAssignedIssues = () => {
       </div>;
   }
   return <div className="w-full">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-6 border-b pb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+        <div className="flex justify-between items-center mb-6 pb-4">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">My Assigned Issues</h1>
           <select value={issueState} onChange={e => setIssueState(e.target.value)} className="px-3 py-1.5 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             <option value="open">Open</option>
