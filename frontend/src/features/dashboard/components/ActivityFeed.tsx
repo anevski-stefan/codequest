@@ -14,22 +14,24 @@ const ActivityFeed = () => {
   const { data: activities, isLoading, error } = useQuery('activity', getActivity);
 
   if (isLoading) {
-    return <div className="animate-pulse space-y-4 bg-gray-900 dark:bg-gray-900">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="h-16 bg-gray-800 dark:bg-gray-800 rounded"></div>
-      ))}
-    </div>;
+    return (
+      <div className="animate-pulse space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded"></div>
+        ))}
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-red-500 bg-gray-900 dark:bg-gray-900">Failed to load activity</div>;
+    return <div className="text-red-500">Failed to load activity</div>;
   }
 
   if (!activities || activities.length === 0) {
     return (
-      <div className="bg-gray-900 dark:bg-gray-900 p-4 rounded-lg">
-        <h3 className="text-lg font-semibold text-gray-200 dark:text-white">Activity</h3>
-        <p className="text-gray-400 dark:text-gray-400">This is where user activity will be displayed.</p>
+      <div className="p-4 rounded-lg">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Activity</h3>
+        <p className="text-gray-600 dark:text-gray-400">This is where user activity will be displayed.</p>
       </div>
     );
   }
@@ -58,27 +60,27 @@ const ActivityFeed = () => {
   };
 
   return (
-    <div className="space-y-4 bg-gray-900 dark:bg-gray-900 p-4 rounded-lg">
+    <div className="space-y-4 p-4 rounded-lg">
       {activities.map((activity: Activity) => (
         <div
           key={activity.id}
-          className="flex items-start space-x-3 p-4 bg-gray-800 dark:bg-gray-800 rounded-lg border border-gray-700"
+          className="flex items-start space-x-3 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
         >
-          <div className="text-gray-300 dark:text-gray-300">
+          <div className="text-gray-600 dark:text-gray-300">
             {getActivityIcon(activity.type)}
           </div>
           <div className="flex-1">
             <div className="flex justify-between items-start">
-              <p className="text-sm font-medium text-gray-200 dark:text-gray-200">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-200">
                 {activity.type.replace('Event', '')} to{' '}
-                <span className="font-semibold text-gray-100 dark:text-gray-100">{activity.repo}</span>
+                <span className="font-semibold text-gray-800 dark:text-gray-100">{activity.repo}</span>
               </p>
-              <span className="text-xs text-gray-400 dark:text-gray-400">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 {formatDistanceToNow(new Date(activity.date), { addSuffix: true })}
               </span>
             </div>
             {activity.payload.commits && (
-              <div className="mt-1 text-sm text-gray-400 dark:text-gray-400">
+              <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {activity.payload.commits.length} commit(s)
               </div>
             )}
