@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import axios from 'axios';
+import LoadingSpinner from '../../components/LoadingSpinner';
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -12,7 +13,6 @@ const AuthCallback = () => {
     const handleCallback = async () => {
       try {
         const token = searchParams.get('token');
-        console.log('Received token:', token);
         if (!token) {
           throw new Error('No token received');
         }
@@ -21,20 +21,22 @@ const AuthCallback = () => {
             Authorization: `Bearer ${token}`
           }
         });
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
         login({
           token,
-          user: response.data
+          user: response.data,
+          expiresAt
         });
         navigate('/dashboard');
       } catch (error) {
         console.error('Detailed auth error:', error);
-        navigate('/login');
+        navigate('/');
       }
     };
     handleCallback();
   }, [searchParams, login, navigate]);
   return <div className="flex justify-center items-center min-h-screen bg-inherit">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <LoadingSpinner />
     </div>;
 };
 export default AuthCallback;

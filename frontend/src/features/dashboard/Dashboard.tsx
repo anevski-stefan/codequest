@@ -7,6 +7,7 @@ import type { Issue, IssueParams, Language } from '../../types/github';
 import debounce from 'lodash/debounce';
 import CommentsModal from '../../components/CommentsModal';
 import LabelsFilter from '../../components/LabelsFilter';
+import LoadingSpinner from '../../components/LoadingSpinner';
 const getStateColor = (state: string) => {
   switch (state.toLowerCase()) {
     case 'open':
@@ -93,6 +94,7 @@ const Dashboard = () => {
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
+  const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   const {
     data: commentsData,
     isLoading: isLoadingComments,
@@ -162,7 +164,7 @@ const Dashboard = () => {
     error,
     refetch
   } = useQuery<any, Error>(['issues', filter], () => getIssues(filter), {
-    keepPreviousData: true,
+    keepPreviousData: false,
     staleTime: 60000,
     cacheTime: 300000,
     refetchOnWindowFocus: false,
@@ -173,9 +175,11 @@ const Dashboard = () => {
         setAllIssues(prev => [...prev, ...newData.issues]);
       }
       setIsFilterLoading(false);
+      setInitialFetchComplete(true);
     },
     onError: () => {
       setIsFilterLoading(false);
+      setInitialFetchComplete(true);
     }
   });
   useEffect(() => {
@@ -183,6 +187,7 @@ const Dashboard = () => {
   }, [refetch]);
   const handleFilterChange = (key: keyof IssueParams, value: string | boolean | string[]) => {
     setIsFilterLoading(true);
+    setInitialFetchComplete(false);
     const newFilter = {
       ...filter,
       [key]: value,
@@ -237,6 +242,7 @@ const Dashboard = () => {
       console.error('Error adding comment:', error);
     }
   };
+  const showLoadingSpinner = isLoading || !initialFetchComplete;
   return <div className="w-full bg-white dark:bg-gray-800 min-h-screen">
       <div className="bg-white dark:bg-gray-800 shadow mb-6 py-4 px-6">
         <div className="flex flex-wrap gap-4 items-center justify-center">
@@ -255,7 +261,7 @@ const Dashboard = () => {
       </div>
 
       <div className="px-6">
-        {!isLoading && !isFilterLoading && <div className="bg-white dark:bg-gray-700 rounded-lg shadow">
+        {showLoadingSpinner ? <LoadingSpinner /> : <div className="bg-white dark:bg-gray-700 rounded-lg shadow">
             {error instanceof Error && <div className="text-center text-red-600 dark:text-red-400 p-4 mb-4 bg-red-50 dark:bg-red-900 rounded-lg w-full">
                 {error.message || 'Failed to load issues'}
               </div>}
@@ -308,7 +314,7 @@ const Dashboard = () => {
                   </div>)}
               </div>}
 
-            {!isLoading && !isFilterLoading && allIssues.length === 0 && <div className="bg-white dark:bg-gray-800 border rounded-lg p-8 text-center w-full">
+            {!isLoading && !isFilterLoading && !error && allIssues.length === 0 && initialFetchComplete && <div className="bg-white dark:bg-gray-800 border rounded-lg p-8 text-center w-full">
                 <p className="text-gray-500 dark:text-gray-400">
                   No issues found
                 </p>
@@ -323,15 +329,6 @@ const Dashboard = () => {
             {!isLoading && !isFilterLoading && !data?.hasMore && allIssues.length > 0 && <div className="text-center text-gray-600 dark:text-gray-400 py-8">
                 No more issues to load
               </div>}
-          </div>}
-
-        {(isLoading || isFilterLoading) && <div className="flex justify-center items-center py-8">
-            <div className="animate-spin h-8 w-8 text-blue-500">
-              <svg className="w-full h-full" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            </div>
           </div>}
       </div>
 

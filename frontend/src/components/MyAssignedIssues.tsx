@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle } from 'lucide-react';
 import type { Issue } from '../types/github';
 import CommentsModal, { Comment as ModalComment } from './CommentsModal';
+import LoadingSpinner from './LoadingSpinner';
 const getLabelColors = (color: string) => {
   const r = parseInt(color.slice(0, 2), 16);
   const g = parseInt(color.slice(2, 4), 16);
@@ -55,9 +56,7 @@ const MyAssignedIssues = () => {
     }
   };
   if (isLoading) {
-    return <div className="w-full flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-      </div>;
+    return <LoadingSpinner />;
   }
   if (error) {
     return <div className="w-full text-center text-red-600 dark:text-red-400 p-4">

@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Send, Loader2, ChevronUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import LoadingSpinner from '../components/LoadingSpinner';
 export interface Comment {
   id: number;
   body: string;
@@ -72,9 +73,7 @@ export default function CommentsModal({
                     </Dialog.Title>
                     <div className="mt-4 space-y-4">
                       <div className="max-h-[400px] overflow-y-auto mb-6 pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
-                        {isLoading ? <div className="flex justify-center py-8">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                          </div> : displayedComments.length === 0 ? <p className="text-center text-gray-500 dark:text-gray-400 py-4">No comments yet</p> : <>
+                        {isLoading ? <LoadingSpinner size="sm" /> : displayedComments.length === 0 ? <p className="text-center text-gray-500 dark:text-gray-400 py-4">No comments yet</p> : <>
                             {hasMoreComments && <div className="flex justify-center py-2 sticky top-0 bg-white dark:bg-gray-800 shadow-sm">
                                 <button onClick={onLoadMore} disabled={isLoadingMore} className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200">
                                   {isLoadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ChevronUp className="h-4 w-4 mr-2" />}
