@@ -46,7 +46,7 @@ export default function LabelsFilter({
     inputRef.current?.focus();
   };
   return <div className="relative">
-      <div onClick={handleContainerClick} className="flex flex-wrap gap-2 p-2 border rounded-lg min-h-[42px] bg-white cursor-text">
+      <div onClick={handleContainerClick} className="flex flex-wrap gap-2 p-2 border dark:border-gray-700 rounded-lg min-h-[42px] bg-white dark:bg-gray-800 cursor-text">
         {selectedLabels.map(label => <span key={label} className="inline-flex items-center px-2 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
             {label}
             <button onClick={e => {

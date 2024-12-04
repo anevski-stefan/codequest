@@ -214,8 +214,8 @@ const Dashboard = () => {
       console.error('Error adding comment:', error);
     }
   };
-  return <div className="w-full bg-gray-50 min-h-screen">
-      <div className="flex flex-col items-center mb-6 space-y-4 w-full mt-16 px-6">
+  return <div className="w-full bg-gray-50 dark:bg-gray-800 min-h-screen">
+      <div className="bg-white dark:bg-gray-800 shadow mb-6 py-4 px-6">
         <div className="flex flex-wrap gap-4 items-center justify-center">
           <FilterDropdown label="Time Frame" options={timeFrameOptions} value={filter.timeFrame} onChange={value => handleFilterChange('timeFrame', value)} />
           <FilterDropdown label="Sort By" options={sortOptions} value={filter.sort} onChange={value => handleFilterChange('sort', value as IssueParams['sort'])} />
@@ -225,77 +225,73 @@ const Dashboard = () => {
           <div className="flex items-center">
             <label className="inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={filter.unassigned} onChange={e => handleFilterChange('unassigned', e.target.checked)} className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
-              <span className="ml-2 text-sm text-gray-600">Unassigned only</span>
+              <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Unassigned only</span>
             </label>
           </div>
         </div>
       </div>
 
-      <div className="rounded-lg p-6 w-full">
-        {error instanceof Error && <div className="text-center text-red-600 p-4 mb-4 bg-red-50 rounded-lg w-full">
-            {error.message || 'Failed to load issues'}
-          </div>}
+      <div className="px-6">
+        <div className="bg-white dark:bg-gray-700 rounded-lg shadow">
+          {error instanceof Error && <div className="text-center text-red-600 dark:text-red-400 p-4 mb-4 bg-red-50 dark:bg-red-900 rounded-lg w-full">
+              {error.message || 'Failed to load issues'}
+            </div>}
 
-        {!isLoading && allIssues?.length > 0 && <div className="bg-white rounded-lg border shadow-sm divide-y divide-gray-100 w-full">
-            {allIssues.map(issue => <div key={`${issue.id}-${issue.number}`} className="p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex flex-col gap-3">
-                  {}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-base font-medium text-gray-900 hover:text-blue-600">
-                        {issue.title}
-                      </a>
-                      <p className="mt-0.5 text-sm text-gray-500">
-                        {issue.repository?.fullName} #{issue.number}
-                      </p>
+          {!isLoading && allIssues?.length > 0 && <div className="bg-gray-800 rounded-lg border border-gray-700/50 shadow-sm divide-y divide-gray-700/50 w-full">
+              {allIssues.map(issue => <div key={`${issue.id}-${issue.number}`} className="p-4 hover:bg-gray-700/50 transition-colors">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-base font-medium text-gray-900 dark:text-white hover:text-blue-600">
+                          {issue.title}
+                        </a>
+                        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                          {issue.repository?.fullName} #{issue.number}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 ml-4">
+                        {issue.labels.map(label => <span key={label.name} className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap" style={getLabelColors(label.color)}>
+                            {label.name}
+                          </span>)}
+                      </div>
                     </div>
-                    
-                    {}
-                    <div className="flex flex-wrap gap-1.5 ml-4">
-                      {issue.labels.map(label => <span key={label.name} className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap" style={getLabelColors(label.color)}>
-                          {label.name}
-                        </span>)}
-                    </div>
-                  </div>
-
-                  {}
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center space-x-4 text-gray-500">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getStateColor(issue.state)}`}>
-                        <span className={`w-2 h-2 rounded-full mr-2 ${issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'}`} />
-                        {issue.state}
-                      </span>
-                      <span>•</span>
-                      <span>
-                        Updated {formatDistanceToNow(new Date(issue.updatedAt), {
-                    addSuffix: true
-                  })}
-                      </span>
-                      <span>•</span>
-                      <span>
-                        {issue.commentsCount} comments
-                      </span>
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                      <button onClick={() => handleViewComments(issue)} className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
-                        <MessageSquare size={14} className="mr-1.5" />
-                        View Comments
-                      </button>
-                      <a href={issue.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
-                        View on GitHub
-                      </a>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center space-x-4 text-gray-500 dark:text-gray-400">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getStateColor(issue.state)}`}>
+                          <span className={`w-2 h-2 rounded-full mr-2 ${issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'}`} />
+                          {issue.state}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          Updated {formatDistanceToNow(new Date(issue.updatedAt), {
+                      addSuffix: true
+                    })}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          {issue.commentsCount} comments
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <button onClick={() => handleViewComments(issue)} className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
+                          <MessageSquare size={14} className="mr-1.5" />
+                          View Comments
+                        </button>
+                        <a href={issue.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
+                          View on GitHub
+                        </a>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>)}
-          </div>}
+                </div>)}
+            </div>}
 
-        {!isLoading && allIssues.length === 0 && <div className="bg-white border rounded-lg p-8 text-center w-full">
-            <p className="text-gray-500">
-              No issues found
-            </p>
-          </div>}
+          {!isLoading && allIssues.length === 0 && <div className="bg-white dark:bg-gray-800 border rounded-lg p-8 text-center w-full">
+              <p className="text-gray-500 dark:text-gray-400">
+                No issues found
+              </p>
+            </div>}
+        </div>
       </div>
 
       {isLoading && <div className="flex justify-center items-center py-8">
@@ -308,7 +304,7 @@ const Dashboard = () => {
           </button>
         </div>}
 
-      {!isLoading && !data?.hasMore && allIssues.length > 0 && <div className="text-center text-gray-600 py-8">
+      {!isLoading && !data?.hasMore && allIssues.length > 0 && <div className="text-center text-gray-600 dark:text-gray-400 py-8">
           No more issues to load
         </div>}
 
@@ -334,15 +330,15 @@ function FilterDropdown({
   onChange
 }: FilterDropdownProps) {
   return <div className="relative">
-      <select className="appearance-none bg-white border rounded-lg pl-3 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700" value={value} onChange={e => onChange(e.target.value)}>
-        <option value="" disabled>
+      <select className="appearance-none bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg pl-3 pr-10 py-2 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px] hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" value={value} onChange={e => onChange(e.target.value)}>
+        <option value="" disabled className="bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200">
           {label}
         </option>
-        {options.map(option => <option key={typeof option === 'string' ? option : option.value} value={typeof option === 'string' ? option : option.value}>
+        {options.map(option => <option key={typeof option === 'string' ? option : option.value} value={typeof option === 'string' ? option : option.value} className="bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200">
             {typeof option === 'string' ? option ? option.charAt(0).toUpperCase() + option.slice(1) : 'All Languages' : option.label}
           </option>)}
       </select>
-      <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+      <ChevronDown className="absolute right-3 top-2.5 text-gray-500 dark:text-gray-400 pointer-events-none" size={20} />
     </div>;
 }
 export default Dashboard;

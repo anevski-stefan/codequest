@@ -60,45 +60,40 @@ const MyAssignedIssues = () => {
       </div>;
   }
   if (error) {
-    return <div className="w-full text-center text-red-600 p-4">
+    return <div className="w-full text-center text-red-600 dark:text-red-400 p-4">
         {error instanceof Error ? error.message : 'Failed to load assigned issues'}
       </div>;
   }
   return <div className="w-full">
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-6 border-b pb-4">
-          <h1 className="text-2xl font-semibold text-gray-900">My Assigned Issues</h1>
-          <select value={issueState} onChange={e => setIssueState(e.target.value)} className="px-3 py-1.5 text-sm border rounded-md bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">My Assigned Issues</h1>
+          <select value={issueState} onChange={e => setIssueState(e.target.value)} className="px-3 py-1.5 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             <option value="open">Open</option>
             <option value="closed">Closed</option>
           </select>
         </div>
 
-        {data?.issues && data.issues.length > 0 ? <div className="bg-white rounded-lg border shadow-sm divide-y divide-gray-100">
-            {data.issues.map((issue: Issue) => <div key={issue.id} className="p-4 hover:bg-gray-50 transition-colors">
+        {data?.issues && data.issues.length > 0 ? <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm divide-y divide-gray-100 dark:divide-gray-700">
+            {data.issues.map((issue: Issue) => <div key={issue.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <div className="flex flex-col gap-3">
-                  {}
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-base font-medium text-gray-900 hover:text-blue-600">
+                      <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-base font-medium text-gray-900 dark:text-white hover:text-blue-600">
                         {issue.title}
                       </a>
-                      <p className="mt-0.5 text-sm text-gray-500">
+                      <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                         {issue.repository?.fullName} #{issue.number}
                       </p>
                     </div>
-                    
-                    {}
                     <div className="flex flex-wrap gap-1.5 ml-4">
                       {issue.labels.map(label => <span key={label.name} className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap" style={getLabelColors(label.color)}>
                           {label.name}
                         </span>)}
                     </div>
                   </div>
-
-                  {}
                   <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center space-x-4 text-gray-500">
+                    <div className="flex items-center space-x-4 text-gray-500 dark:text-gray-400">
                       <span className="inline-flex items-center">
                         <span className={`w-2 h-2 rounded-full mr-2 ${issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'}`} />
                         {issue.state}
@@ -114,21 +109,20 @@ const MyAssignedIssues = () => {
                         {issue.commentsCount} comments
                       </span>
                     </div>
-
                     <div className="flex items-center space-x-3">
-                      <button onClick={() => handleOpenComments(issue.number, issue.repository.fullName)} className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                      <button onClick={() => handleOpenComments(issue.number, issue.repository.fullName)} className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
                         <MessageCircle size={14} className="mr-1.5" />
                         View Comments
                       </button>
-                      <a href={issue.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                      <a href={issue.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
                         View on GitHub
                       </a>
                     </div>
                   </div>
                 </div>
               </div>)}
-          </div> : <div className="bg-white border rounded-lg p-8 text-center">
-            <p className="text-gray-500">
+          </div> : <div className="bg-white dark:bg-gray-800 border rounded-lg p-8 text-center">
+            <p className="text-gray-500 dark:text-gray-400">
               No {issueState} issues assigned to you
             </p>
           </div>}
