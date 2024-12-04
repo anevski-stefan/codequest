@@ -127,8 +127,40 @@ const cacheMiddleware = (duration) => {
   };
 };
 
+// ETag middleware
+const etagMiddleware = (req, res, next) => {
+  // Store the original send
+  const originalSend = res.send;
+
+  // Override res.send
+  res.send = function (body) {
+    // Generate ETag
+    const generatedEtag = etag(JSON.stringify(body));
+    
+    // Check if client sent If-None-Match header
+    const clientEtag = req.headers['if-none-match'];
+    
+    if (clientEtag && clientEtag === generatedEtag) {
+      // Return 304 if ETags match
+      res.status(304).send();
+      return;
+    }
+
+    // Set ETag header
+    res.setHeader('ETag', generatedEtag);
+    
+    // Call original send
+    return originalSend.call(this, body);
+  };
+
+  next();
+};
+
+// Apply the middleware globally (optional)
+app.use(etagMiddleware);
+
 // Add activity endpoint
-app.get('/api/activity', authenticateToken, etagMiddleware, async (req, res) => {
+app.get('/api/activity', authenticateToken, async (req, res) => {
   try {
     const response = await axios.get('https://api.github.com/users/me/events', {
       headers: {
@@ -501,38 +533,6 @@ app.use((err, req, res, next) => {
   }
   next(err);
 });
-
-// Add after the rate limiting middleware
-const etagMiddleware = (req, res, next) => {
-  // Store the original send
-  const originalSend = res.send;
-
-  // Override res.send
-  res.send = function (body) {
-    // Generate ETag
-    const generatedEtag = etag(JSON.stringify(body));
-    
-    // Check if client sent If-None-Match header
-    const clientEtag = req.headers['if-none-match'];
-    
-    if (clientEtag && clientEtag === generatedEtag) {
-      // Return 304 if ETags match
-      res.status(304).send();
-      return;
-    }
-
-    // Set ETag header
-    res.setHeader('ETag', generatedEtag);
-    
-    // Call original send
-    return originalSend.call(this, body);
-  };
-
-  next();
-};
-
-// Apply the middleware globally
-app.use(etagMiddleware);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
