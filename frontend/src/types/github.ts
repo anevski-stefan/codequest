@@ -31,7 +31,7 @@ export interface IssueResponse {
   currentPage: number;
   hasMore: boolean;
 }
-export type Language = '' | 'javascript' | 'typescript' | 'python' | 'java' | 'go' | 'rust' | 'cpp' | 'ruby' | 'php';
+export type Language = '' | 'javascript' | 'typescript' | 'python' | 'java' | 'php' | 'ruby' | 'go' | 'rust' | 'c' | 'cpp' | 'csharp' | 'swift' | 'kotlin' | 'dart' | 'scala' | 'r' | 'elixir' | 'haskell' | 'clojure' | 'erlang' | 'julia' | 'matlab' | 'shell' | 'powershell' | 'html' | 'css' | 'vue' | 'svelte' | 'angular' | 'react' | 'elm' | 'ocaml' | 'fsharp' | 'fortran' | 'cobol' | 'pascal' | 'prolog' | 'scheme' | 'groovy' | 'objective-c' | 'verilog' | 'vhdl' | 'solidity' | 'crystal' | 'nim' | 'zig' | 'lua' | 'perl' | 'assembly';
 export interface IssueParams {
   language: string;
   sort: string;

@@ -239,7 +239,7 @@ const Dashboard = () => {
           <FilterDropdown label="Time Frame" options={timeFrameOptions} value={filter.timeFrame} onChange={value => handleFilterChange('timeFrame', value)} />
           <FilterDropdown label="Sort By" options={sortOptions} value={filter.direction === 'asc' ? 'created-asc' : filter.sort} onChange={value => handleFilterChange('sort', value)} />
           <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange || ''} onChange={value => handleFilterChange('commentsRange', value)} />
-          <FilterDropdown label="Language" options={['', 'javascript', 'typescript', 'python', 'java', 'go', 'rust']} value={filter.language} onChange={value => handleFilterChange('language', value as Language)} />
+          <FilterDropdown label="Language" options={['', 'javascript', 'typescript', 'python', 'java', 'php', 'ruby', 'go', 'rust', 'c', 'cpp', 'csharp', 'swift', 'kotlin', 'dart', 'scala', 'r', 'elixir', 'haskell', 'clojure', 'erlang', 'julia', 'matlab', 'shell', 'powershell', 'html', 'css', 'vue', 'svelte', 'angular', 'react', 'elm', 'ocaml', 'fsharp', 'fortran', 'cobol', 'pascal', 'prolog', 'scheme', 'groovy', 'objective-c', 'verilog', 'vhdl', 'solidity', 'crystal', 'nim', 'zig', 'lua', 'perl', 'assembly']} value={filter.language} onChange={value => handleFilterChange('language', value as Language)} />
           <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={labels => handleFilterChange('labels', labels)} />
           <div className="flex items-center">
             <label className="inline-flex items-center cursor-pointer">
