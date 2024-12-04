@@ -3,16 +3,21 @@ import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { store } from './store';
 import AppRoutes from './routes';
+import { useTheme } from './contexts/ThemeContext';
 
 const queryClient = new QueryClient();
 
 function App() {
+  const { theme } = useTheme();
+  
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <Router>
-          <div className="min-h-screen bg-gray-100">
-            <AppRoutes />
+          <div className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+              <AppRoutes />
+            </div>
           </div>
         </Router>
       </QueryClientProvider>
