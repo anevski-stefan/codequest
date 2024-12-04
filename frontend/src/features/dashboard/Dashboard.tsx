@@ -220,7 +220,7 @@ const Dashboard = () => {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4 w-full">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4 w-full mt-8 px-6">
         <div className="w-full sm:w-auto relative">
           <input
             type="text"
@@ -232,7 +232,7 @@ const Dashboard = () => {
           <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
         </div>
         
-        <div className="flex space-x-4">
+        <div className="flex space-x-4 w-full justify-end">
           <LabelsFilter
             selectedLabels={filter.labels || []}
             onLabelsChange={(labels) => handleFilterChange('labels', labels)}
