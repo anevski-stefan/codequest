@@ -17,9 +17,6 @@ const AppRoutes = () => {
         <Route path="/dashboard" element={<PrivateRoute>
               <Dashboard />
             </PrivateRoute>} />
-        <Route path="/assigned" element={<PrivateRoute>
-              <MyAssignedIssues />
-            </PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute>
               <Profile />
             </PrivateRoute>}>

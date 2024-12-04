@@ -7,10 +7,10 @@ const PrivateRoute = ({
   children: React.ReactNode;
 }) => {
   const {
-    token
+    isAuthenticated
   } = useSelector((state: RootState) => state.auth);
-  if (!token) {
-    return <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
   }
   return <>{children}</>;
 };

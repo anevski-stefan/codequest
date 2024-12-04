@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
 import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
 import { formatDistanceToNow } from 'date-fns';
@@ -159,7 +159,8 @@ const Dashboard = () => {
   const {
     data,
     isLoading,
-    error
+    error,
+    refetch
   } = useQuery<any, Error>(['issues', filter], () => getIssues(filter), {
     keepPreviousData: true,
     staleTime: 60000,
@@ -177,6 +178,9 @@ const Dashboard = () => {
       setIsFilterLoading(false);
     }
   });
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
   const handleFilterChange = (key: keyof IssueParams, value: string | boolean | string[]) => {
     setIsFilterLoading(true);
     const newFilter = {
