@@ -35,12 +35,13 @@ export type Language = '' | 'javascript' | 'typescript' | 'python' | 'java' | 'g
 export interface IssueParams {
   language: string;
   sort: string;
+  direction?: 'asc' | 'desc';
   state: 'open' | 'closed';
   page: number;
   timeFrame: string;
-  unassigned?: boolean;
+  unassigned: boolean;
   commentsRange: string;
-  labels?: string[];
+  labels: string[];
 }
 export interface Activity {
   id: string;
