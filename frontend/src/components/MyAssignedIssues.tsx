@@ -1,197 +1,188 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
+import { useQuery } from 'react-query';
 import { getAssignedIssues, getIssueComments, addIssueComment } from '../services/github';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageCircle, GitPullRequest, MessageSquare } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import type { Issue } from '../types/github';
-import CommentsModal from './CommentsModal';
-
-const getStateColor = (state: string) => {
-  switch (state.toLowerCase()) {
-    case 'open':
-      return 'bg-green-100 text-green-800';
-    case 'closed':
-      return 'bg-red-100 text-red-800';
-    case 'completed':
-      return 'bg-blue-100 text-blue-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
+import CommentsModal, { Comment as ModalComment } from './CommentsModal';
 
 const MyAssignedIssues = () => {
-  const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
-  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+  const [issueState, setIssueState] = useState<string>('open');
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
+  const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
+  const [comments, setComments] = useState<ModalComment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
 
-  const { data, isLoading, error } = useQuery('assignedIssues', getAssignedIssues);
-  const queryClient = useQueryClient();
-
-  // Comments query
-  const { 
-    data: commentsData, 
-    isLoading: isLoadingComments,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage
-  } = useInfiniteQuery(
-    ['comments', selectedIssueId, selectedRepo],
-    async ({ pageParam = 1 }) => {
-      if (selectedIssueId && selectedRepo) {
-        return await getIssueComments(selectedIssueId, selectedRepo, pageParam);
-      }
-      return null;
-    },
+  const { data, isLoading, error } = useQuery(
+    ['assignedIssues', issueState],
+    () => getAssignedIssues(issueState),
     {
-      enabled: !!selectedIssueId && !!selectedRepo,
-      getNextPageParam: (lastPage) => {
-        if (!lastPage) return undefined;
-        return lastPage.hasMore ? lastPage.nextPage : undefined;
-      },
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
     }
   );
 
-  // Add comment mutation
-  const addCommentMutation = useMutation({
-    mutationFn: ({ issueId, comment }: { issueId: number; comment: string }) => {
-      if (!selectedRepo) {
-        throw new Error('No repository selected');
-      }
-      return addIssueComment(issueId, selectedRepo, comment);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['comments', selectedIssueId, selectedRepo]);
-    }
-  });
-
-  const handleViewComments = (issue: Issue) => {
-    setSelectedIssueId(issue.number);
-    setSelectedRepo(issue.repository.fullName);
+  const handleOpenComments = async (issueNumber: number, repoFullName: string) => {
+    setSelectedIssueId(issueNumber);
     setIsCommentsModalOpen(true);
+    setIsLoadingComments(true);
+    try {
+      const response = await getIssueComments(issueNumber, repoFullName);
+      setComments(response.comments || []);
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    } finally {
+      setIsLoadingComments(false);
+    }
   };
 
   const handleAddComment = async (comment: string) => {
-    if (!selectedIssueId) return;
-    try {
-      await addCommentMutation.mutateAsync({
-        issueId: selectedIssueId,
-        comment
-      });
-    } catch (error) {
-      console.error('Error adding comment:', error);
+    const issue = data?.issues.find((i: Issue) => i.number === selectedIssueId);
+    if (issue && selectedIssueId) {
+      try {
+        await addIssueComment(selectedIssueId, issue.repository.fullName, comment);
+        const response = await getIssueComments(selectedIssueId, issue.repository.fullName);
+        setComments(response.comments || []);
+      } catch (error) {
+        console.error('Failed to add comment:', error);
+      }
     }
   };
 
-  // Flatten comments data
-  const allComments = commentsData?.pages?.flatMap(page => page?.comments ?? []) ?? [];
-
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-8">
+      <div className="max-w-[1280px] mx-auto flex justify-center items-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
       </div>
     );
   }
 
-  if (error instanceof Error) {
+  if (error) {
     return (
-      <div className="text-center text-red-600 p-4 mb-4 bg-red-50 rounded-lg">
-        {error.message || 'Failed to load assigned issues'}
+      <div className="max-w-[1280px] mx-auto text-center text-red-600 p-4">
+        {error instanceof Error ? error.message : 'Failed to load assigned issues'}
       </div>
     );
   }
 
   return (
-    <>
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">
-            My Assigned Issues
-          </h3>
-        </div>
-        <ul className="divide-y divide-gray-200">
-          {data?.issues.map((issue: Issue) => (
-            <li key={issue.id}>
-              <div className="block hover:bg-gray-50">
-                <div className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-blue-600 truncate">
-                      {issue.repository.fullName} #{issue.number}: {issue.title}
+    <div className="max-w-[1280px] mx-auto">
+      <div className="flex justify-between items-center mb-6 border-b pb-4">
+        <h1 className="text-2xl font-semibold text-gray-900">My Assigned Issues</h1>
+        <select
+          value={issueState}
+          onChange={(e) => setIssueState(e.target.value)}
+          className="px-3 py-1.5 text-sm border rounded-md bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+
+      {data?.issues && data.issues.length > 0 ? (
+        <div className="bg-white rounded-lg border shadow-sm divide-y divide-gray-100">
+          {data.issues.map((issue: Issue) => (
+            <div key={issue.id} className="p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex flex-col gap-3">
+                {/* Title and Repository */}
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <a 
+                      href={issue.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-base font-medium text-gray-900 hover:text-blue-600"
+                    >
+                      {issue.title}
+                    </a>
+                    <p className="mt-0.5 text-sm text-gray-500">
+                      {issue.repository?.fullName} #{issue.number}
                     </p>
-                    <div className="ml-2 flex-shrink-0 flex gap-2">
-                      {issue.labels.map((label) => (
-                        <span
-                          key={label.name}
-                          className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                          style={{
-                            backgroundColor: `#${label.color}`,
-                            color: parseInt(label.color, 16) > 0xffffff / 2 ? '#000' : '#fff'
-                          }}
-                        >
-                          {label.name}
-                        </span>
-                      ))}
-                    </div>
                   </div>
-                  <div className="mt-2 sm:flex sm:justify-between">
-                    <div className="sm:flex">
-                      <p className="flex items-center text-sm">
-                        <GitPullRequest className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStateColor(issue.state)}`}>
-                          {issue.state}
-                        </span>
-                      </p>
-                      <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                        <MessageCircle className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                        {issue.commentsCount} comments
-                      </p>
-                    </div>
-                    <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                      <p>
-                        Updated {formatDistanceToNow(new Date(issue.updatedAt), { addSuffix: true })}
-                      </p>
-                    </div>
+                  
+                  {/* Labels */}
+                  <div className="flex flex-wrap gap-1.5 ml-4">
+                    {issue.labels.map((label) => (
+                      <span
+                        key={label.name}
+                        className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
+                        style={{
+                          backgroundColor: `#${label.color}20`,
+                          color: `#${label.color}`
+                        }}
+                      >
+                        {label.name}
+                      </span>
+                    ))}
                   </div>
-                  <div className="mt-2 sm:flex sm:justify-between">
-                    <div className="sm:flex">
-                      <button
-                        onClick={() => handleViewComments(issue)}
-                        className="flex items-center hover:text-blue-600"
-                      >
-                        <MessageSquare className="flex-shrink-0 mr-1.5 h-5 w-5" />
-                        View Comments
-                      </button>
-                      <a
-                        href={issue.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center text-sm text-gray-600 hover:text-blue-600 ml-4"
-                      >
-                        View on GitHub
-                      </a>
-                    </div>
+                </div>
+
+                {/* Metadata and Actions */}
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center space-x-4 text-gray-500">
+                    <span className="inline-flex items-center">
+                      <span className={`w-2 h-2 rounded-full mr-2 ${
+                        issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'
+                      }`} />
+                      {issue.state}
+                    </span>
+                    <span>•</span>
+                    <span>
+                      Updated {formatDistanceToNow(new Date(issue.updatedAt), { addSuffix: true })}
+                    </span>
+                    <span>•</span>
+                    <span>
+                      {issue.commentsCount} comments
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => handleOpenComments(issue.number, issue.repository.fullName)}
+                      className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    >
+                      <MessageCircle size={14} className="mr-1.5" />
+                      View Comments
+                    </button>
+                    <a 
+                      href={issue.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    >
+                      View on GitHub
+                    </a>
                   </div>
                 </div>
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
-      </div>
+        </div>
+      ) : (
+        <div className="bg-white border rounded-lg p-8 text-center">
+          <p className="text-gray-500">
+            No {issueState} issues assigned to you
+          </p>
+        </div>
+      )}
 
-      <CommentsModal
-        isOpen={isCommentsModalOpen}
-        onClose={() => {
-          setIsCommentsModalOpen(false);
-          setSelectedIssueId(null);
-        }}
-        comments={allComments}
-        isLoading={isLoadingComments}
-        onAddComment={handleAddComment}
-        onLoadMore={() => fetchNextPage()}
-        hasMoreComments={!!hasNextPage}
-        isLoadingMore={isFetchingNextPage}
-      />
-    </>
+      {selectedIssueId && (
+        <CommentsModal
+          isOpen={isCommentsModalOpen}
+          onClose={() => {
+            setIsCommentsModalOpen(false);
+            setSelectedIssueId(null);
+            setComments([]);
+          }}
+          comments={comments}
+          isLoading={isLoadingComments}
+          onAddComment={handleAddComment}
+          onLoadMore={() => {}}
+          hasMoreComments={false}
+          isLoadingMore={false}
+        />
+      )}
+    </div>
   );
 };
 

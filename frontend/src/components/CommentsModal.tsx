@@ -3,7 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { X, Send, Loader2, ChevronUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
-interface Comment {
+export interface Comment {
   id: number;
   body: string;
   user: {

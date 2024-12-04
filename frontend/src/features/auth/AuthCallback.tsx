@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import axios from 'axios';
 
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -17,9 +18,17 @@ const AuthCallback = () => {
           throw new Error('No token received');
         }
 
+        // Fetch user data from GitHub API
+        const response = await axios.get('https://api.github.com/user', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        // Now we have the user data, call login with both token and user
         login({
           token,
-          user: null 
+          user: response.data
         });
 
         navigate('/dashboard');

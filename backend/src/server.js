@@ -134,20 +134,23 @@ const etagMiddleware = (req, res, next) => {
 
   // Override res.send
   res.send = function (body) {
-    // Generate ETag
-    const generatedEtag = etag(JSON.stringify(body));
-    
-    // Check if client sent If-None-Match header
-    const clientEtag = req.headers['if-none-match'];
-    
-    if (clientEtag && clientEtag === generatedEtag) {
-      // Return 304 if ETags match
-      res.status(304).send();
-      return;
-    }
+    // Only generate ETag if there's a body
+    if (body) {
+      // Generate ETag
+      const generatedEtag = etag(JSON.stringify(body));
+      
+      // Check if client sent If-None-Match header
+      const clientEtag = req.headers['if-none-match'];
+      
+      if (clientEtag && clientEtag === generatedEtag) {
+        // Return 304 if ETags match
+        res.status(304).send();
+        return;
+      }
 
-    // Set ETag header
-    res.setHeader('ETag', generatedEtag);
+      // Set ETag header
+      res.setHeader('ETag', generatedEtag);
+    }
     
     // Call original send
     return originalSend.call(this, body);
@@ -519,6 +522,82 @@ app.post('/api/repos/:owner/:repo/issues/:number/comments', authenticateToken, e
         response: error.response?.data,
         status: error.response?.status
       } : undefined
+    });
+  }
+});
+
+// Add assigned issues endpoint with better error handling
+app.get('/api/assigned-issues', authenticateToken, async (req, res) => {
+  try {
+    const { state } = req.query; // Get the state from query parameters
+    const queryState = state === 'closed' ? 'is:closed' : 'is:open'; // Default to open if not specified
+
+    const response = await axios.get('https://api.github.com/search/issues', {
+      headers: {
+        'Authorization': `Bearer ${req.user.accessToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      },
+      params: {
+        q: `is:issue ${queryState} assignee:@me`, // Use the state in the query
+        per_page: 30,
+        sort: 'updated',
+        order: 'desc'
+      }
+    });
+
+    if (!response.data) {
+      throw new Error('No data received from GitHub API');
+    }
+
+    const transformedIssues = response.data.items.map((item) => ({
+      id: item.id,
+      number: item.number,
+      title: item.title,
+      body: item.body,
+      state: item.state,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      commentsCount: item.comments,
+      labels: item.labels.map((label) => ({
+        name: label.name,
+        color: label.color
+      })),
+      repository: item.repository_url ? {
+        id: item.repository_url.split('/').pop(),
+        fullName: item.repository_url.split('/').slice(-2).join('/'),
+        url: item.html_url
+      } : null,
+      user: {
+        login: item.user.login,
+        avatarUrl: item.user.avatar_url
+      },
+      url: item.html_url
+    }));
+
+    const responseData = {
+      issues: transformedIssues,
+      totalCount: response.data.total_count,
+      hasMore: transformedIssues.length === 30,
+      currentPage: 1
+    };
+
+    res.json(responseData);
+  } catch (error) {
+    console.error('Error fetching assigned issues:', error);
+    
+    if (error.response) {
+      return res.status(error.response.status).json({
+        error: error.response.data.message || 'GitHub API error'
+      });
+    } else if (error.request) {
+      return res.status(503).json({
+        error: 'Unable to reach GitHub API'
+      });
+    }
+    
+    res.status(500).json({
+      error: 'Internal server error while fetching assigned issues'
     });
   }
 });
