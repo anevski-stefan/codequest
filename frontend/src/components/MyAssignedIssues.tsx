@@ -5,6 +5,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle } from 'lucide-react';
 import type { Issue } from '../types/github';
 import CommentsModal, { Comment as ModalComment } from './CommentsModal';
+const getLabelColors = (color: string) => {
+  const r = parseInt(color.slice(0, 2), 16);
+  const g = parseInt(color.slice(2, 4), 16);
+  const b = parseInt(color.slice(4, 6), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return {
+    backgroundColor: `#${color}`,
+    color: yiq >= 128 ? '#000000' : '#ffffff'
+  };
+};
 const MyAssignedIssues = () => {
   const [issueState, setIssueState] = useState<string>('open');
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
@@ -80,10 +90,7 @@ const MyAssignedIssues = () => {
                     
                     {}
                     <div className="flex flex-wrap gap-1.5 ml-4">
-                      {issue.labels.map(label => <span key={label.name} className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap" style={{
-                  backgroundColor: `#${label.color}20`,
-                  color: `#${label.color}`
-                }}>
+                      {issue.labels.map(label => <span key={label.name} className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap" style={getLabelColors(label.color)}>
                           {label.name}
                         </span>)}
                     </div>
