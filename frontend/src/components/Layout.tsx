@@ -17,7 +17,7 @@ const Layout = () => {
             <div className="flex justify-between items-center h-16 space-x-32">
               <div className="flex items-center">
                 <button 
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/dashboard')}
                   className="text-2xl font-bold text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-150"
                 >
                   Code Quest

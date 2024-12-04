@@ -25,14 +25,6 @@ const AppRoutes = () => {
           }
         />
         <Route
-          path="/assigned"
-          element={
-            <PrivateRoute>
-              <MyAssignedIssues />
-            </PrivateRoute>
-          }
-        />
-        <Route
           path="/profile"
           element={
             <PrivateRoute>

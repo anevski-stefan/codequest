@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
 import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
 import { formatDistanceToNow } from 'date-fns';
@@ -151,7 +151,7 @@ const Dashboard = () => {
     []
   );
 
-  const { data, isLoading, error } = useQuery<any, Error>(
+  const { data, isLoading, error, refetch } = useQuery<any, Error>(
     ['issues', filter],
     () => getIssues(filter),
     {
@@ -172,6 +172,11 @@ const Dashboard = () => {
       }
     }
   );
+
+  // Add effect to refetch when mounting
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   // Update handleFilterChange to properly handle sort direction
   const handleFilterChange = (key: keyof IssueParams, value: string | boolean | string[]) => {
