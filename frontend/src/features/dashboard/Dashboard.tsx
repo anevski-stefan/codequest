@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
 import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
 import { formatDistanceToNow } from 'date-fns';
-import { Search, ChevronDown, MessageCircle, GitPullRequest, MessageSquare } from 'lucide-react';
+import { Search, ChevronDown, MessageSquare } from 'lucide-react';
 import type { Issue, IssueParams, Language } from '../../types/github';
 import debounce from 'lodash/debounce';
 import CommentsModal from '../../components/CommentsModal';
@@ -45,6 +45,21 @@ const commentRanges = [
   { value: '6-10', label: '6-10 Comments' },
   { value: '10+', label: '10+ Comments' }
 ];
+
+const getLabelColors = (color: string) => {
+  // Convert hex to RGB to check brightness
+  const r = parseInt(color.slice(0, 2), 16);
+  const g = parseInt(color.slice(2, 4), 16);
+  const b = parseInt(color.slice(4, 6), 16);
+  
+  // Calculate perceived brightness using YIQ formula
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  
+  return {
+    backgroundColor: `#${color}`,
+    color: yiq >= 128 ? '#000000' : '#ffffff'  // Use black text for light backgrounds, white for dark
+  };
+};
 
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -204,8 +219,8 @@ const Dashboard = () => {
   };
 
   return (
-    <>
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4">
+    <div className="w-full">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4 w-full">
         <div className="w-full sm:w-auto relative">
           <input
             type="text"
@@ -266,74 +281,80 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {error instanceof Error && (
-        <div className="text-center text-red-600 p-4 mb-4 bg-red-50 rounded-lg">
-          {error.message || 'Failed to load issues'}
-        </div>
-      )}
+      <div className="bg-white rounded-lg shadow p-6 w-full">
+        {error instanceof Error && (
+          <div className="text-center text-red-600 p-4 mb-4 bg-red-50 rounded-lg w-full">
+            {error.message || 'Failed to load issues'}
+          </div>
+        )}
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {allIssues?.map((issue) => (
-            <li key={`${issue.id}-${issue.number}`}>
-              <div className="block hover:bg-gray-50">
-                <div className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-blue-600 truncate">{issue.title}</p>
-                    <div className="ml-2 flex-shrink-0 flex gap-2">
+        {allIssues?.length > 0 ? (
+          <div className="bg-white rounded-lg border shadow-sm divide-y divide-gray-100 w-full">
+            {allIssues.map((issue) => (
+              <div key={`${issue.id}-${issue.number}`} className="p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex flex-col gap-3">
+                  {/* Title and Repository */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <a 
+                        href={issue.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-base font-medium text-gray-900 hover:text-blue-600"
+                      >
+                        {issue.title}
+                      </a>
+                      <p className="mt-0.5 text-sm text-gray-500">
+                        {issue.repository?.fullName} #{issue.number}
+                      </p>
+                    </div>
+                    
+                    {/* Special Status Labels */}
+                    <div className="flex flex-wrap gap-1.5 ml-4">
                       {issue.labels.map((label) => (
                         <span
                           key={label.name}
-                          className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                          style={{ 
-                            backgroundColor: `#${label.color}`,
-                            color: parseInt(label.color, 16) > 0xffffff / 2 ? '#000' : '#fff'
-                          }}
+                          className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
+                          style={getLabelColors(label.color)}
                         >
                           {label.name}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <div className="mt-2 sm:flex sm:justify-between">
-                    <div className="sm:flex">
-                      <p className="flex items-center text-sm">
-                        <GitPullRequest className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStateColor(issue.state)}`}>
-                          {issue.state}
-                        </span>
-                      </p>
-                      <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                        <MessageCircle className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+
+                  {/* Metadata and Actions */}
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center space-x-4 text-gray-500">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getStateColor(issue.state)}`}>
+                        <span className={`w-2 h-2 rounded-full mr-2 ${
+                          issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'
+                        }`} />
+                        {issue.state}
+                      </span>
+                      <span>•</span>
+                      <span>
+                        Updated {formatDistanceToNow(new Date(issue.updatedAt), { addSuffix: true })}
+                      </span>
+                      <span>•</span>
+                      <span>
                         {issue.commentsCount} comments
-                      </p>
+                      </span>
                     </div>
-                    <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                      <p>
-                        Opened by <span className="font-medium text-gray-900">{issue.user.login}</span>
-                        {' '}
-                        {issue.createdAt ? (
-                          formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })
-                        ) : (
-                          'unknown time ago'
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-2 sm:flex sm:justify-between">
-                    <div className="sm:flex">
+
+                    <div className="flex items-center space-x-3">
                       <button
                         onClick={() => handleViewComments(issue)}
-                        className="flex items-center hover:text-blue-600"
+                        className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                       >
-                        <MessageSquare className="flex-shrink-0 mr-1.5 h-5 w-5" />
+                        <MessageSquare size={14} className="mr-1.5" />
                         View Comments
                       </button>
-                      <a
-                        href={issue.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center text-sm text-gray-600 hover:text-blue-600 ml-4"
+                      <a 
+                        href={issue.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                       >
                         View on GitHub
                       </a>
@@ -341,33 +362,39 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
-            </li>
-          ))}
-        </ul>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white border rounded-lg p-8 text-center w-full">
+            <p className="text-gray-500">
+              No issues found
+            </p>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          </div>
+        )}
+
+        {!isLoading && data?.hasMore && (
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={handleLoadMore}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+            >
+              Load More
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !data?.hasMore && allIssues.length > 0 && (
+          <div className="text-center text-gray-600 py-8">
+            No more issues to load
+          </div>
+        )}
       </div>
-
-      {isLoading && (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-        </div>
-      )}
-
-      {!isLoading && data?.hasMore && (
-        <div className="flex justify-center mt-6">
-          <button
-            onClick={handleLoadMore}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-          >
-            Load More
-          </button>
-        </div>
-      )}
-
-      {!isLoading && !data?.hasMore && allIssues.length > 0 && (
-        <div className="text-center text-gray-600 py-8">
-          No more issues to load
-        </div>
-      )}
 
       <CommentsModal
         isOpen={isCommentsModalOpen}
@@ -382,7 +409,7 @@ const Dashboard = () => {
         hasMoreComments={!!hasNextPage}
         isLoadingMore={isFetchingNextPage}
       />
-    </>
+    </div>
   );
 };
 

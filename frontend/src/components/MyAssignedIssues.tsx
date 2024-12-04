@@ -6,6 +6,21 @@ import { MessageCircle } from 'lucide-react';
 import type { Issue } from '../types/github';
 import CommentsModal, { Comment as ModalComment } from './CommentsModal';
 
+const getLabelColors = (color: string) => {
+  // Convert hex to RGB to check brightness
+  const r = parseInt(color.slice(0, 2), 16);
+  const g = parseInt(color.slice(2, 4), 16);
+  const b = parseInt(color.slice(4, 6), 16);
+  
+  // Calculate perceived brightness using YIQ formula
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  
+  return {
+    backgroundColor: `#${color}`,
+    color: yiq >= 128 ? '#000000' : '#ffffff'  // Use black text for light backgrounds, white for dark
+  };
+};
+
 const MyAssignedIssues = () => {
   const [issueState, setIssueState] = useState<string>('open');
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
@@ -106,11 +121,8 @@ const MyAssignedIssues = () => {
                       {issue.labels.map((label) => (
                         <span
                           key={label.name}
-                          className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
-                          style={{
-                            backgroundColor: `#${label.color}20`,
-                            color: `#${label.color}`
-                          }}
+                          className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
+                          style={getLabelColors(label.color)}
                         >
                           {label.name}
                         </span>
