@@ -95,7 +95,22 @@ const cacheMiddleware = duration => {
     next();
   };
 };
-app.get('/api/activity', authenticateToken, etagMiddleware, async (req, res) => {
+const etagMiddleware = (req, res, next) => {
+  const originalSend = res.send;
+  res.send = function (body) {
+    const generatedEtag = etag(JSON.stringify(body));
+    const clientEtag = req.headers['if-none-match'];
+    if (clientEtag && clientEtag === generatedEtag) {
+      res.status(304).send();
+      return;
+    }
+    res.setHeader('ETag', generatedEtag);
+    return originalSend.call(this, body);
+  };
+  next();
+};
+app.use(etagMiddleware);
+app.get('/api/activity', authenticateToken, async (req, res) => {
   try {
     const response = await axios.get('https://api.github.com/users/me/events', {
       headers: {
@@ -440,21 +455,6 @@ app.use((err, req, res, next) => {
   }
   next(err);
 });
-const etagMiddleware = (req, res, next) => {
-  const originalSend = res.send;
-  res.send = function (body) {
-    const generatedEtag = etag(JSON.stringify(body));
-    const clientEtag = req.headers['if-none-match'];
-    if (clientEtag && clientEtag === generatedEtag) {
-      res.status(304).send();
-      return;
-    }
-    res.setHeader('ETag', generatedEtag);
-    return originalSend.call(this, body);
-  };
-  next();
-};
-app.use(etagMiddleware);
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
