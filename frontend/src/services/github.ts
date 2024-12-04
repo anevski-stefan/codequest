@@ -212,4 +212,30 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
     console.error('Error adding comment:', error);
     throw error;
   }
+};
+
+export const getAssignedIssues = async (): Promise<IssueResponse> => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/issues/assigned`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return {
+      issues: data.issues,
+      totalCount: data.totalCount,
+      hasMore: false,
+      currentPage: 1
+    };
+  } catch (error) {
+    console.error('Failed to fetch assigned issues:', error);
+    throw error;
+  }
 }; 

@@ -300,6 +300,64 @@ app.get('/api/issues', authenticateToken, async (req, res) => {
   }
 });
 
+// Add after the existing /api/issues endpoint
+app.get('/api/issues/assigned', authenticateToken, async (req, res) => {
+  try {
+    // Add 'is:issue' to the search query to exclude pull requests
+    const searchQuery = 'is:issue assignee:@me';
+
+    const response = await axios.get('https://api.github.com/search/issues', {
+      headers: {
+        Authorization: `token ${req.user.accessToken}`,
+        Accept: 'application/vnd.github.v3+json'
+      },
+      params: {
+        q: searchQuery,
+        sort: 'updated',
+        order: 'desc',
+        per_page: 100 // Increase the number of results
+      }
+    });
+
+    const issuesWithDetails = response.data.items.map(item => ({
+      id: item.id,
+      number: item.number,
+      title: item.title,
+      body: item.body,
+      state: item.state,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      commentsCount: item.comments,
+      labels: item.labels.map(label => ({
+        name: label.name,
+        color: label.color
+      })),
+      repository: {
+        id: item.repository_url.split('/').pop(),
+        fullName: item.repository_url.split('/').slice(-2).join('/'),
+        url: item.html_url
+      },
+      user: {
+        login: item.user.login,
+        avatarUrl: item.user.avatar_url
+      },
+      url: item.html_url
+    }));
+
+    res.json({
+      issues: issuesWithDetails,
+      totalCount: response.data.total_count,
+      hasMore: false,
+      currentPage: 1
+    });
+  } catch (error) {
+    console.error('Error fetching assigned issues:', error.response?.data);
+    res.status(error.response?.status || 500).json({ 
+      error: error.response?.data?.message || 'Failed to fetch assigned issues'
+    });
+  }
+});
+
 // Keep both endpoints for now until we debug the issue
 app.get('/api/issues/:issueNumber/comments', authenticateToken, async (req, res) => {
   try {
