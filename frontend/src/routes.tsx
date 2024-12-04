@@ -5,6 +5,7 @@ import Login from './features/auth/Login';
 import Dashboard from './features/dashboard/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
 import AuthCallback from './features/auth/AuthCallback';
+import MyAssignedIssues from './components/MyAssignedIssues';
 const AppRoutes = () => {
   return <Routes>
       <Route element={<Layout />}>
@@ -13,6 +14,9 @@ const AppRoutes = () => {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/dashboard" element={<PrivateRoute>
               <Dashboard />
+            </PrivateRoute>} />
+        <Route path="/assigned" element={<PrivateRoute>
+              <MyAssignedIssues />
             </PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
