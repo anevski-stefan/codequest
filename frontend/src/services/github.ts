@@ -29,6 +29,8 @@ api.interceptors.response.use(response => {
 });
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   let searchQuery = 'is:issue ';
+  let startDate: string | undefined;
+  let endDate: string | undefined;
   if (params.language) {
     searchQuery += `language:${params.language} `;
   }
@@ -42,22 +44,33 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     });
   }
   if (params.timeFrame && params.timeFrame !== 'all') {
-    const date = new Date();
+    const now = new Date();
+    endDate = now.toISOString();
     switch (params.timeFrame) {
       case 'day':
-        date.setDate(date.getDate() - 1);
+        const yesterday = new Date(now);
+        yesterday.setHours(now.getHours() - 24);
+        yesterday.setMinutes(now.getMinutes());
+        yesterday.setSeconds(now.getSeconds());
+        startDate = yesterday.toISOString();
         break;
       case 'week':
-        date.setDate(date.getDate() - 7);
+        const lastWeek = new Date(now);
+        lastWeek.setDate(now.getDate() - 7);
+        startDate = lastWeek.toISOString();
         break;
       case 'month':
-        date.setMonth(date.getMonth() - 1);
+        const lastMonth = new Date(now);
+        lastMonth.setMonth(now.getMonth() - 1);
+        startDate = lastMonth.toISOString();
         break;
       case 'year':
-        date.setFullYear(date.getFullYear() - 1);
+        const lastYear = new Date(now);
+        lastYear.setFullYear(now.getFullYear() - 1);
+        startDate = lastYear.toISOString();
         break;
     }
-    searchQuery += `created:>=${date.toISOString().split('T')[0]} `;
+    searchQuery += `updated:>=${startDate} `;
   }
   if (params.commentsRange) {
     switch (params.commentsRange) {
@@ -80,13 +93,21 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   }
   const queryParams = new URLSearchParams({
     q: searchQuery.trim(),
-    sort: params.sort || 'created',
-    order: 'desc',
-    per_page: '30',
+    sort: 'updated',
+    order: params.direction || 'desc',
+    per_page: '100',
     page: params.page?.toString() || '1'
   });
+  console.log('Search query:', {
+    searchQuery,
+    sort: 'updated',
+    order: params.direction,
+    timeFrame: params.timeFrame,
+    fullQuery: `https://api.github.com/search/issues?${queryParams}`,
+    startDate: params.timeFrame !== 'all' ? startDate : null,
+    endDate: params.timeFrame !== 'all' ? endDate : null
+  });
   try {
-    console.log('Search query:', searchQuery);
     const response = await fetch(`https://api.github.com/search/issues?${queryParams}`, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
@@ -132,7 +153,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     return {
       issues: transformedIssues,
       totalCount: data.total_count,
-      hasMore: transformedIssues.length === 30,
+      hasMore: data.total_count > (params.page || 1) * 100,
       currentPage: parseInt(params.page?.toString() || '1')
     };
   } catch (error) {
