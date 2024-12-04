@@ -187,6 +187,9 @@ const Dashboard = () => {
       if (value === 'created-asc') {
         newFilter.sort = 'created';
         newFilter.direction = 'asc';
+      } else if (value === 'comments') {
+        newFilter.sort = 'comments';
+        newFilter.direction = 'desc';  // Always sort comments in descending order (most first)
       } else {
         newFilter.sort = value;
         newFilter.direction = 'desc';
