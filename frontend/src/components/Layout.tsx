@@ -10,15 +10,15 @@ const Layout = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col bg-gray-800 dark:bg-gray-800">
       {isAuthenticated && (
-        <nav className="bg-white dark:bg-gray-800 shadow">
+        <nav className="bg-gray-800 dark:bg-gray-800 shadow mt-4">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16 space-x-32">
               <div className="flex items-center">
                 <button 
                   onClick={() => navigate('/')}
-                  className="text-2xl font-bold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                  className="text-2xl font-bold text-gray-200 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-150"
                 >
                   GitHub Dashboard
                 </button>
