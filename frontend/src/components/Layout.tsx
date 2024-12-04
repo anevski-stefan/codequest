@@ -20,7 +20,7 @@ const Layout = () => {
                   onClick={() => navigate('/')}
                   className="text-2xl font-bold text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-150"
                 >
-                  GitHub Dashboard
+                  Code Quest
                 </button>
               </div>
               <div className="flex items-center space-x-4">

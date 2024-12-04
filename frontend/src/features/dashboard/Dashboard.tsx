@@ -262,7 +262,68 @@ const Dashboard = () => {
           />
           <FilterDropdown
             label="Language"
-            options={['', 'javascript', 'typescript', 'python', 'java', 'go', 'rust']}
+            options={[
+              '', // All Languages
+              // Popular Web Languages
+              'javascript',
+              'typescript',
+              'python',
+              'java',
+              'php',
+              'ruby',
+              'go',
+              'rust',
+              // Systems Programming
+              'c',
+              'cpp',
+              'csharp',
+              // Mobile Development
+              'swift',
+              'kotlin',
+              'dart',
+              // Other Popular Languages
+              'scala',
+              'r',
+              // Functional Languages
+              'elixir',
+              'haskell',
+              'clojure',
+              'erlang',
+              // Scientific Computing
+              'julia',
+              'matlab',
+              // Shell Scripting
+              'shell',
+              'powershell',
+              // Web Technologies
+              'html',
+              'css',
+              // Web Frameworks
+              'vue',
+              'svelte',
+              'angular',
+              'react',
+              // Additional Languages
+              'elm',
+              'ocaml',
+              'fsharp',
+              'fortran',
+              'cobol',
+              'pascal',
+              'prolog',
+              'scheme',
+              'groovy',
+              'objective-c',
+              'verilog',
+              'vhdl',
+              'solidity',
+              'crystal',
+              'nim',
+              'zig',
+              'lua',
+              'perl',
+              'assembly'
+            ]}
             value={filter.language}
             onChange={(value) => handleFilterChange('language', value as Language)}
           />
