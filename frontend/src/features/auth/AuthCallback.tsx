@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import axios from 'axios';
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -15,9 +16,14 @@ const AuthCallback = () => {
         if (!token) {
           throw new Error('No token received');
         }
+        const response = await axios.get('https://api.github.com/user', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
         login({
           token,
-          user: null
+          user: response.data
         });
         navigate('/dashboard');
       } catch (error) {
