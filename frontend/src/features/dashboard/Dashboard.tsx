@@ -188,6 +188,9 @@ const Dashboard = () => {
       if (value === 'created-asc') {
         newFilter.sort = 'created';
         newFilter.direction = 'asc';
+      } else if (value === 'comments') {
+        newFilter.sort = 'comments';
+        newFilter.direction = 'desc';
       } else {
         newFilter.sort = value;
         newFilter.direction = 'desc';

@@ -93,14 +93,14 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   }
   const queryParams = new URLSearchParams({
     q: searchQuery.trim(),
-    sort: 'updated',
+    sort: params.sort === 'comments' ? 'comments' : 'updated',
     order: params.direction || 'desc',
     per_page: '100',
     page: params.page?.toString() || '1'
   });
   console.log('Search query:', {
     searchQuery,
-    sort: 'updated',
+    sort: params.sort === 'comments' ? 'comments' : 'updated',
     order: params.direction,
     timeFrame: params.timeFrame,
     fullQuery: `https://api.github.com/search/issues?${queryParams}`,
