@@ -7,6 +7,7 @@ import type { Issue, IssueParams, Language } from '../../types/github';
 import debounce from 'lodash/debounce';
 import CommentsModal from '../../components/CommentsModal';
 import LabelsFilter from '../../components/LabelsFilter';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 const getStateColor = (state: string) => {
   switch (state.toLowerCase()) {
@@ -78,6 +79,7 @@ const Dashboard = () => {
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
+  const [initialFetchComplete, setInitialFetchComplete] = useState(false);
 
   // Comments query
   const { 
@@ -155,7 +157,7 @@ const Dashboard = () => {
     ['issues', filter],
     () => getIssues(filter),
     {
-      keepPreviousData: true,
+      keepPreviousData: false,
       staleTime: 60000,
       cacheTime: 300000,
       refetchOnWindowFocus: false,
@@ -166,9 +168,11 @@ const Dashboard = () => {
           setAllIssues(prev => [...prev, ...newData.issues]);
         }
         setIsFilterLoading(false);
+        setInitialFetchComplete(true);
       },
       onError: () => {
         setIsFilterLoading(false);
+        setInitialFetchComplete(true);
       }
     }
   );
@@ -178,9 +182,10 @@ const Dashboard = () => {
     refetch();
   }, [refetch]);
 
-  // Update handleFilterChange to properly handle sort direction
+  // Update handleFilterChange to reset initialFetchComplete
   const handleFilterChange = (key: keyof IssueParams, value: string | boolean | string[]) => {
     setIsFilterLoading(true);
+    setInitialFetchComplete(false);
     const newFilter = { 
       ...filter,
       [key]: value,
@@ -242,6 +247,8 @@ const Dashboard = () => {
       console.error('Error adding comment:', error);
     }
   };
+
+  const showLoadingSpinner = isLoading || !initialFetchComplete;
 
   return (
     <div className="w-full bg-white dark:bg-gray-800 min-h-screen">
@@ -351,7 +358,9 @@ const Dashboard = () => {
       </div>
 
       <div className="px-6">
-        {!isLoading && !isFilterLoading && (
+        {showLoadingSpinner ? (
+          <LoadingSpinner />
+        ) : (
           <div className="bg-white dark:bg-gray-700 rounded-lg shadow">
             {error instanceof Error && (
               <div className="text-center text-red-600 dark:text-red-400 p-4 mb-4 bg-red-50 dark:bg-red-900 rounded-lg w-full">
@@ -430,7 +439,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {!isLoading && !isFilterLoading && allIssues.length === 0 && (
+            {!isLoading && !isFilterLoading && !error && allIssues.length === 0 && initialFetchComplete && (
               <div className="bg-white dark:bg-gray-800 border rounded-lg p-8 text-center w-full">
                 <p className="text-gray-500 dark:text-gray-400">
                   No issues found
@@ -454,29 +463,6 @@ const Dashboard = () => {
                 No more issues to load
               </div>
             )}
-          </div>
-        )}
-
-        {(isLoading || isFilterLoading) && (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin h-8 w-8 text-blue-500">
-              <svg className="w-full h-full" viewBox="0 0 24 24">
-                <circle 
-                  className="opacity-25" 
-                  cx="12" 
-                  cy="12" 
-                  r="10" 
-                  stroke="currentColor" 
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path 
-                  className="opacity-75" 
-                  fill="currentColor" 
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-            </div>
           </div>
         )}
       </div>

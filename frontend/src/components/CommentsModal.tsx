@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Send, Loader2, ChevronUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export interface Comment {
   id: number;
@@ -103,9 +104,7 @@ export default function CommentsModal({
                     <div className="mt-4 space-y-4">
                       <div className="max-h-[400px] overflow-y-auto mb-6 pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
                         {isLoading ? (
-                          <div className="flex justify-center py-8">
-                            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                          </div>
+                          <LoadingSpinner size="sm" />
                         ) : displayedComments.length === 0 ? (
                           <p className="text-center text-gray-500 dark:text-gray-400 py-4">No comments yet</p>
                         ) : (
