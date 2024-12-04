@@ -40,6 +40,8 @@ api.interceptors.response.use(
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   // Build the base search query
   let searchQuery = 'is:issue '; // Ensure we're only getting issues
+  let startDate: string | undefined;
+  let endDate: string | undefined;
   
   // Add language filter
   if (params.language) {
@@ -54,30 +56,43 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   // Add labels filter with proper formatting
   if (params.labels && params.labels.length > 0) {
     params.labels.forEach(label => {
-      // Properly encode label names with spaces
       const encodedLabel = label.includes(' ') ? `"${label}"` : label;
       searchQuery += `label:${encodedLabel} `;
     });
   }
 
-  // Add time frame filter
+  // Add time frame filter with precise timestamp handling
   if (params.timeFrame && params.timeFrame !== 'all') {
-    const date = new Date();
+    const now = new Date();
+    endDate = now.toISOString();
+    
     switch (params.timeFrame) {
       case 'day':
-        date.setDate(date.getDate() - 1);
+        const yesterday = new Date(now);
+        yesterday.setHours(now.getHours() - 24);
+        yesterday.setMinutes(now.getMinutes());
+        yesterday.setSeconds(now.getSeconds());
+        startDate = yesterday.toISOString();
         break;
       case 'week':
-        date.setDate(date.getDate() - 7);
+        const lastWeek = new Date(now);
+        lastWeek.setDate(now.getDate() - 7);
+        startDate = lastWeek.toISOString();
         break;
       case 'month':
-        date.setMonth(date.getMonth() - 1);
+        const lastMonth = new Date(now);
+        lastMonth.setMonth(now.getMonth() - 1);
+        startDate = lastMonth.toISOString();
         break;
       case 'year':
-        date.setFullYear(date.getFullYear() - 1);
+        const lastYear = new Date(now);
+        lastYear.setFullYear(now.getFullYear() - 1);
+        startDate = lastYear.toISOString();
         break;
     }
-    searchQuery += `created:>=${date.toISOString().split('T')[0]} `;
+    
+    // Add the time range filter to match issues updated OR created in the time range
+    searchQuery += `updated:>=${startDate} `;
   }
   
   // Add comments range filter using GitHub's search syntax
@@ -106,15 +121,23 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   // Create query parameters with proper sorting
   const queryParams = new URLSearchParams({
     q: searchQuery.trim(),
-    sort: params.sort || 'created', // Default to created
-    order: 'desc', // Always show newest first
-    per_page: '30',
+    sort: 'updated',
+    order: params.direction || 'desc',
+    per_page: '100',
     page: params.page?.toString() || '1'
   });
 
+  console.log('Search query:', {
+    searchQuery,
+    sort: 'updated',
+    order: params.direction,
+    timeFrame: params.timeFrame,
+    fullQuery: `https://api.github.com/search/issues?${queryParams}`,
+    startDate: params.timeFrame !== 'all' ? startDate : null,
+    endDate: params.timeFrame !== 'all' ? endDate : null
+  });
+
   try {
-    console.log('Search query:', searchQuery);
-    
     const response = await fetch(`https://api.github.com/search/issues?${queryParams}`, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
@@ -136,7 +159,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
 
     const data = await response.json();
     
-    // Transform the response data to match our types
+    // Transform the response data
     const transformedIssues = data.items.map((item: any) => ({
       id: item.id,
       number: item.number,
@@ -165,7 +188,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     return {
       issues: transformedIssues,
       totalCount: data.total_count,
-      hasMore: transformedIssues.length === 30,
+      hasMore: data.total_count > (params.page || 1) * 100, // Check against total count
       currentPage: parseInt(params.page?.toString() || '1')
     };
   } catch (error) {

@@ -32,8 +32,8 @@ const timeFrameOptions = [
 ];
 
 const sortOptions = [
-  { value: 'newest', label: 'Newest First' },
-  { value: 'oldest', label: 'Oldest First' },
+  { value: 'created', label: 'Newest First' },
+  { value: 'created-asc', label: 'Oldest First' },
   { value: 'updated', label: 'Recently Updated' },
   { value: 'comments', label: 'Most Comments' }
 ];
@@ -65,6 +65,7 @@ const Dashboard = () => {
   const [filter, setFilter] = useState<IssueParams>({
     language: '',
     sort: 'created',
+    direction: 'desc',
     state: 'open',
     page: 1,
     timeFrame: 'all',
@@ -76,6 +77,7 @@ const Dashboard = () => {
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
 
   // Comments query
   const { 
@@ -163,26 +165,42 @@ const Dashboard = () => {
         } else {
           setAllIssues(prev => [...prev, ...newData.issues]);
         }
+        setIsFilterLoading(false);
+      },
+      onError: () => {
+        setIsFilterLoading(false);
       }
     }
   );
 
-  // Handle filter changes with debounce
+  // Update handleFilterChange to properly handle sort direction
   const handleFilterChange = (key: keyof IssueParams, value: string | boolean | string[]) => {
+    setIsFilterLoading(true);
     const newFilter = { 
       ...filter,
       [key]: value,
-      page: 1 // Reset page when filter changes
+      page: 1
     };
+
+    // Special handling for sort with type guard
+    if (key === 'sort' && typeof value === 'string') {
+      if (value === 'created-asc') {
+        newFilter.sort = 'created';
+        newFilter.direction = 'asc';
+      } else {
+        newFilter.sort = value;
+        newFilter.direction = 'desc';
+      }
+    }
 
     // If labels are being added and no timeFrame is set, default to recent items
     if (key === 'labels' && Array.isArray(value) && value.length > 0 && filter.timeFrame === 'all') {
-      newFilter.timeFrame = 'month'; // Default to last month for labeled issues
+      newFilter.timeFrame = 'month';
     }
 
-    // If unassigned is being unchecked, remove it from the filter
+    // If unassigned is being unchecked, set it to false instead of deleting
     if (key === 'unassigned' && value === false) {
-      delete newFilter.unassigned;
+      newFilter.unassigned = false;
     }
 
     debouncedSetFilter(newFilter);
@@ -230,8 +248,8 @@ const Dashboard = () => {
           <FilterDropdown
             label="Sort By"
             options={sortOptions}
-            value={filter.sort}
-            onChange={(value) => handleFilterChange('sort', value as IssueParams['sort'])}
+            value={filter.direction === 'asc' ? 'created-asc' : filter.sort}
+            onChange={(value) => handleFilterChange('sort', value)}
           />
           <FilterDropdown
             label="Comments"
@@ -264,117 +282,135 @@ const Dashboard = () => {
       </div>
 
       <div className="px-6">
-        <div className="bg-white dark:bg-gray-700 rounded-lg shadow">
-          {error instanceof Error && (
-            <div className="text-center text-red-600 dark:text-red-400 p-4 mb-4 bg-red-50 dark:bg-red-900 rounded-lg w-full">
-              {error.message || 'Failed to load issues'}
-            </div>
-          )}
-
-          {!isLoading && allIssues?.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700/50 shadow-sm divide-y divide-gray-200 dark:divide-gray-700/50 w-full">
-              {allIssues.map((issue) => (
-                <div key={`${issue.id}-${issue.number}`} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <a 
-                          href={issue.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-base font-medium text-gray-900 dark:text-white hover:text-blue-600"
-                        >
-                          {issue.title}
-                        </a>
-                        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                          {issue.repository?.fullName} #{issue.number}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 ml-4">
-                        {issue.labels.map((label) => (
-                          <span
-                            key={label.name}
-                            className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
-                            style={getLabelColors(label.color)}
+        {!isLoading && !isFilterLoading && (
+          <div className="bg-white dark:bg-gray-700 rounded-lg shadow">
+            {error instanceof Error && (
+              <div className="text-center text-red-600 dark:text-red-400 p-4 mb-4 bg-red-50 dark:bg-red-900 rounded-lg w-full">
+                {error.message || 'Failed to load issues'}
+              </div>
+            )}
+            {allIssues?.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700/50 shadow-sm divide-y divide-gray-200 dark:divide-gray-700/50 w-full">
+                {allIssues.map((issue) => (
+                  <div key={`${issue.id}-${issue.number}`} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <a 
+                            href={issue.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-base font-medium text-gray-900 dark:text-white hover:text-blue-600"
                           >
-                            {label.name}
+                            {issue.title}
+                          </a>
+                          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                            {issue.repository?.fullName} #{issue.number}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 ml-4">
+                          {issue.labels.map((label) => (
+                            <span
+                              key={label.name}
+                              className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
+                              style={getLabelColors(label.color)}
+                            >
+                              {label.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center space-x-4 text-gray-500 dark:text-gray-400">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getStateColor(issue.state)}`}>
+                            <span className={`w-2 h-2 rounded-full mr-2 ${
+                              issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'
+                            }`} />
+                            {issue.state}
                           </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-4 text-gray-500 dark:text-gray-400">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getStateColor(issue.state)}`}>
-                          <span className={`w-2 h-2 rounded-full mr-2 ${
-                            issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'
-                          }`} />
-                          {issue.state}
-                        </span>
-                        <span>•</span>
-                        <span>
-                          Updated {formatDistanceToNow(new Date(issue.updatedAt), { addSuffix: true })}
-                        </span>
-                        <span>•</span>
-                        <span>
-                          {issue.commentsCount} comments
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <button
-                          onClick={() => handleViewComments(issue)}
-                          className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
-                        >
-                          <MessageSquare size={14} className="mr-1.5" />
-                          View Comments
-                        </button>
-                        <a 
-                          href={issue.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
-                        >
-                          View on GitHub
-                        </a>
+                          <span>•</span>
+                          <span>
+                            Updated {formatDistanceToNow(new Date(issue.updatedAt), { addSuffix: true })}
+                          </span>
+                          <span>•</span>
+                          <span>
+                            {issue.commentsCount} comments
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => handleViewComments(issue)}
+                            className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
+                          >
+                            <MessageSquare size={14} className="mr-1.5" />
+                            View Comments
+                          </button>
+                          <a 
+                            href={issue.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
+                          >
+                            View on GitHub
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {!isLoading && allIssues.length === 0 && (
-            <div className="bg-white dark:bg-gray-800 border rounded-lg p-8 text-center w-full">
-              <p className="text-gray-500 dark:text-gray-400">
-                No issues found
-              </p>
+            {!isLoading && !isFilterLoading && allIssues.length === 0 && (
+              <div className="bg-white dark:bg-gray-800 border rounded-lg p-8 text-center w-full">
+                <p className="text-gray-500 dark:text-gray-400">
+                  No issues found
+                </p>
+              </div>
+            )}
+
+            {!isLoading && !isFilterLoading && data?.hasMore && allIssues.length > 0 && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={handleLoadMore}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  Load More
+                </button>
+              </div>
+            )}
+
+            {!isLoading && !isFilterLoading && !data?.hasMore && allIssues.length > 0 && (
+              <div className="text-center text-gray-600 dark:text-gray-400 py-8">
+                No more issues to load
+              </div>
+            )}
+          </div>
+        )}
+
+        {(isLoading || isFilterLoading) && (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin h-8 w-8 text-blue-500">
+              <svg className="w-full h-full" viewBox="0 0 24 24">
+                <circle 
+                  className="opacity-25" 
+                  cx="12" 
+                  cy="12" 
+                  r="10" 
+                  stroke="currentColor" 
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path 
+                  className="opacity-75" 
+                  fill="currentColor" 
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-
-      {isLoading && (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-        </div>
-      )}
-
-      {!isLoading && data?.hasMore && (
-        <div className="flex justify-center mt-6">
-          <button
-            onClick={handleLoadMore}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-          >
-            Load More
-          </button>
-        </div>
-      )}
-
-      {!isLoading && !data?.hasMore && allIssues.length > 0 && (
-        <div className="text-center text-gray-600 dark:text-gray-400 py-8">
-          No more issues to load
-        </div>
-      )}
 
       <CommentsModal
         isOpen={isCommentsModalOpen}
