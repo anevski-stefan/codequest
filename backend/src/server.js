@@ -7,6 +7,7 @@ const axios = require('axios');
 require('dotenv').config();
 const rateLimit = require('express-rate-limit');
 const cache = require('memory-cache');
+const etag = require('etag');
 
 const app = express();
 
@@ -127,7 +128,7 @@ const cacheMiddleware = (duration) => {
 };
 
 // Add activity endpoint
-app.get('/api/activity', authenticateToken, async (req, res) => {
+app.get('/api/activity', authenticateToken, etagMiddleware, async (req, res) => {
   try {
     const response = await axios.get('https://api.github.com/users/me/events', {
       headers: {
@@ -152,7 +153,7 @@ app.get('/api/activity', authenticateToken, async (req, res) => {
 });
 
 // Add issues endpoint with detailed status
-app.get('/api/issues', authenticateToken, async (req, res) => {
+app.get('/api/issues', authenticateToken, etagMiddleware, async (req, res) => {
   try {
     const { language, sort, state, page, timeFrame } = req.query;
     const cacheKey = `issues-${language}-${sort}-${state}-${page}-${timeFrame}`;
@@ -301,7 +302,7 @@ app.get('/api/issues', authenticateToken, async (req, res) => {
 });
 
 // Add after the existing /api/issues endpoint
-app.get('/api/issues/assigned', authenticateToken, async (req, res) => {
+app.get('/api/issues/assigned', authenticateToken, etagMiddleware, async (req, res) => {
   try {
     // Add 'is:issue' to the search query to exclude pull requests
     const searchQuery = 'is:issue assignee:@me';
@@ -359,7 +360,7 @@ app.get('/api/issues/assigned', authenticateToken, async (req, res) => {
 });
 
 // Keep both endpoints for now until we debug the issue
-app.get('/api/issues/:issueNumber/comments', authenticateToken, async (req, res) => {
+app.get('/api/issues/:issueNumber/comments', authenticateToken, etagMiddleware, async (req, res) => {
   try {
     const { issueNumber } = req.params;
     const { owner, repo } = req.query;
@@ -500,6 +501,38 @@ app.use((err, req, res, next) => {
   }
   next(err);
 });
+
+// Add after the rate limiting middleware
+const etagMiddleware = (req, res, next) => {
+  // Store the original send
+  const originalSend = res.send;
+
+  // Override res.send
+  res.send = function (body) {
+    // Generate ETag
+    const generatedEtag = etag(JSON.stringify(body));
+    
+    // Check if client sent If-None-Match header
+    const clientEtag = req.headers['if-none-match'];
+    
+    if (clientEtag && clientEtag === generatedEtag) {
+      // Return 304 if ETags match
+      res.status(304).send();
+      return;
+    }
+
+    // Set ETag header
+    res.setHeader('ETag', generatedEtag);
+    
+    // Call original send
+    return originalSend.call(this, body);
+  };
+
+  next();
+};
+
+// Apply the middleware globally
+app.use(etagMiddleware);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);

@@ -5,13 +5,37 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
 
+const etagStore = new Map<string, string>();
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
   }
+  
+  const etag = etagStore.get(config.url || '');
+  if (etag) {
+    config.headers['If-None-Match'] = etag;
+  }
+  
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => {
+    const etag = response.headers['etag'];
+    if (etag) {
+      etagStore.set(response.config.url || '', etag);
+    }
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 304) {
+      return Promise.resolve(error.response);
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   // Build the base search query
