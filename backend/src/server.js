@@ -7,6 +7,7 @@ const axios = require('axios');
 require('dotenv').config();
 const rateLimit = require('express-rate-limit');
 const cache = require('memory-cache');
+const etag = require('etag');
 const app = express();
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
@@ -94,7 +95,7 @@ const cacheMiddleware = duration => {
     next();
   };
 };
-app.get('/api/activity', authenticateToken, async (req, res) => {
+app.get('/api/activity', authenticateToken, etagMiddleware, async (req, res) => {
   try {
     const response = await axios.get('https://api.github.com/users/me/events', {
       headers: {
@@ -117,7 +118,7 @@ app.get('/api/activity', authenticateToken, async (req, res) => {
     });
   }
 });
-app.get('/api/issues', authenticateToken, async (req, res) => {
+app.get('/api/issues', authenticateToken, etagMiddleware, async (req, res) => {
   try {
     const {
       language,
@@ -246,7 +247,7 @@ app.get('/api/issues', authenticateToken, async (req, res) => {
     });
   }
 });
-app.get('/api/issues/assigned', authenticateToken, async (req, res) => {
+app.get('/api/issues/assigned', authenticateToken, etagMiddleware, async (req, res) => {
   try {
     const searchQuery = 'is:issue assignee:@me';
     const response = await axios.get('https://api.github.com/search/issues', {
@@ -298,7 +299,7 @@ app.get('/api/issues/assigned', authenticateToken, async (req, res) => {
     });
   }
 });
-app.get('/api/issues/:issueNumber/comments', authenticateToken, async (req, res) => {
+app.get('/api/issues/:issueNumber/comments', authenticateToken, etagMiddleware, async (req, res) => {
   try {
     const {
       issueNumber
@@ -439,6 +440,21 @@ app.use((err, req, res, next) => {
   }
   next(err);
 });
+const etagMiddleware = (req, res, next) => {
+  const originalSend = res.send;
+  res.send = function (body) {
+    const generatedEtag = etag(JSON.stringify(body));
+    const clientEtag = req.headers['if-none-match'];
+    if (clientEtag && clientEtag === generatedEtag) {
+      res.status(304).send();
+      return;
+    }
+    res.setHeader('ETag', generatedEtag);
+    return originalSend.call(this, body);
+  };
+  next();
+};
+app.use(etagMiddleware);
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
