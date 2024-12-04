@@ -10,7 +10,7 @@ const Layout = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {isAuthenticated && (
         <nav className="bg-white shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,7 +51,7 @@ const Layout = () => {
           </div>
         </nav>
       )}
-      <div className="container mx-auto">
+      <div className="flex-1 flex overflow-hidden">
         <Outlet />
       </div>
     </div>
