@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
 import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
 import { formatDistanceToNow } from 'date-fns';
-import { Search, ChevronDown, MessageSquare } from 'lucide-react';
+import { ChevronDown, MessageSquare } from 'lucide-react';
 import type { Issue, IssueParams, Language } from '../../types/github';
 import debounce from 'lodash/debounce';
 import CommentsModal from '../../components/CommentsModal';
@@ -62,7 +62,6 @@ const getLabelColors = (color: string) => {
 };
 
 const Dashboard = () => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<IssueParams>({
     language: '',
     sort: 'created',
@@ -219,23 +218,26 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="w-full">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4 w-full mt-8 px-6">
-        <div className="w-full sm:w-auto relative">
-          <input
-            type="text"
-            placeholder="Search issues..."
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+    <div className="w-full bg-gray-50 min-h-screen">
+      <div className="flex flex-col items-center mb-6 space-y-4 w-full mt-16 px-6">
+        <div className="flex flex-wrap gap-4 items-center justify-center">
+          <FilterDropdown
+            label="Time Frame"
+            options={timeFrameOptions}
+            value={filter.timeFrame}
+            onChange={(value) => handleFilterChange('timeFrame', value)}
           />
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
-        </div>
-        
-        <div className="flex space-x-4 w-full justify-end">
-          <LabelsFilter
-            selectedLabels={filter.labels || []}
-            onLabelsChange={(labels) => handleFilterChange('labels', labels)}
+          <FilterDropdown
+            label="Sort By"
+            options={sortOptions}
+            value={filter.sort}
+            onChange={(value) => handleFilterChange('sort', value as IssueParams['sort'])}
+          />
+          <FilterDropdown
+            label="Comments"
+            options={commentRanges}
+            value={filter.commentsRange || ''}
+            onChange={(value) => handleFilterChange('commentsRange', value)}
           />
           <FilterDropdown
             label="Language"
@@ -243,29 +245,9 @@ const Dashboard = () => {
             value={filter.language}
             onChange={(value) => handleFilterChange('language', value as Language)}
           />
-          <FilterDropdown
-            label="Sort"
-            options={sortOptions}
-            value={filter.sort}
-            onChange={(value) => handleFilterChange('sort', value as IssueParams['sort'])}
-          />
-          <FilterDropdown
-            label="State"
-            options={['open', 'closed']}
-            value={filter.state}
-            onChange={(value) => handleFilterChange('state', value as 'open' | 'closed')}
-          />
-          <FilterDropdown
-            label="Time"
-            options={timeFrameOptions.map(opt => ({ value: opt.value, label: opt.label }))}
-            value={filter.timeFrame || 'all'}
-            onChange={(value) => handleFilterChange('timeFrame', value)}
-          />
-          <FilterDropdown
-            label="Comments"
-            options={commentRanges}
-            value={filter.commentsRange || ''}
-            onChange={(value) => handleFilterChange('commentsRange', value)}
+          <LabelsFilter
+            selectedLabels={filter.labels || []}
+            onLabelsChange={(labels) => handleFilterChange('labels', labels)}
           />
           <div className="flex items-center">
             <label className="inline-flex items-center cursor-pointer">
@@ -281,14 +263,14 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6 w-full">
+      <div className="rounded-lg p-6 w-full">
         {error instanceof Error && (
           <div className="text-center text-red-600 p-4 mb-4 bg-red-50 rounded-lg w-full">
             {error.message || 'Failed to load issues'}
           </div>
         )}
 
-        {allIssues?.length > 0 ? (
+        {!isLoading && allIssues?.length > 0 && (
           <div className="bg-white rounded-lg border shadow-sm divide-y divide-gray-100 w-full">
             {allIssues.map((issue) => (
               <div key={`${issue.id}-${issue.number}`} className="p-4 hover:bg-gray-50 transition-colors">
@@ -364,37 +346,39 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
-        ) : (
+        )}
+
+        {!isLoading && allIssues.length === 0 && (
           <div className="bg-white border rounded-lg p-8 text-center w-full">
             <p className="text-gray-500">
               No issues found
             </p>
           </div>
         )}
-
-        {isLoading && (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-          </div>
-        )}
-
-        {!isLoading && data?.hasMore && (
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={handleLoadMore}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-            >
-              Load More
-            </button>
-          </div>
-        )}
-
-        {!isLoading && !data?.hasMore && allIssues.length > 0 && (
-          <div className="text-center text-gray-600 py-8">
-            No more issues to load
-          </div>
-        )}
       </div>
+
+      {isLoading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        </div>
+      )}
+
+      {!isLoading && data?.hasMore && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={handleLoadMore}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          >
+            Load More
+          </button>
+        </div>
+      )}
+
+      {!isLoading && !data?.hasMore && allIssues.length > 0 && (
+        <div className="text-center text-gray-600 py-8">
+          No more issues to load
+        </div>
+      )}
 
       <CommentsModal
         isOpen={isCommentsModalOpen}

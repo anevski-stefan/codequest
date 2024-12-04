@@ -12,9 +12,9 @@ const Layout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {isAuthenticated && (
-        <nav className="bg-white shadow-sm">
+        <nav className="mt-4">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
+            <div className="flex justify-between items-center h-16 space-x-32">
               <div className="flex items-center">
                 <button 
                   onClick={() => navigate('/')}
@@ -41,7 +41,7 @@ const Layout = () => {
                 </button>
                 <button
                   onClick={logout}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition duration-150 ease-in-out flex items-center"
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-100 rounded-md transition duration-150 ease-in-out flex items-center"
                 >
                   <LogOut className="h-5 w-5 mr-2" />
                   Logout
