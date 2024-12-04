@@ -42,11 +42,8 @@ const AuthCallback = () => {
   }, [searchParams, login, navigate]);
 
   return (
-    <div className="flex justify-center items-center h-screen">
-      <div className="text-center">
-        <h2 className="text-xl mb-4">Completing authentication...</h2>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-      </div>
+    <div className="flex justify-center items-center min-h-screen bg-inherit">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
     </div>
   );
 };
