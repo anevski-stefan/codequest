@@ -39,7 +39,7 @@ api.interceptors.response.use(
 
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   // Build the base search query
-  let searchQuery = 'is:issue '; // Ensure we're only getting issues
+  let searchQuery = 'is:issue is:unlocked '; // Only get issues that allow comments
   let startDate: string | undefined;
   let endDate: string | undefined;
   
