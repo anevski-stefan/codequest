@@ -244,13 +244,15 @@ const Dashboard = () => {
   };
   const showLoadingSpinner = isLoading || !initialFetchComplete;
   return <div className="w-full bg-white dark:bg-gray-800 min-h-screen">
-      <div className="bg-white dark:bg-gray-800 shadow mb-6 py-4 px-6">
-        <div className="flex flex-wrap gap-4 items-center justify-center">
+      <div className="bg-white dark:bg-gray-800 shadow mb-4 md:mb-6 py-3 md:py-4 px-3 md:px-6">
+        <div className="flex flex-wrap gap-2 md:gap-4 items-center justify-start md:justify-center">
           <FilterDropdown label="Time Frame" options={timeFrameOptions} value={filter.timeFrame} onChange={value => handleFilterChange('timeFrame', value)} />
           <FilterDropdown label="Sort By" options={sortOptions} value={filter.direction === 'asc' ? 'created-asc' : filter.sort} onChange={value => handleFilterChange('sort', value)} />
           <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange || ''} onChange={value => handleFilterChange('commentsRange', value)} />
           <FilterDropdown label="Language" options={['', 'javascript', 'typescript', 'python', 'java', 'php', 'ruby', 'go', 'rust', 'c', 'cpp', 'csharp', 'swift', 'kotlin', 'dart', 'scala', 'r', 'elixir', 'haskell', 'clojure', 'erlang', 'julia', 'matlab', 'shell', 'powershell', 'html', 'css', 'vue', 'svelte', 'angular', 'react', 'elm', 'ocaml', 'fsharp', 'fortran', 'cobol', 'pascal', 'prolog', 'scheme', 'groovy', 'objective-c', 'verilog', 'vhdl', 'solidity', 'crystal', 'nim', 'zig', 'lua', 'perl', 'assembly']} value={filter.language} onChange={value => handleFilterChange('language', value as Language)} />
-          <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={labels => handleFilterChange('labels', labels)} />
+          <div className="flex-grow md:flex-grow-0">
+            <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={labels => handleFilterChange('labels', labels)} />
+          </div>
           <div className="flex items-center">
             <label className="inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={filter.unassigned} onChange={e => handleFilterChange('unassigned', e.target.checked)} className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
@@ -260,52 +262,52 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="px-6">
-        {showLoadingSpinner ? <LoadingSpinner /> : <div className="bg-white dark:bg-gray-700 rounded-lg shadow">
-            {error instanceof Error && <div className="text-center text-red-600 dark:text-red-400 p-4 mb-4 bg-red-50 dark:bg-red-900 rounded-lg w-full">
+      <div className="px-3 md:px-6">
+        {showLoadingSpinner ? <LoadingSpinner /> : <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+            {error instanceof Error && <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 bg-red-50 dark:bg-red-900 rounded-lg w-full">
                 {error.message || 'Failed to load issues'}
               </div>}
             {allIssues?.length > 0 && <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700/50 shadow-sm divide-y divide-gray-200 dark:divide-gray-700/50 w-full">
-                {allIssues.map(issue => <div key={`${issue.id}-${issue.number}`} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                {allIssues.map(issue => <div key={`${issue.id}-${issue.number}`} className="p-3 md:p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <div className="flex flex-col gap-3">
-                      <div className="flex items-start justify-between">
+                      <div className="flex flex-col md:flex-row md:items-start justify-between">
                         <div className="flex-1">
-                          <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-base font-medium text-gray-900 dark:text-white hover:text-blue-600">
+                          <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-sm md:text-base font-medium text-gray-900 dark:text-white hover:text-blue-600">
                             {issue.title}
                           </a>
-                          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                          <p className="mt-0.5 text-xs md:text-sm text-gray-500 dark:text-gray-400">
                             {issue.repository?.fullName} #{issue.number}
                           </p>
                         </div>
-                        <div className="flex flex-wrap gap-1.5 ml-4">
-                          {issue.labels.map(label => <span key={label.name} className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap" style={getLabelColors(label.color)}>
+                        <div className="flex flex-wrap gap-1.5 mt-2 md:mt-0 md:ml-4">
+                          {issue.labels.map(label => <span key={label.name} className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap" style={getLabelColors(label.color)}>
                               {label.name}
                             </span>)}
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center space-x-4 text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0 text-sm">
+                        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:space-x-4 text-gray-500 dark:text-gray-400">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getStateColor(issue.state)}`}>
                             <span className={`w-2 h-2 rounded-full mr-2 ${issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'}`} />
                             {issue.state}
                           </span>
-                          <span>•</span>
-                          <span>
+                          <span className="hidden md:inline">•</span>
+                          <span className="text-xs md:text-sm">
                             Updated {formatDistanceToNow(new Date(issue.updatedAt), {
                       addSuffix: true
                     })}
                           </span>
-                          <span>•</span>
-                          <span>
+                          <span className="hidden md:inline">•</span>
+                          <span className="text-xs md:text-sm">
                             {issue.commentsCount} comments
                           </span>
                         </div>
-                        <div className="flex items-center space-x-3">
-                          <button onClick={() => handleViewComments(issue)} className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
+                        <div className="flex flex-wrap items-center gap-2 md:space-x-3">
+                          <button onClick={() => handleViewComments(issue)} className="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
                             <MessageSquare size={14} className="mr-1.5" />
                             View Comments
                           </button>
-                          <a href={issue.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
+                          <a href={issue.url} target="_blank" rel="noopener noreferrer" className="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
                             View on GitHub
                           </a>
                         </div>
@@ -320,13 +322,13 @@ const Dashboard = () => {
                 </p>
               </div>}
 
-            {!isLoading && !isFilterLoading && data?.hasMore && allIssues.length > 0 && <div className="flex justify-center mt-6">
-                <button onClick={handleLoadMore} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+            {!isLoading && !isFilterLoading && data?.hasMore && allIssues.length > 0 && <div className="flex justify-center my-4 md:my-6 px-4 bg-white dark:bg-gray-800">
+                <button onClick={handleLoadMore} className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm">
                   Load More
                 </button>
               </div>}
 
-            {!isLoading && !isFilterLoading && !data?.hasMore && allIssues.length > 0 && <div className="text-center text-gray-600 dark:text-gray-400 py-8">
+            {!isLoading && !isFilterLoading && !data?.hasMore && allIssues.length > 0 && <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8 px-4">
                 No more issues to load
               </div>}
           </div>}
@@ -354,7 +356,7 @@ function FilterDropdown({
   onChange
 }: FilterDropdownProps) {
   return <div className="relative">
-      <select className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg pl-3 pr-10 py-2 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" value={value} onChange={e => onChange(e.target.value)}>
+      <select className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg pl-2 md:pl-3 pr-8 md:pr-10 py-1.5 md:py-2 text-sm md:text-base text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[120px] md:min-w-[140px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" value={value} onChange={e => onChange(e.target.value)}>
         <option value="" disabled className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200">
           {label}
         </option>
@@ -362,7 +364,7 @@ function FilterDropdown({
             {typeof option === 'string' ? option ? option.charAt(0).toUpperCase() + option.slice(1) : 'All Languages' : option.label}
           </option>)}
       </select>
-      <ChevronDown className="absolute right-3 top-2.5 text-gray-500 dark:text-gray-400 pointer-events-none" size={20} />
+      <ChevronDown className="absolute right-2 md:right-3 top-1.5 md:top-2.5 text-gray-500 dark:text-gray-400 pointer-events-none" size={16} />
     </div>;
 }
 export default Dashboard;
