@@ -28,7 +28,7 @@ api.interceptors.response.use(response => {
   return Promise.reject(error);
 });
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
-  let searchQuery = 'is:issue ';
+  let searchQuery = 'is:issue is:unlocked ';
   let startDate: string | undefined;
   let endDate: string | undefined;
   if (params.language) {
