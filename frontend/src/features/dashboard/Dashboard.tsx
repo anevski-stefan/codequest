@@ -406,15 +406,74 @@ const Dashboard = () => {
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-2 md:mt-0 md:ml-4">
-                          {issue.labels.map((label) => (
-                            <span
-                              key={label.name}
-                              className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
-                              style={getLabelColors(label.color)}
-                            >
-                              {label.name}
-                            </span>
-                          ))}
+                          {issue.labels.length > 10 ? (
+                            <>
+                              {issue.labels.slice(0, 10).map((label) => (
+                                <span
+                                  key={label.name}
+                                  className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
+                                  style={getLabelColors(label.color)}
+                                >
+                                  {label.name}
+                                </span>
+                              ))}
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const dialog = document.createElement('dialog');
+                                  dialog.className = 'fixed inset-0 z-50 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md mx-auto mt-20 border border-gray-200 dark:border-gray-700';
+                                  
+                                  const content = document.createElement('div');
+                                  content.className = 'space-y-4';
+                                  
+                                  const title = document.createElement('h3');
+                                  title.className = 'text-lg font-semibold text-gray-900 dark:text-white mb-4';
+                                  title.textContent = 'All Labels';
+                                  content.appendChild(title);
+                                  
+                                  const labelsContainer = document.createElement('div');
+                                  labelsContainer.className = 'flex flex-wrap gap-2';
+                                  
+                                  issue.labels.forEach(label => {
+                                    const labelSpan = document.createElement('span');
+                                    labelSpan.className = 'inline-flex items-center px-2 py-1 text-sm font-medium rounded-full whitespace-nowrap';
+                                    labelSpan.textContent = label.name;
+                                    Object.assign(labelSpan.style, getLabelColors(label.color));
+                                    labelsContainer.appendChild(labelSpan);
+                                  });
+                                  content.appendChild(labelsContainer);
+                                  
+                                  const closeButton = document.createElement('button');
+                                  closeButton.className = 'mt-6 w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors';
+                                  closeButton.textContent = 'Close';
+                                  closeButton.onclick = () => dialog.close();
+                                  content.appendChild(closeButton);
+                                  
+                                  dialog.appendChild(content);
+                                  document.body.appendChild(dialog);
+                                  dialog.showModal();
+                                  
+                                  dialog.addEventListener('close', () => {
+                                    document.body.removeChild(dialog);
+                                  });
+                                }}
+                                className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
+                              >
+                                +{issue.labels.length - 10} more
+                              </button>
+                            </>
+                          ) : (
+                            issue.labels.map((label) => (
+                              <span
+                                key={label.name}
+                                className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
+                                style={getLabelColors(label.color)}
+                              >
+                                {label.name}
+                              </span>
+                            ))
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0 text-sm">
