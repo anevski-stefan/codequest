@@ -164,7 +164,7 @@ const Dashboard = () => {
     error,
     refetch
   } = useQuery<any, Error>(['issues', filter], () => getIssues(filter), {
-    keepPreviousData: false,
+    keepPreviousData: true,
     staleTime: 60000,
     cacheTime: 300000,
     refetchOnWindowFocus: false,
@@ -172,7 +172,11 @@ const Dashboard = () => {
       if (filter.page === 1) {
         setAllIssues(newData.issues);
       } else {
-        setAllIssues(prev => [...prev, ...newData.issues]);
+        setAllIssues(prev => {
+          const existingIds = new Set(prev.map(issue => `${issue.repository?.fullName}-${issue.number}`));
+          const newUniqueIssues = newData.issues.filter((issue: Issue) => !existingIds.has(`${issue.repository?.fullName}-${issue.number}`));
+          return [...prev, ...newUniqueIssues];
+        });
       }
       setIsFilterLoading(false);
       setInitialFetchComplete(true);
@@ -212,7 +216,6 @@ const Dashboard = () => {
       newFilter.unassigned = false;
     }
     debouncedSetFilter(newFilter);
-    setAllIssues([]);
   };
   const handleLoadMore = () => {
     setFilter(prev => ({
@@ -275,7 +278,7 @@ const Dashboard = () => {
                 {error.message || 'Failed to load issues'}
               </div>}
             {allIssues?.length > 0 && <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700/50 shadow-sm divide-y divide-gray-200 dark:divide-gray-700/50 w-full">
-                {allIssues.map(issue => <div key={`${issue.id}-${issue.number}`} className="p-3 md:p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                {allIssues.map(issue => <div key={`${issue.repository?.fullName}-${issue.number}`} className="p-3 md:p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <div className="flex flex-col gap-3">
                       <div className="flex flex-col md:flex-row md:items-start justify-between">
                         <div className="flex-1">
