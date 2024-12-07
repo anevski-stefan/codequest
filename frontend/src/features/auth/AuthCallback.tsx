@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import axios from 'axios';
-import LoadingSpinner from '../../components/LoadingSpinner';
 
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -45,11 +44,7 @@ const AuthCallback = () => {
     handleCallback();
   }, [searchParams, login, navigate]);
 
-  return (
-    <div className="flex justify-center items-center min-h-screen bg-inherit">
-      <LoadingSpinner />
-    </div>
-  );
+  return null;
 };
 
 export default AuthCallback; 

@@ -65,12 +65,12 @@ export default function LabelsFilter({ selectedLabels, onLabelsChange }: LabelsF
     <div className="relative">
       <div 
         onClick={handleContainerClick}
-        className="flex flex-wrap gap-2 p-2 border dark:border-gray-700 rounded-lg min-h-[42px] bg-white dark:bg-gray-800 cursor-text"
+        className="flex flex-wrap gap-2 p-2 border dark:border-gray-700 rounded-lg min-h-[42px] bg-white dark:bg-gray-800 cursor-text overflow-x-auto"
       >
         {selectedLabels.map(label => (
           <span
             key={label}
-            className="inline-flex items-center px-2 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+            className="inline-flex items-center px-2 py-1 rounded-full text-xssm:text-sm bg-blue-100 text-blue-800 whitespace-nowrap"
           >
             {label}
             <button
@@ -94,7 +94,7 @@ export default function LabelsFilter({ selectedLabels, onLabelsChange }: LabelsF
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}
           placeholder={selectedLabels.length === 0 ? "Add labels..." : ""}
-          className="flex-1 min-w-[100px] outline-none bg-transparent"
+          className="flex-1 min-w-[80px] sm:min-w-[100px] outline-none bg-transparent text-sm"
         />
       </div>
     </div>

@@ -102,7 +102,11 @@ export default function CommentsModal({
                       Comments
                     </Dialog.Title>
                     <div className="mt-4 space-y-4">
-                      <div className="max-h-[400px] overflow-y-auto mb-6 pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
+                      <div className="max-h-[400px] overflow-y-auto mb-6 pr-2 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-500 scrollbar-track-transparent hover:scrollbar-thumb-gray-500 dark:hover:scrollbar-thumb-gray-400"
+                        style={{
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: 'rgb(156 163 175) transparent'
+                        }}>
                         {isLoading ? (
                           <LoadingSpinner size="sm" />
                         ) : displayedComments.length === 0 ? (
