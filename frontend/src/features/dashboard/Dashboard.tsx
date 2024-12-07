@@ -214,11 +214,6 @@ const Dashboard = () => {
       }
     }
 
-    // If labels are being added and no timeFrame is set, default to recent items
-    if (key === 'labels' && Array.isArray(value) && value.length > 0 && filter.timeFrame === 'all') {
-      newFilter.timeFrame = 'month';
-    }
-
     // If unassigned is being unchecked, set it to false instead of deleting
     if (key === 'unassigned' && value === false) {
       newFilter.unassigned = false;
