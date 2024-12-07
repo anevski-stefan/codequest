@@ -613,6 +613,56 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+app.post('/api/newsletter/subscribe', express.json(), async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  try {
+    const response = await axios({
+      method: 'post',
+      url: `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_LIST_ID}/members`,
+      auth: {
+        username: 'anystring',
+        password: process.env.MAILCHIMP_API_KEY
+      },
+      data: {
+        email_address: email,
+        status: 'pending'
+      }
+    });
+
+    res.status(200).json({
+      message: 'Please check your email to confirm your subscription.'
+    });
+  } catch (error) {
+    console.error('Mailchimp error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      error: error.message
+    });
+
+    // Handle specific Mailchimp error cases
+    if (error.response?.status === 400 && error.response?.data?.title === 'Member Exists') {
+      return res.status(400).json({
+        error: 'You are already subscribed to our newsletter.'
+      });
+    }
+
+    if (error.response?.status === 400) {
+      return res.status(400).json({
+        error: error.response.data.detail || 'Invalid request'
+      });
+    }
+
+    res.status(500).json({
+      error: 'Failed to subscribe. Please try again later.'
+    });
+  }
+});
+
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
