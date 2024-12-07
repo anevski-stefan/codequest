@@ -209,9 +209,6 @@ const Dashboard = () => {
         newFilter.direction = 'desc';
       }
     }
-    if (key === 'labels' && Array.isArray(value) && value.length > 0 && filter.timeFrame === 'all') {
-      newFilter.timeFrame = 'month';
-    }
     if (key === 'unassigned' && value === false) {
       newFilter.unassigned = false;
     }
