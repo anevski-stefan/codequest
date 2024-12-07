@@ -245,15 +245,22 @@ const Dashboard = () => {
   const showLoadingSpinner = isLoading || !initialFetchComplete;
   return <div className="w-full bg-white dark:bg-gray-800 min-h-screen">
       <div className="bg-white dark:bg-gray-800 shadow mb-4 md:mb-6 py-3 md:py-4 px-3 md:px-6">
-        <div className="flex flex-wrap gap-2 md:gap-4 items-center justify-start md:justify-center">
-          <FilterDropdown label="Time Frame" options={timeFrameOptions} value={filter.timeFrame} onChange={value => handleFilterChange('timeFrame', value)} />
-          <FilterDropdown label="Sort By" options={sortOptions} value={filter.direction === 'asc' ? 'created-asc' : filter.sort} onChange={value => handleFilterChange('sort', value)} />
-          <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange || ''} onChange={value => handleFilterChange('commentsRange', value)} />
-          <FilterDropdown label="Language" options={['', 'javascript', 'typescript', 'python', 'java', 'php', 'ruby', 'go', 'rust', 'c', 'cpp', 'csharp', 'swift', 'kotlin', 'dart', 'scala', 'r', 'elixir', 'haskell', 'clojure', 'erlang', 'julia', 'matlab', 'shell', 'powershell', 'html', 'css', 'vue', 'svelte', 'angular', 'react', 'elm', 'ocaml', 'fsharp', 'fortran', 'cobol', 'pascal', 'prolog', 'scheme', 'groovy', 'objective-c', 'verilog', 'vhdl', 'solidity', 'crystal', 'nim', 'zig', 'lua', 'perl', 'assembly']} value={filter.language} onChange={value => handleFilterChange('language', value as Language)} />
-          <div className="flex-grow md:flex-grow-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 md:gap-4 items-start lg:items-center lg:justify-center">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+            <FilterDropdown label="Time Frame" options={timeFrameOptions} value={filter.timeFrame} onChange={value => handleFilterChange('timeFrame', value)} />
+            <FilterDropdown label="Sort By" options={sortOptions} value={filter.direction === 'asc' ? 'created-asc' : filter.sort} onChange={value => handleFilterChange('sort', value)} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+            <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange || ''} onChange={value => handleFilterChange('commentsRange', value)} />
+            <FilterDropdown label="Language" options={['', 'javascript', 'typescript', 'python', 'java', 'php', 'ruby', 'go', 'rust', 'c', 'cpp', 'csharp', 'swift', 'kotlin', 'dart', 'scala', 'r', 'elixir', 'haskell', 'clojure', 'erlang', 'julia', 'matlab', 'shell', 'powershell', 'html', 'css', 'vue', 'svelte', 'angular', 'react', 'elm', 'ocaml', 'fsharp', 'fortran', 'cobol', 'pascal', 'prolog', 'scheme', 'groovy', 'objective-c', 'verilog', 'vhdl', 'solidity', 'crystal', 'nim', 'zig', 'lua', 'perl', 'assembly']} value={filter.language} onChange={value => handleFilterChange('language', value as Language)} />
+          </div>
+
+          <div className="w-full lg:w-auto lg:flex-grow-0">
             <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={labels => handleFilterChange('labels', labels)} />
           </div>
-          <div className="flex items-center">
+
+          <div className="w-full lg:w-auto flex items-center justify-start">
             <label className="inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={filter.unassigned} onChange={e => handleFilterChange('unassigned', e.target.checked)} className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
               <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Unassigned only</span>
@@ -355,8 +362,8 @@ function FilterDropdown({
   value,
   onChange
 }: FilterDropdownProps) {
-  return <div className="relative">
-      <select className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg pl-2 md:pl-3 pr-8 md:pr-10 py-1.5 md:py-2 text-sm md:text-base text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[120px] md:min-w-[140px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" value={value} onChange={e => onChange(e.target.value)}>
+  return <div className="relative w-full">
+      <select className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg pl-2 md:pl-3 pr-8 md:pr-10 py-1.5 md:py-2 text-sm md:text-base text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" value={value} onChange={e => onChange(e.target.value)}>
         <option value="" disabled className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200">
           {label}
         </option>
