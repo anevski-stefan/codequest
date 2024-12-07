@@ -74,14 +74,28 @@ const Layout = () => {
           </div>
 
           {/* Mobile menu */}
-          <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:hidden`}>
-            <div className="px-2 pt-2 pb-3 space-y-1">
+          <div 
+            className="md:hidden absolute top-16 inset-x-0 bg-white dark:bg-gray-800 shadow-lg z-50"
+            style={{
+              opacity: isMobileMenuOpen ? 1 : 0,
+              visibility: isMobileMenuOpen ? 'visible' : 'hidden',
+              transition: 'opacity 0.3s ease-in-out, visibility 0.3s ease-in-out',
+              minHeight: '120px'
+            }}
+          >
+            <div className="px-2 pt-4 pb-4 space-y-3">
               <button
                 onClick={() => {
                   navigate('/profile');
                   setIsMobileMenuOpen(false);
                 }}
-                className="block w-full text-left px-3 py-2 text-base font-medium text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                className="block w-full text-left px-3 py-3 text-base font-medium text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                style={{
+                  transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
+                  opacity: isMobileMenuOpen ? 1 : 0,
+                  transition: 'all 0.2s ease-out',
+                  transitionDelay: '75ms'
+                }}
               >
                 Profile
               </button>
@@ -90,7 +104,13 @@ const Layout = () => {
                   logout();
                   setIsMobileMenuOpen(false);
                 }}
-                className="block w-full text-left px-3 py-2 text-base font-medium text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                className="block w-full text-left px-3 py-3 text-base font-medium text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                style={{
+                  transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
+                  opacity: isMobileMenuOpen ? 1 : 0,
+                  transition: 'all 0.2s ease-out',
+                  transitionDelay: '150ms'
+                }}
               >
                 Logout
               </button>
