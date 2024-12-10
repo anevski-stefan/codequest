@@ -10,7 +10,7 @@ const LoadingSpinner = ({
     md: 'h-8 w-8',
     lg: 'h-12 w-12'
   };
-  return <div className="flex justify-center items-center min-h-[200px] w-full">
+  return <div className="flex justify-center items-center py-8">
       <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-500`} />
     </div>;
 };
