@@ -20,13 +20,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-indigo-950 dark:via-gray-900 dark:to-black">
+    <div className="flex min-h-screen w-full bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900">
       {/* Nav */}
-      <nav className="fixed top-0 w-full z-50 px-8 py-5 bg-white/80 dark:bg-black/20 backdrop-blur-lg border-b border-gray-200 dark:border-white/10">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900 dark:bg-clip-text dark:text-transparent dark:bg-gradient-to-r dark:from-blue-400 dark:to-violet-400">
+      <nav className="fixed top-0 w-full z-50 px-8 py-5 bg-white/80 dark:bg-transparent backdrop-blur-lg border-b border-gray-200 dark:border-white/10">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <button 
+            onClick={() => navigate('/')} 
+            className="text-xl font-bold text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
+          >
             Code Quest
-          </h1>
+          </button>
           <a href="#" className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
             Need help?
           </a>
@@ -34,11 +37,11 @@ const Login = () => {
       </nav>
 
       {/* Main Content */}
-      <div className="min-h-screen pt-20">
-        <div className="grid lg:grid-cols-2 h-[calc(100vh-5rem)]">
+      <div className="min-h-screen pt-20 w-full">
+        <div className="grid lg:grid-cols-2 h-[calc(100vh-5rem)] w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           {/* Left Column - Main Content */}
-          <div className="flex items-center px-16 lg:border-r border-gray-200 dark:border-white/10">
-            <div className="space-y-12 w-full max-w-2xl">
+          <div className="flex items-center justify-center lg:border-r border-gray-200 dark:border-white/10">
+            <div className="space-y-12 w-full max-w-md">
               <div className="space-y-6">
                 <div className="inline-flex items-center px-4 py-2 bg-blue-50 dark:bg-blue-500/10 rounded-full border border-blue-100 dark:border-blue-500/20">
                   <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
@@ -69,8 +72,8 @@ const Login = () => {
           </div>
 
           {/* Right Column - Newsletter */}
-          <div className="flex items-center px-16">
-            <div className="w-full max-w-2xl">
+          <div className="flex items-center justify-center">
+            <div className="w-full max-w-md">
               <div className="bg-gray-50 dark:bg-white/5 rounded-2xl p-8 border border-gray-200 
                 dark:border-white/10 dark:backdrop-blur-xl">
                 <div className="space-y-6">

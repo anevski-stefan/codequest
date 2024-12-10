@@ -12,15 +12,15 @@ const Layout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-800">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-[#0B1222]">
       {isAuthenticated && (
-        <nav className="bg-white dark:bg-gray-800 shadow mt-4">
+        <nav className="bg-white/80 dark:bg-transparent backdrop-blur-lg shadow mt-4">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center">
                 <button 
                   onClick={() => navigate('/dashboard')}
-                  className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-150"
+                  className="text-xl sm:text-2xl font-bold text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
                 >
                   Code Quest
                 </button>
@@ -49,7 +49,7 @@ const Layout = () => {
               <div className="hidden md:flex items-center space-x-4">
                 <button
                   onClick={() => navigate('/profile')}
-                  className="flex items-center space-x-2 hover:text-indigo-600 dark:hover:text-indigo-400"
+                  className="flex items-center space-x-2"
                 >
                   <div className="relative w-10 h-10 overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-full">
                     <img
@@ -58,13 +58,13 @@ const Layout = () => {
                       className="h-full w-full object-cover"
                     />
                   </div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400">
+                  <span className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
                     {user?.login}
                   </span>
                 </button>
                 <button
                   onClick={logout}
-                  className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition duration-150 ease-in-out flex items-center"
+                  className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors flex items-center"
                 >
                   <LogOut className="h-5 w-5 mr-2" />
                   Logout
@@ -75,7 +75,7 @@ const Layout = () => {
 
           {/* Mobile menu */}
           <div 
-            className="md:hidden absolute top-16 inset-x-0 bg-white dark:bg-gray-800 shadow-lg z-50"
+            className="md:hidden absolute top-16 inset-x-0 bg-white/80 dark:bg-transparent backdrop-blur-lg shadow-lg z-50"
             style={{
               opacity: isMobileMenuOpen ? 1 : 0,
               visibility: isMobileMenuOpen ? 'visible' : 'hidden',
@@ -89,7 +89,7 @@ const Layout = () => {
                   navigate('/profile');
                   setIsMobileMenuOpen(false);
                 }}
-                className="block w-full text-left px-3 py-3 text-base font-medium text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md"
                 style={{
                   transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
                   opacity: isMobileMenuOpen ? 1 : 0,
@@ -104,7 +104,7 @@ const Layout = () => {
                   logout();
                   setIsMobileMenuOpen(false);
                 }}
-                className="block w-full text-left px-3 py-3 text-base font-medium text-gray-900 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md"
                 style={{
                   transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
                   opacity: isMobileMenuOpen ? 1 : 0,

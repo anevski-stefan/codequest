@@ -15,7 +15,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <Router>
           <div className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>
-            <div className="min-h-screen bg-white dark:bg-gray-900">
+            <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900">
               <AppRoutes />
             </div>
           </div>

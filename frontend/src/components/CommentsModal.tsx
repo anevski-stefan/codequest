@@ -86,12 +86,12 @@ export default function CommentsModal({
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                <div className="bg-white dark:bg-gray-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white dark:bg-[#0B1222] text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                <div className="bg-white/90 dark:bg-[#0B1222]/80 backdrop-blur-lg px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                   <div className="absolute right-0 top-0 pr-4 pt-4">
                     <button
                       type="button"
-                      className="rounded-md bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                      className="rounded-md bg-white/90 dark:bg-black/30 backdrop-blur-lg text-gray-600 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
                       onClick={onClose}
                     >
                       <X className="h-6 w-6" aria-hidden="true" />
@@ -114,7 +114,7 @@ export default function CommentsModal({
                         ) : (
                           <>
                             {hasMoreComments && (
-                              <div className="flex justify-center py-2 sticky top-0 bg-white dark:bg-gray-800 shadow-sm">
+                              <div className="flex justify-center py-2 bg-white/90 dark:bg-black/30 backdrop-blur-lg shadow-sm">
                                 <button
                                   onClick={onLoadMore}
                                   disabled={isLoadingMore}
@@ -130,7 +130,7 @@ export default function CommentsModal({
                               </div>
                             )}
                             {displayedComments.map((comment) => (
-                              <div key={comment.id} className="mb-6 last:mb-0 bg-gray-100 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                              <div key={comment.id} className="mb-6 last:mb-0 bg-white/90 dark:bg-black/30 backdrop-blur-lg rounded-lg p-4 hover:bg-gray-50/50 dark:hover:bg-white/10 transition-colors">
                                 <div className="flex items-start space-x-4">
                                   <img
                                     src={comment.user.avatar_url}
@@ -160,7 +160,7 @@ export default function CommentsModal({
                       <form onSubmit={handleSubmit} className="space-y-4">
                         <textarea
                           rows={3}
-                          className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                          className="w-full p-3 border border-gray-300 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white/90 dark:bg-black/30 backdrop-blur-lg text-gray-900 dark:text-gray-200"
                           placeholder="Add a comment..."
                           value={newComment}
                           onChange={(e) => setNewComment(e.target.value)}

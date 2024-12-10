@@ -41,7 +41,6 @@ const sortOptions = [
 
 const commentRanges = [
   { value: '', label: 'Any Comments' },
-  { value: '0', label: 'No Comments' },
   { value: '1-5', label: '1-5 Comments' },
   { value: '6-10', label: '6-10 Comments' },
   { value: '10+', label: '10+ Comments' }
@@ -253,291 +252,305 @@ const Dashboard = () => {
   const showLoadingSpinner = isLoading || !initialFetchComplete;
 
   return (
-    <div className="w-full bg-white dark:bg-gray-800 min-h-screen">
-      <div className="bg-white dark:bg-gray-800 shadow mb-4 md:mb-6 py-3 md:py-4 px-3 md:px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 md:gap-4 items-start lg:items-center lg:justify-center">
-          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
-            <FilterDropdown
-              label="Time Frame"
-              options={timeFrameOptions}
-              value={filter.timeFrame}
-              onChange={(value) => handleFilterChange('timeFrame', value)}
-            />
-            <FilterDropdown
-              label="Sort By"
-              options={sortOptions}
-              value={filter.direction === 'asc' ? 'created-asc' : filter.sort}
-              onChange={(value) => handleFilterChange('sort', value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
-            <FilterDropdown
-              label="Comments"
-              options={commentRanges}
-              value={filter.commentsRange || ''}
-              onChange={(value) => handleFilterChange('commentsRange', value)}
-            />
-            <FilterDropdown
-              label="Language"
-              options={[
-                '',
-                // Popular Web Languages
-                'javascript',
-                'typescript',
-                'python',
-                'java',
-                'php',
-                'ruby',
-                'go',
-                'rust',
-                // Systems Programming
-                'c',
-                'cpp',
-                'csharp',
-                // Mobile Development
-                'swift',
-                'kotlin',
-                'dart',
-                // Other Popular Languages
-                'scala',
-                'r',
-                // Functional Languages
-                'elixir',
-                'haskell',
-                'clojure',
-                'erlang',
-                // Scientific Computing
-                'julia',
-                'matlab',
-                // Shell Scripting
-                'shell',
-                'powershell',
-                // Web Technologies
-                'html',
-                'css',
-                // Web Frameworks
-                'vue',
-                'svelte',
-                'angular',
-                'react',
-                // Additional Languages
-                'elm',
-                'ocaml',
-                'fsharp',
-                'fortran',
-                'cobol',
-                'pascal',
-                'prolog',
-                'scheme',
-                'groovy',
-                'objective-c',
-                'verilog',
-                'vhdl',
-                'solidity',
-                'crystal',
-                'nim',
-                'zig',
-                'lua',
-                'perl',
-                'assembly'
-              ]}
-              value={filter.language}
-              onChange={(value) => handleFilterChange('language', value as Language)}
-            />
-          </div>
-
-          <div className="w-full lg:w-auto lg:flex-grow-0">
-            <LabelsFilter
-              selectedLabels={filter.labels || []}
-              onLabelsChange={(labels) => handleFilterChange('labels', labels)}
-            />
-          </div>
-
-          <div className="w-full lg:w-auto flex items-center justify-start">
-            <label className="inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={filter.unassigned}
-                onChange={(e) => handleFilterChange('unassigned', e.target.checked)}
-                className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
+    <div className="flex min-h-screen w-full">
+      <div className="w-full">
+        <div className="p-3 md:p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 md:gap-4 items-start lg:items-center lg:justify-center">
+            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+              <FilterDropdown
+                label="Time Frame"
+                options={timeFrameOptions}
+                value={filter.timeFrame}
+                onChange={(value) => handleFilterChange('timeFrame', value)}
               />
-              <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Unassigned only</span>
-            </label>
+              <FilterDropdown
+                label="Sort By"
+                options={sortOptions}
+                value={filter.direction === 'asc' ? 'created-asc' : filter.sort}
+                onChange={(value) => handleFilterChange('sort', value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+              <FilterDropdown
+                label="Comments"
+                options={commentRanges}
+                value={filter.commentsRange || ''}
+                onChange={(value) => handleFilterChange('commentsRange', value)}
+              />
+              <FilterDropdown
+                label="Language"
+                options={[
+                  '',
+                  // Popular Web Languages
+                  'javascript',
+                  'typescript',
+                  'python',
+                  'java',
+                  'php',
+                  'ruby',
+                  'go',
+                  'rust',
+                  // Systems Programming
+                  'c',
+                  'cpp',
+                  'csharp',
+                  // Mobile Development
+                  'swift',
+                  'kotlin',
+                  'dart',
+                  // Other Popular Languages
+                  'scala',
+                  'r',
+                  // Functional Languages
+                  'elixir',
+                  'haskell',
+                  'clojure',
+                  'erlang',
+                  // Scientific Computing
+                  'julia',
+                  'matlab',
+                  // Shell Scripting
+                  'shell',
+                  'powershell',
+                  // Web Technologies
+                  'html',
+                  'css',
+                  // Web Frameworks
+                  'vue',
+                  'svelte',
+                  'angular',
+                  'react',
+                  // Additional Languages
+                  'elm',
+                  'ocaml',
+                  'fsharp',
+                  'fortran',
+                  'cobol',
+                  'pascal',
+                  'prolog',
+                  'scheme',
+                  'groovy',
+                  'objective-c',
+                  'verilog',
+                  'vhdl',
+                  'solidity',
+                  'crystal',
+                  'nim',
+                  'zig',
+                  'lua',
+                  'perl',
+                  'assembly'
+                ]}
+                value={filter.language}
+                onChange={(value) => handleFilterChange('language', value as Language)}
+              />
+            </div>
+
+            <div className="w-full lg:w-auto lg:flex-grow-0">
+              <LabelsFilter
+                selectedLabels={filter.labels || []}
+                onLabelsChange={(labels) => handleFilterChange('labels', labels)}
+              />
+            </div>
+
+            <div className="w-full lg:w-auto flex items-center justify-start">
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filter.unassigned}
+                  onChange={(e) => handleFilterChange('unassigned', e.target.checked)}
+                  className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
+                />
+                <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Unassigned only</span>
+              </label>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="px-3 md:px-6">
-        {showLoadingSpinner ? (
-          <LoadingSpinner />
-        ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-            {error instanceof Error && (
-              <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 bg-red-50 dark:bg-red-900 rounded-lg w-full">
-                {error.message || 'Failed to load issues'}
-              </div>
-            )}
-            {allIssues?.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700/50 shadow-sm divide-y divide-gray-200 dark:divide-gray-700/50 w-full">
-                {allIssues.map((issue) => (
-                  <div 
-                    key={`${issue.repository?.fullName}-${issue.number}`} 
-                    className="p-3 md:p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <div className="flex flex-col gap-3">
-                      <div className="flex flex-col md:flex-row md:items-start justify-between">
-                        <div className="flex-1">
-                          <a 
-                            href={issue.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-sm md:text-base font-medium text-gray-900 dark:text-white hover:text-blue-600"
-                          >
-                            {issue.title}
-                          </a>
-                          <p className="mt-0.5 text-xs md:text-sm text-gray-500 dark:text-gray-400">
-                            {issue.repository?.fullName} #{issue.number}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 mt-2 md:mt-0 md:ml-4">
-                          {issue.labels.length > 10 ? (
-                            <>
-                              {issue.labels.slice(0, 10).map((label) => (
-                                <span
-                                  key={label.name}
-                                  className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
-                                  style={getLabelColors(label.color)}
-                                >
-                                  {label.name}
-                                </span>
-                              ))}
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  const dialog = document.createElement('dialog');
-                                  dialog.className = 'fixed inset-0 z-50 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md mx-auto mt-20 border border-gray-200 dark:border-gray-700';
-                                  
-                                  const content = document.createElement('div');
-                                  content.className = 'space-y-4';
-                                  
-                                  const title = document.createElement('h3');
-                                  title.className = 'text-lg font-semibold text-gray-900 dark:text-white mb-4';
-                                  title.textContent = 'All Labels';
-                                  content.appendChild(title);
-                                  
-                                  const labelsContainer = document.createElement('div');
-                                  labelsContainer.className = 'flex flex-wrap gap-2';
-                                  
-                                  issue.labels.forEach(label => {
-                                    const labelSpan = document.createElement('span');
-                                    labelSpan.className = 'inline-flex items-center px-2 py-1 text-sm font-medium rounded-full whitespace-nowrap';
-                                    labelSpan.textContent = label.name;
-                                    Object.assign(labelSpan.style, getLabelColors(label.color));
-                                    labelsContainer.appendChild(labelSpan);
-                                  });
-                                  content.appendChild(labelsContainer);
-                                  
-                                  const closeButton = document.createElement('button');
-                                  closeButton.className = 'mt-6 w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors';
-                                  closeButton.textContent = 'Close';
-                                  closeButton.onclick = () => dialog.close();
-                                  content.appendChild(closeButton);
-                                  
-                                  dialog.appendChild(content);
-                                  document.body.appendChild(dialog);
-                                  dialog.showModal();
-                                  
-                                  dialog.addEventListener('close', () => {
-                                    document.body.removeChild(dialog);
-                                  });
-                                }}
-                                className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
+        <div className="p-3 md:p-4">
+          {showLoadingSpinner ? (
+            <div className="min-h-[200px]">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            <div className="min-h-[200px]">
+              {error instanceof Error && (
+                <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 rounded-lg w-full">
+                  {error.message || 'Failed to load issues'}
+                </div>
+              )}
+              
+              {allIssues?.length > 0 && (
+                <div className="space-y-3 md:space-y-4">
+                  {allIssues.map((issue) => (
+                    <div 
+                      key={`${issue.repository?.fullName}-${issue.number}`} 
+                      className="relative py-3 md:py-4 group"
+                    >
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gray-50/5 dark:bg-white/5 transition-opacity rounded-lg" />
+                      <div className="relative">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex flex-col md:flex-row md:items-start justify-between">
+                            <div className="flex-1">
+                              <a 
+                                href={issue.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-sm md:text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
                               >
-                                +{issue.labels.length - 10} more
-                              </button>
-                            </>
-                          ) : (
-                            issue.labels.map((label) => (
-                              <span
-                                key={label.name}
-                                className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap"
-                                style={getLabelColors(label.color)}
-                              >
-                                {label.name}
+                                {issue.title}
+                              </a>
+                              <p className="mt-0.5 text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                                {issue.repository?.fullName} #{issue.number}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 mt-2 md:mt-0 md:ml-4">
+                              {issue.labels.length > 10 ? (
+                                <>
+                                  {issue.labels.slice(0, 10).map((label) => (
+                                    <span
+                                      key={label.name}
+                                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap max-w-[120px]"
+                                      style={getLabelColors(label.color)}
+                                      title={label.name}
+                                    >
+                                      <span className="truncate">
+                                        {label.name.length > 20 ? `${label.name.slice(0, 20)}...` : label.name}
+                                      </span>
+                                    </span>
+                                  ))}
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      const dialog = document.createElement('dialog');
+                                      dialog.className = 'fixed inset-0 z-50 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md mx-auto mt-20 border border-gray-200 dark:border-gray-700';
+                                      
+                                      const content = document.createElement('div');
+                                      content.className = 'space-y-4';
+                                      
+                                      const title = document.createElement('h3');
+                                      title.className = 'text-lg font-semibold text-gray-900 dark:text-white mb-4';
+                                      title.textContent = 'All Labels';
+                                      content.appendChild(title);
+                                      
+                                      const labelsContainer = document.createElement('div');
+                                      labelsContainer.className = 'flex flex-wrap gap-2';
+                                      
+                                      issue.labels.forEach(label => {
+                                        const labelSpan = document.createElement('span');
+                                        labelSpan.className = 'inline-flex items-center px-2 py-1 text-sm font-medium rounded-full whitespace-nowrap';
+                                        labelSpan.textContent = label.name;
+                                        Object.assign(labelSpan.style, getLabelColors(label.color));
+                                        labelsContainer.appendChild(labelSpan);
+                                      });
+                                      content.appendChild(labelsContainer);
+                                      
+                                      const closeButton = document.createElement('button');
+                                      closeButton.className = 'mt-6 w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors';
+                                      closeButton.textContent = 'Close';
+                                      closeButton.onclick = () => dialog.close();
+                                      content.appendChild(closeButton);
+                                      
+                                      dialog.appendChild(content);
+                                      document.body.appendChild(dialog);
+                                      dialog.showModal();
+                                      
+                                      dialog.addEventListener('close', () => {
+                                        document.body.removeChild(dialog);
+                                      });
+                                    }}
+                                    className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
+                                  >
+                                    +{issue.labels.length - 10} more
+                                  </button>
+                                </>
+                              ) : (
+                                issue.labels.map((label) => (
+                                  <span
+                                    key={label.name}
+                                    className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap max-w-[120px]"
+                                    style={getLabelColors(label.color)}
+                                    title={label.name}
+                                  >
+                                    <span className="truncate">
+                                      {label.name.length > 20 ? `${label.name.slice(0, 20)}...` : label.name}
+                                    </span>
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0 text-sm">
+                            <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:space-x-4 text-gray-500 dark:text-gray-400">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getStateColor(issue.state)}`}>
+                                <span className={`w-2 h-2 rounded-full mr-2 ${
+                                  issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'
+                                }`} />
+                                {issue.state}
                               </span>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0 text-sm">
-                        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:space-x-4 text-gray-500 dark:text-gray-400">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getStateColor(issue.state)}`}>
-                            <span className={`w-2 h-2 rounded-full mr-2 ${
-                              issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'
-                            }`} />
-                            {issue.state}
-                          </span>
-                          <span className="hidden md:inline">•</span>
-                          <span className="text-xs md:text-sm">
-                            Updated {formatDistanceToNow(new Date(issue.updatedAt), { addSuffix: true })}
-                          </span>
-                          <span className="hidden md:inline">•</span>
-                          <span className="text-xs md:text-sm">
-                            {issue.commentsCount} comments
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 md:space-x-3">
-                          <button
-                            onClick={() => handleViewComments(issue)}
-                            className="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
-                          >
-                            <MessageSquare size={14} className="mr-1.5" />
-                            View Comments
-                          </button>
-                          <a 
-                            href={issue.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
-                          >
-                            View on GitHub
-                          </a>
+                              <span className="hidden md:inline">•</span>
+                              <span className="text-xs md:text-sm">
+                                Updated {formatDistanceToNow(new Date(issue.updatedAt), { addSuffix: true })}
+                              </span>
+                              <span className="hidden md:inline">•</span>
+                              <span className="text-xs md:text-sm">
+                                {issue.commentsCount} comments
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 md:space-x-3">
+                              <button
+                                onClick={() => handleViewComments(issue)}
+                                className="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
+                              >
+                                <MessageSquare size={14} className="mr-1.5" />
+                                View Comments
+                              </button>
+                              <a 
+                                href={issue.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="flex-1 md:flex-none inline-flex items-center justify-center px-3 py-1.5 text-xs md:text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
+                              >
+                                View on GitHub
+                              </a>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
 
-            {!isLoading && !isFilterLoading && !error && allIssues.length === 0 && initialFetchComplete && (
-              <div className="bg-white dark:bg-gray-800 border rounded-lg p-8 text-center w-full">
-                <p className="text-gray-500 dark:text-gray-400">
-                  No issues found
-                </p>
-              </div>
-            )}
+              {!isLoading && !isFilterLoading && !error && allIssues.length === 0 && initialFetchComplete && (
+                <div className="text-center p-8">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    No issues found
+                  </p>
+                </div>
+              )}
 
-            {!isLoading && !isFilterLoading && data?.hasMore && allIssues.length > 0 && (
-              <div className="flex justify-center my-4 md:my-6 px-4 bg-white dark:bg-gray-800">
-                <button
-                  onClick={handleLoadMore}
-                  className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm"
-                >
-                  Load More
-                </button>
-              </div>
-            )}
+              {!isLoading && !isFilterLoading && data?.hasMore && allIssues.length > 0 && (
+                <div className="flex justify-center mt-4 md:mt-6">
+                  <button
+                    onClick={handleLoadMore}
+                    className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm"
+                  >
+                    Load More
+                  </button>
+                </div>
+              )}
 
-            {!isLoading && !isFilterLoading && !data?.hasMore && allIssues.length > 0 && (
-              <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8 px-4">
-                No more issues to load
-              </div>
-            )}
-          </div>
-        )}
+              {!isLoading && !isFilterLoading && !data?.hasMore && allIssues.length > 0 && (
+                <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8">
+                  No more issues to load
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <CommentsModal
@@ -565,21 +578,23 @@ interface FilterDropdownProps {
 }
 
 function FilterDropdown({ label, options, value, onChange }: FilterDropdownProps) {
+  const isCommentsFilter = label === "Comments";
+  const defaultValue = isCommentsFilter ? "" : value;
+
   return (
     <div className="relative w-full">
       <select
-        className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg pl-2 md:pl-3 pr-8 md:pr-10 py-1.5 md:py-2 text-sm md:text-base text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none bg-white dark:bg-[#0B1222] border border-gray-300 dark:border-white/10 rounded-lg pl-2 md:pl-3 pr-8 md:pr-10 py-1.5 md:py-2 text-sm md:text-base text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors dark:[&>option]:bg-[#0B1222] [&>option]:bg-white"
+        value={defaultValue}
+        onChange={(e) => {
+          onChange(e.target.value);
+        }}
       >
-        <option value="" disabled className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200">
-          {label}
-        </option>
         {options.map((option) => (
           <option 
             key={typeof option === 'string' ? option : option.value} 
             value={typeof option === 'string' ? option : option.value}
-            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200"
+            className="bg-white dark:!bg-[#0B1222] text-gray-700 dark:!text-gray-300"
           >
             {typeof option === 'string' 
               ? (option ? option.charAt(0).toUpperCase() + option.slice(1) : 'All Languages')
@@ -587,7 +602,7 @@ function FilterDropdown({ label, options, value, onChange }: FilterDropdownProps
           </option>
         ))}
       </select>
-      <ChevronDown className="absolute right-2 md:right-3 top-1.5 md:top-2.5 text-gray-500 dark:text-gray-400 pointer-events-none" size={16} />
+      <ChevronDown className="absolute right-2 md:right-3 top-1.5 md:top-2.5 text-gray-400" size={16} />
     </div>
   );
 }

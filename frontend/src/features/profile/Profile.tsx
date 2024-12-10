@@ -23,16 +23,16 @@ const Profile = () => {
   const isMainProfile = location.pathname === '/profile';
 
   return (
-    <div className="flex flex-col md:flex-row flex-1 bg-gray-50 dark:bg-gray-800 mt-8">
+    <div className="flex flex-col md:flex-row flex-1 bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900 mt-8">
       {/* Side Navigation - Mobile Dropdown */}
       <div className="md:hidden px-4 mb-4">
         <select
           onChange={(e) => navigate(e.target.value)}
           value={location.pathname}
-          className="w-full p-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          className="w-full p-2 border rounded-lg bg-white/80 dark:bg-black/20 backdrop-blur-lg text-gray-900 dark:text-white border-gray-200 dark:border-white/10"
         >
           {navigationItems.map((item) => (
-            <option key={item.path} value={item.path}>
+            <option key={item.path} value={item.path} className="bg-white dark:bg-black/20">
               {item.label}
             </option>
           ))}
@@ -40,13 +40,13 @@ const Profile = () => {
       </div>
 
       {/* Side Navigation - Desktop */}
-      <div className="hidden md:block w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700">
+      <div className="hidden md:block w-64 bg-transparent shadow-sm border-r border-gray-200 dark:border-white/10">
         <div className="p-6">
           <div className="flex flex-col items-center">
             <img
               src={user?.avatar_url}
               alt="Profile"
-              className="w-24 h-24 rounded-full border-2 border-gray-200 dark:border-gray-600"
+              className="w-24 h-24 rounded-full border-2 border-gray-200 dark:border-white/10"
             />
             <h2 className="mt-4 text-xl font-semibold dark:text-white">{user?.login}</h2>
             <p className="text-gray-600 dark:text-gray-400">{user?.email}</p>
@@ -61,8 +61,8 @@ const Profile = () => {
                     className={({ isActive }) =>
                       `flex items-center px-4 py-2 rounded-lg transition-colors ${
                         isActive
-                          ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          ? 'bg-blue-50/50 dark:bg-white/5 text-blue-600 dark:text-blue-400'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50/50 dark:hover:bg-white/5'
                       }`
                     }
                   >
@@ -77,11 +77,11 @@ const Profile = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 bg-gray-50 dark:bg-gray-800 overflow-auto">
+      <div className="flex-1 p-4 md:p-6 overflow-auto">
         <div className="w-full max-w-5xl mx-auto">
           {isMainProfile ? (
             <>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6 mb-6">
+              <div className="bg-white/80 dark:bg-black/20 backdrop-blur-lg rounded-lg shadow p-4 md:p-6 mb-6 border border-gray-200 dark:border-white/10">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
                   Contribution Activity
                 </h3>
@@ -91,13 +91,13 @@ const Profile = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6">
+                <div className="bg-white/80 dark:bg-black/20 backdrop-blur-lg rounded-lg shadow p-4 md:p-6 border border-gray-200 dark:border-white/10">
                   <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
                     Recent Activity
                   </h3>
                   {/* Add recent activity content */}
                 </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6">
+                <div className="bg-white/80 dark:bg-black/20 backdrop-blur-lg rounded-lg shadow p-4 md:p-6 border border-gray-200 dark:border-white/10">
                   <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
                     Statistics
                   </h3>

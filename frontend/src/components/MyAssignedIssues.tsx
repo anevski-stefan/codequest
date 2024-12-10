@@ -79,13 +79,13 @@ const MyAssignedIssues = () => {
 
   return (
     <div className="w-full">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-        <div className="flex justify-between items-center mb-6 pb-4">
+      <div className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow">
+        <div className="flex justify-between items-center mb-6 p-6 border-b border-gray-200 dark:border-white/10">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">My Assigned Issues</h1>
           <select
             value={issueState}
             onChange={(e) => setIssueState(e.target.value)}
-            className="px-3 py-1.5 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-1.5 text-sm border rounded-md bg-white/80 dark:bg-black/20 backdrop-blur-lg text-gray-900 dark:text-white border-gray-200 dark:border-white/10 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="open">Open</option>
             <option value="closed">Closed</option>
@@ -93,9 +93,9 @@ const MyAssignedIssues = () => {
         </div>
 
         {data?.issues && data.issues.length > 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border shadow-sm divide-y divide-gray-100 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200 dark:divide-white/10">
             {data.issues.map((issue: Issue) => (
-              <div key={issue.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <div key={issue.id} className="p-4 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -163,7 +163,7 @@ const MyAssignedIssues = () => {
             ))}
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 border rounded-lg p-8 text-center">
+          <div className="p-8 text-center">
             <p className="text-gray-500 dark:text-gray-400">
               No {issueState} issues assigned to you
             </p>
