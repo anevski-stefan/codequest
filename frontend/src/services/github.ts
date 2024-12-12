@@ -92,7 +92,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     }
     
     // Add the time range filter to match issues updated OR created in the time range
-    searchQuery += `updated:>=${startDate} `;
+    searchQuery += `${params.sort}:>=${startDate} `;
   }
   
   // Add comments range filter using GitHub's search syntax
@@ -121,7 +121,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   // Create query parameters with proper sorting
   const queryParams = new URLSearchParams({
     q: searchQuery.trim(),
-    sort: params.sort === 'comments' ? 'comments' : 'updated',  // Use comments sort when specified
+    sort: params.sort,  // Use the actual sort parameter from the filter
     order: params.direction || 'desc',
     per_page: '100',
     page: params.page?.toString() || '1'
@@ -129,7 +129,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
 
   console.log('Search query:', {
     searchQuery,
-    sort: params.sort === 'comments' ? 'comments' : 'updated',
+    sort: params.sort,
     order: params.direction,
     timeFrame: params.timeFrame,
     fullQuery: `https://api.github.com/search/issues?${queryParams}`,
