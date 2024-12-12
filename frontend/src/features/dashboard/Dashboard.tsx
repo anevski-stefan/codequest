@@ -1,79 +1,16 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
 import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronDown, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import type { Issue, IssueParams, Language } from '../../types/github';
 import debounce from 'lodash/debounce';
 import CommentsModal from '../../components/CommentsModal';
 import LabelsFilter from '../../components/LabelsFilter';
 import LoadingSpinner from '../../components/LoadingSpinner';
-const getStateColor = (state: string) => {
-  switch (state.toLowerCase()) {
-    case 'open':
-      return 'bg-green-100 text-green-800';
-    case 'closed':
-      return 'bg-red-100 text-red-800';
-    case 'completed':
-      return 'bg-blue-100 text-blue-800';
-    case 'not planned':
-      return 'bg-gray-100 text-gray-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
-const timeFrameOptions = [{
-  value: 'all',
-  label: 'All Time'
-}, {
-  value: 'day',
-  label: 'Last 24 Hours'
-}, {
-  value: 'week',
-  label: 'Last Week'
-}, {
-  value: 'month',
-  label: 'Last Month'
-}, {
-  value: 'year',
-  label: 'Last Year'
-}];
-const sortOptions = [{
-  value: 'created',
-  label: 'Newest First'
-}, {
-  value: 'created-asc',
-  label: 'Oldest First'
-}, {
-  value: 'updated',
-  label: 'Recently Updated'
-}, {
-  value: 'comments',
-  label: 'Most Comments'
-}];
-const commentRanges = [{
-  value: '',
-  label: 'Any Comments'
-}, {
-  value: '1-5',
-  label: '1-5 Comments'
-}, {
-  value: '6-10',
-  label: '6-10 Comments'
-}, {
-  value: '10+',
-  label: '10+ Comments'
-}];
-const getLabelColors = (color: string) => {
-  const r = parseInt(color.slice(0, 2), 16);
-  const g = parseInt(color.slice(2, 4), 16);
-  const b = parseInt(color.slice(4, 6), 16);
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return {
-    backgroundColor: `#${color}`,
-    color: yiq >= 128 ? '#000000' : '#ffffff'
-  };
-};
+import { FilterDropdown } from './components/FilterDropdown';
+import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from './constants/filterOptions';
+import { getStateColor, getLabelColors } from './utils/filterUtils';
 const Dashboard = () => {
   const [filter, setFilter] = useState<IssueParams>({
     language: '',
@@ -150,22 +87,29 @@ const Dashboard = () => {
     }
   });
   const debouncedSetFilter = useCallback(debounce((newFilter: IssueParams) => {
+    console.log('Debounced setFilter executing with:', newFilter);
     setFilter(newFilter);
-    if (newFilter.page === 1) {
-      setAllIssues([]);
-    }
+    setInitialFetchComplete(false);
   }, 500), []);
   const {
     data,
     isLoading,
-    error,
-    refetch
-  } = useQuery<any, Error>(['issues', filter], () => getIssues(filter), {
+    error
+  } = useQuery<any, Error>(['issues', filter], () => {
+    console.log('Executing query with filter:', filter);
+    return getIssues(filter);
+  }, {
     keepPreviousData: true,
-    staleTime: 60000,
+    staleTime: 0,
     cacheTime: 300000,
     refetchOnWindowFocus: false,
+    enabled: true,
     onSuccess: newData => {
+      console.log('Query success:', {
+        totalIssues: newData.issues.length,
+        hasMore: newData.hasMore,
+        filter
+      });
       if (filter.page === 1) {
         setAllIssues(newData.issues);
       } else {
@@ -178,15 +122,17 @@ const Dashboard = () => {
       setIsFilterLoading(false);
       setInitialFetchComplete(true);
     },
-    onError: () => {
+    onError: error => {
+      console.error('Query error:', error);
       setIsFilterLoading(false);
       setInitialFetchComplete(true);
     }
   });
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
   const handleFilterChange = (key: keyof IssueParams, value: string | boolean | string[]) => {
+    console.log('Filter change:', {
+      key,
+      value
+    });
     setIsFilterLoading(true);
     setInitialFetchComplete(false);
     const newFilter = {
@@ -195,6 +141,10 @@ const Dashboard = () => {
       page: 1
     };
     if (key === 'sort' && typeof value === 'string') {
+      console.log('Sort before:', {
+        sort: newFilter.sort,
+        direction: newFilter.direction
+      });
       if (value === 'created-asc') {
         newFilter.sort = 'created';
         newFilter.direction = 'asc';
@@ -205,10 +155,12 @@ const Dashboard = () => {
         newFilter.sort = value;
         newFilter.direction = 'desc';
       }
+      console.log('Sort after:', {
+        sort: newFilter.sort,
+        direction: newFilter.direction
+      });
     }
-    if (key === 'unassigned' && value === false) {
-      newFilter.unassigned = false;
-    }
+    console.log('New filter:', newFilter);
     debouncedSetFilter(newFilter);
   };
   const handleLoadMore = () => {
@@ -251,7 +203,13 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
               <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange || ''} onChange={value => handleFilterChange('commentsRange', value)} />
-              <FilterDropdown label="Language" options={['', 'javascript', 'typescript', 'python', 'java', 'php', 'ruby', 'go', 'rust', 'c', 'cpp', 'csharp', 'swift', 'kotlin', 'dart', 'scala', 'r', 'elixir', 'haskell', 'clojure', 'erlang', 'julia', 'matlab', 'shell', 'powershell', 'html', 'css', 'vue', 'svelte', 'angular', 'react', 'elm', 'ocaml', 'fsharp', 'fortran', 'cobol', 'pascal', 'prolog', 'scheme', 'groovy', 'objective-c', 'verilog', 'vhdl', 'solidity', 'crystal', 'nim', 'zig', 'lua', 'perl', 'assembly']} value={filter.language} onChange={value => handleFilterChange('language', value as Language)} />
+              <FilterDropdown label="Language" options={[{
+              value: '',
+              label: 'All Languages'
+            }, ...languageOptions.slice(1).map(lang => ({
+              value: lang,
+              label: lang.charAt(0).toUpperCase() + lang.slice(1)
+            }))]} value={filter.language} onChange={value => handleFilterChange('language', value as Language)} />
             </div>
 
             <div className="w-full lg:w-auto lg:flex-grow-0">
@@ -346,9 +304,11 @@ const Dashboard = () => {
                               </span>
                               <span className="hidden md:inline">•</span>
                               <span className="text-xs md:text-sm">
-                                Updated {formatDistanceToNow(new Date(issue.updatedAt), {
+                                {filter.sort === 'updated' ? `Updated ${formatDistanceToNow(new Date(issue.updatedAt), {
                           addSuffix: true
-                        })}
+                        })}` : `Created ${formatDistanceToNow(new Date(issue.createdAt), {
+                          addSuffix: true
+                        })}`}
                               </span>
                               <span className="hidden md:inline">•</span>
                               <span className="text-xs md:text-sm">
@@ -395,32 +355,4 @@ const Dashboard = () => {
     }} comments={allComments} isLoading={isLoadingComments} onAddComment={handleAddComment} onLoadMore={() => fetchNextPage()} hasMoreComments={!!hasNextPage} isLoadingMore={isFetchingNextPage} />
     </div>;
 };
-interface FilterDropdownProps {
-  label: string;
-  options: string[] | {
-    value: string;
-    label: string;
-  }[];
-  value: string;
-  onChange: (value: string) => void;
-}
-function FilterDropdown({
-  label,
-  options,
-  value,
-  onChange
-}: FilterDropdownProps) {
-  const isCommentsFilter = label === "Comments";
-  const defaultValue = isCommentsFilter ? "" : value;
-  return <div className="relative w-full">
-      <select className="w-full appearance-none bg-white dark:bg-[#0B1222] border border-gray-300 dark:border-white/10 rounded-lg pl-2 md:pl-3 pr-8 md:pr-10 py-1.5 md:py-2 text-sm md:text-base text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors dark:[&>option]:bg-[#0B1222] [&>option]:bg-white" value={defaultValue} onChange={e => {
-      onChange(e.target.value);
-    }}>
-        {options.map(option => <option key={typeof option === 'string' ? option : option.value} value={typeof option === 'string' ? option : option.value} className="bg-white dark:!bg-[#0B1222] text-gray-700 dark:!text-gray-300">
-            {typeof option === 'string' ? option ? option.charAt(0).toUpperCase() + option.slice(1) : 'All Languages' : option.label}
-          </option>)}
-      </select>
-      <ChevronDown className="absolute right-2 md:right-3 top-1.5 md:top-2.5 text-gray-400" size={16} />
-    </div>;
-}
 export default Dashboard;

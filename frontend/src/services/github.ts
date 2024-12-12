@@ -70,7 +70,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
         startDate = lastYear.toISOString();
         break;
     }
-    searchQuery += `updated:>=${startDate} `;
+    searchQuery += `${params.sort}:>=${startDate} `;
   }
   if (params.commentsRange) {
     switch (params.commentsRange) {
@@ -93,14 +93,14 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   }
   const queryParams = new URLSearchParams({
     q: searchQuery.trim(),
-    sort: params.sort === 'comments' ? 'comments' : 'updated',
+    sort: params.sort,
     order: params.direction || 'desc',
     per_page: '100',
     page: params.page?.toString() || '1'
   });
   console.log('Search query:', {
     searchQuery,
-    sort: params.sort === 'comments' ? 'comments' : 'updated',
+    sort: params.sort,
     order: params.direction,
     timeFrame: params.timeFrame,
     fullQuery: `https://api.github.com/search/issues?${queryParams}`,
