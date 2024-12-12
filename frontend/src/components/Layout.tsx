@@ -63,6 +63,12 @@ const Layout = () => {
                   </span>
                 </button>
                 <button
+                  onClick={() => navigate('/suggested')}
+                  className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
+                >
+                  Suggested Issues
+                </button>
+                <button
                   onClick={logout}
                   className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors flex items-center"
                 >
@@ -98,6 +104,21 @@ const Layout = () => {
                 }}
               >
                 Profile
+              </button>
+              <button
+                onClick={() => {
+                  navigate('/suggested');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md"
+                style={{
+                  transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
+                  opacity: isMobileMenuOpen ? 1 : 0,
+                  transition: 'all 0.2s ease-out',
+                  transitionDelay: '75ms'
+                }}
+              >
+                Suggested Issues
               </button>
               <button
                 onClick={() => {

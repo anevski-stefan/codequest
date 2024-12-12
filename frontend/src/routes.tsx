@@ -9,6 +9,7 @@ import Profile from './features/profile/Profile';
 import ProfileOverview from './features/profile/ProfileOverview';
 import ProfileActivity from './features/profile/ProfileActivity';
 import ProfileSettings from './features/profile/ProfileSettings';
+import SuggestedIssues from './features/suggested/SuggestedIssues';
 
 const AppRoutes = () => {
   return (
@@ -37,6 +38,14 @@ const AppRoutes = () => {
           <Route path="activity" element={<ProfileActivity />} />
           <Route path="settings" element={<ProfileSettings />} />
         </Route>
+        <Route
+          path="/suggested"
+          element={
+            <PrivateRoute>
+              <SuggestedIssues />
+            </PrivateRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

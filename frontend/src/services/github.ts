@@ -271,4 +271,114 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
     console.error('Failed to fetch assigned issues:', error);
     throw error;
   }
+};
+
+export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResponse> => {
+  let searchQuery = 'is:issue is:open no:assignee '; 
+  
+  // Handle labels without parentheses
+  if (params.labels && params.labels.length > 0) {
+    // Use the most important labels first
+    searchQuery += 'label:"good first issue" label:"help wanted" ';
+  }
+
+  // Add comments filter
+  if (params.commentsRange === '0') {
+    searchQuery += 'comments:0 ';
+  }
+
+  // Use GitHub's date range syntax
+  if (params.timeFrame === 'month') {
+    searchQuery += 'created:2024-01-01..* ';  // From start of 2024 to now
+  }
+
+  // Log the query for debugging
+  console.log('Final search query:', searchQuery);
+
+  const queryParams = new URLSearchParams({
+    q: searchQuery.trim(),
+    sort: params.sort,
+    order: params.direction || 'desc',
+    per_page: '100',
+    page: params.page?.toString() || '1'
+  });
+
+  // Add logging
+  console.log('Suggested Issues Search query:', {
+    searchQuery,
+    sort: params.sort,
+    order: params.direction,
+    fullQuery: `https://api.github.com/search/issues?${queryParams}`,
+    labels: params.labels
+  });
+
+  try {
+    const response = await fetch(`https://api.github.com/search/issues?${queryParams}`, {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'X-GitHub-Api-Version': '2022-11-28'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        query: searchQuery
+      });
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Add response data logging
+    console.log('GitHub API Response:', {
+      totalCount: data.total_count,
+      itemsCount: data.items?.length,
+      firstItem: data.items?.[0],
+      rateLimit: {
+        remaining: response.headers.get('x-ratelimit-remaining'),
+        limit: response.headers.get('x-ratelimit-limit'),
+        reset: response.headers.get('x-ratelimit-reset')
+      }
+    });
+
+    const transformedIssues = data.items.map((item: any) => ({
+      id: item.id,
+      number: item.number,
+      title: item.title,
+      body: item.body,
+      state: item.state,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      commentsCount: item.comments,
+      labels: item.labels.map((label: any) => ({
+        name: label.name,
+        color: label.color
+      })),
+      repository: {
+        id: item.repository_url.split('/').pop(),
+        fullName: item.repository_url.split('/').slice(-2).join('/'),
+        url: item.repository_url
+      },
+      user: {
+        login: item.user.login,
+        avatarUrl: item.user.avatar_url
+      },
+      url: item.html_url
+    }));
+
+    return {
+      issues: transformedIssues,
+      totalCount: data.total_count,
+      hasMore: data.total_count > (params.page || 1) * 100,
+      currentPage: parseInt(params.page?.toString() || '1')
+    };
+  } catch (error) {
+    console.error('Failed to fetch suggested issues:', error);
+    throw error;
+  }
 }; 
