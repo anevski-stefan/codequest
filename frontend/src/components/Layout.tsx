@@ -48,7 +48,7 @@ const Layout = () => {
               {/* Desktop navigation */}
               <div className="hidden md:flex items-center space-x-4">
                 <button
-                  onClick={() => navigate('/profile')}
+                  onClick={() => navigate('/profile/assigned')}
                   className="flex items-center space-x-2"
                 >
                   <div className="relative w-10 h-10 overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-full">
