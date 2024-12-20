@@ -70,7 +70,7 @@ app.use(passport.session());
 passport.use(new GitHubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: process.env.GITHUB_CALLBACK_URL || "https://codequest-4ncz.vercel.app/auth/github/callback",
+    callbackURL: "https://codequest-4ncz.vercel.app/auth/github/callback",
     scope: ['repo', 'read:user', 'user:email'],
     proxy: true
   },
