@@ -23,6 +23,10 @@ const NewsletterForm = () => {
       setStatus('success');
       setMessage(response.data.message);
       setEmail('');
+      
+      // Preserve the current page title
+      document.title = document.title;
+      
     } catch (error: any) {
       setStatus('error');
       setMessage(
