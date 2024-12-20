@@ -653,6 +653,16 @@ app.post('/api/newsletter/subscribe', express.json(), async (req, res) => {
     return res.status(400).json({ error: 'Email is required' });
   }
 
+  // Validate Mailchimp configuration
+  if (!process.env.MAILCHIMP_API_KEY || !process.env.MAILCHIMP_LIST_ID || !process.env.MAILCHIMP_SERVER) {
+    console.error('Missing Mailchimp configuration:', {
+      hasApiKey: !!process.env.MAILCHIMP_API_KEY,
+      hasListId: !!process.env.MAILCHIMP_LIST_ID,
+      hasServer: !!process.env.MAILCHIMP_SERVER
+    });
+    return res.status(500).json({ error: 'Newsletter service is not properly configured' });
+  }
+
   try {
     const response = await axios({
       method: 'post',
@@ -671,27 +681,37 @@ app.post('/api/newsletter/subscribe', express.json(), async (req, res) => {
       message: 'Please check your email to confirm your subscription.'
     });
   } catch (error) {
-    console.error('Mailchimp error:', {
+    // Log detailed error information
+    console.error('Mailchimp API error:', {
       status: error.response?.status,
       data: error.response?.data,
-      error: error.message
+      message: error.message,
+      url: `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_LIST_ID}/members`
     });
 
-    // Handle specific Mailchimp error cases
+    // Handle specific error cases
     if (error.response?.status === 400 && error.response?.data?.title === 'Member Exists') {
       return res.status(400).json({
         error: 'You are already subscribed to our newsletter.'
       });
     }
 
-    if (error.response?.status === 400) {
-      return res.status(400).json({
-        error: error.response.data.detail || 'Invalid request'
+    if (error.response?.status === 401) {
+      return res.status(500).json({
+        error: 'Newsletter service authentication failed'
+      });
+    }
+
+    if (error.response?.status === 404) {
+      return res.status(500).json({
+        error: 'Newsletter list not found'
       });
     }
 
     res.status(500).json({
-      error: 'Failed to subscribe. Please try again later.'
+      error: process.env.NODE_ENV === 'development' 
+        ? `Failed to subscribe: ${error.message}`
+        : 'Failed to subscribe. Please try again later.'
     });
   }
 });
