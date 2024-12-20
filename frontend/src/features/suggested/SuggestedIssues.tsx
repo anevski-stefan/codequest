@@ -7,7 +7,9 @@ import type { Issue, IssueParams } from '../../types/github';
 import CommentsModal from '../../components/CommentsModal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { getStateColor, getLabelColors } from '../dashboard/utils/filterUtils';
+import { usePageTitle } from '../../hooks/usePageTitle';
 const SuggestedIssues = () => {
+  usePageTitle('Suggested Issues');
   const [filter, setFilter] = useState<IssueParams>({
     labels: ['good first issue', 'good-first-issue', 'help wanted', 'beginner friendly', 'first-timers-only'],
     sort: 'created',
