@@ -40,7 +40,7 @@ const Profile = () => {
       </div>
 
       {/* Side Navigation - Desktop */}
-      <div className="hidden md:block w-64 dark:bg-[#0B1222] border-r border-gray-200 dark:border-white/10">
+      <div className="hidden md:block w-64 shrink-0 dark:bg-[#0B1222] border-r border-gray-200 dark:border-white/10">
         <div className="p-6">
           <div className="flex flex-col items-center">
             <img
@@ -77,11 +77,11 @@ const Profile = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 overflow-auto">
-        <div className="w-full max-w-5xl mx-auto">
+      <div className="flex-1 min-w-0 p-4 md:p-6 overflow-auto">
+        <div className="w-full">
           {isMainProfile ? (
             <>
-              <div className="bg-white/80 dark:bg-black/20 backdrop-blur-lg rounded-lg shadow p-4 md:p-6 mb-6 border border-gray-200 dark:border-white/10">
+              <div className="w-full bg-white/80 dark:bg-black/20 backdrop-blur-lg rounded-lg shadow p-4 md:p-6 mb-6 border border-gray-200 dark:border-white/10">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
                   Contribution Activity
                 </h3>
