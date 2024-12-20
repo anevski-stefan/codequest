@@ -8,10 +8,42 @@ require('dotenv').config();
 const rateLimit = require('express-rate-limit');
 const cache = require('memory-cache');
 const etag = require('etag');
+const cron = require('node-cron');
+const mongoose = require('mongoose');
+const HackathonCrawler = require('./services/hackathonCrawler');
+const crawler = new HackathonCrawler();
 
-const app = express();
+// Add after line 12
+let isInitialCrawlComplete = false;
+
+// Initialize with the existing crawler instance
+const initializeCrawler = async () => {
+  try {
+    console.log('Starting initial hackathon crawl...');
+    await crawler.crawlAll();
+    isInitialCrawlComplete = true;
+    console.log('Initial crawl complete');
+  } catch (error) {
+    console.error('Error during initial crawl:', error);
+    // Set to true anyway to prevent permanent loading state
+    isInitialCrawlComplete = true;
+  }
+};
+
+// Call initialization
+initializeCrawler();
+
+// Schedule crawler to run every 6 hours
+cron.schedule('0 */6 * * *', async () => {
+  try {
+    await crawler.crawlAll();
+  } catch (error) {
+    console.error('Scheduled crawl failed:', error);
+  }
+});
 
 // Session configuration
+const app = express();
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
@@ -659,6 +691,65 @@ app.post('/api/newsletter/subscribe', express.json(), async (req, res) => {
 
     res.status(500).json({
       error: 'Failed to subscribe. Please try again later.'
+    });
+  }
+});
+
+// Modify the hackathons endpoint
+app.get('/api/hackathons', async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search, source } = req.query;
+    
+    // If initial crawl isn't complete, return a specific status
+    if (!isInitialCrawlComplete) {
+      return res.status(202).json({
+        status: 'initializing',
+        message: 'Data is being loaded, please try again in a moment'
+      });
+    }
+
+    let hackathons = crawler.getAllHackathons();
+    
+    console.log(`Fetching hackathons - Total available: ${hackathons?.length || 0}`);
+
+    // Ensure hackathons is always an array
+    if (!Array.isArray(hackathons)) {
+      console.log('No hackathons available, returning empty array');
+      hackathons = [];
+    }
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      hackathons = hackathons.filter(h => 
+        h.title.toLowerCase().includes(searchLower) ||
+        h.description.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (source) {
+      hackathons = hackathons.filter(h => h.source === source);
+    }
+
+    // Sort by start date
+    hackathons.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+    // Manual pagination
+    const start = (parseInt(page) - 1) * parseInt(limit);
+    const paginatedHackathons = hackathons.slice(start, start + parseInt(limit));
+
+    console.log(`Returning ${paginatedHackathons.length} hackathons for page ${page}`);
+
+    return res.json({
+      hackathons: paginatedHackathons,
+      totalPages: Math.ceil(hackathons.length / parseInt(limit)),
+      currentPage: parseInt(page),
+      totalHackathons: hackathons.length
+    });
+  } catch (error) {
+    console.error('Error in /api/hackathons:', error);
+    return res.status(500).json({ 
+      error: 'Failed to fetch hackathons',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

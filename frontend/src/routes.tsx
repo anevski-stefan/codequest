@@ -10,6 +10,7 @@ import ProfileOverview from './features/profile/ProfileOverview';
 import ProfileActivity from './features/profile/ProfileActivity';
 import ProfileSettings from './features/profile/ProfileSettings';
 import SuggestedIssues from './features/suggested/SuggestedIssues';
+import HackathonList from './components/HackathonList';
 
 const AppRoutes = () => {
   return (
@@ -17,6 +18,8 @@ const AppRoutes = () => {
       <Route element={<Layout />}>
         <Route path="/" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/hackathons" element={<HackathonList />} />
+        
         <Route
           path="/dashboard"
           element={

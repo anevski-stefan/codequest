@@ -43,16 +43,28 @@ const Login = () => {
           <div className="flex items-center justify-center lg:border-r border-gray-200 dark:border-white/10">
             <div className="space-y-12 w-full max-w-md">
               <div className="space-y-6">
+                {/* Project Matching Banner */}
                 <div className="inline-flex items-center px-4 py-2 bg-blue-50 dark:bg-blue-500/10 rounded-full border border-blue-100 dark:border-blue-500/20">
                   <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
                     New: Project Matching Available →
                   </span>
                 </div>
+
+                {/* Hackathons Banner - Add this */}
+                <div className="inline-flex items-center px-4 py-2 bg-purple-50 dark:bg-purple-500/10 rounded-full border border-purple-100 dark:border-purple-500/20">
+                  <a 
+                    href="/hackathons" 
+                    className="text-xs font-semibold text-purple-600 dark:text-purple-400"
+                  >
+                    Looking for Hackathons? Check our Database →
+                  </a>
+                </div>
+
                 <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
                   Welcome to the community
                 </h1>
                 <p className="text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Join thousands of developers building the future of open source. Find projects that match your skills.
+                  Join thousands of developers building the future of open source. Find projects and hackathons that match your skills.
                 </p>
               </div>
 
