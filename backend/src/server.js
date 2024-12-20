@@ -57,7 +57,7 @@ app.use(session({
 
 // CORS configuration
 app.use(cors({
-  origin: 'http://localhost:5173', // Your frontend URL
+  origin: 'https://codequest-silk.vercel.app',
   credentials: true
 }));
 
@@ -69,7 +69,7 @@ app.use(passport.session());
 passport.use(new GitHubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: "http://localhost:3000/auth/github/callback",
+    callbackURL: process.env.GITHUB_CALLBACK_URL || "https://api.codequest.com/auth/github/callback",
     scope: ['repo', 'read:user', 'user:email'],
     proxy: true
   },
@@ -107,13 +107,13 @@ app.get('/auth/github',
 
 app.get('/auth/github/callback', 
   passport.authenticate('github', { 
-    failureRedirect: 'http://localhost:5173/login',
+    failureRedirect: 'https://codequest-silk.vercel.app/login',
     session: true
   }),
   function(req, res) {
     // Successful authentication
     const token = req.user.accessToken;
-    res.redirect(`http://localhost:5173/auth/callback?token=${token}`);
+    res.redirect(`https://codequest-silk.vercel.app/auth/callback?token=${token}`);
   }
 );
 
