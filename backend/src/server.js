@@ -220,7 +220,7 @@ app.get('/api/activity', authenticateToken, async (req, res) => {
 });
 
 // Add issues endpoint with detailed status
-app.get('/api/issues', authenticateToken, etagMiddleware, async (req, res) => {
+app.get('/api/issues', authenticateToken, cacheMiddleware(60), etagMiddleware, async (req, res) => {
   try {
     const { language, sort, state, page, timeFrame } = req.query;
     const cacheKey = `issues-${language}-${sort}-${state}-${page}-${timeFrame}`;
@@ -696,7 +696,7 @@ app.post('/api/newsletter/subscribe', express.json(), async (req, res) => {
 });
 
 // Modify the hackathons endpoint
-app.get('/api/hackathons', async (req, res) => {
+app.get('/api/hackathons', cacheMiddleware(300), async (req, res) => {
   try {
     const { page = 1, limit = 10, search, source } = req.query;
     
