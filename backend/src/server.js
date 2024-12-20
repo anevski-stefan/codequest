@@ -44,6 +44,7 @@ cron.schedule('0 */6 * * *', async () => {
 
 // Session configuration
 const app = express();
+app.set('trust proxy', 1);
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
