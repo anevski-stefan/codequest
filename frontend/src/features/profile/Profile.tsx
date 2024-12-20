@@ -30,18 +30,18 @@ const Profile = () => {
     length: 52
   }, () => Math.floor(Math.random() * 10));
   const isMainProfile = location.pathname === '/profile';
-  return <div className="flex flex-col md:flex-row flex-1 bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900 mt-8">
+  return <div className="flex flex-col md:flex-row flex-1 dark:bg-[#0B1222] mt-8">
       {}
       <div className="md:hidden px-4 mb-4">
         <select onChange={e => navigate(e.target.value)} value={location.pathname} className="w-full p-2 border rounded-lg bg-white/80 dark:bg-black/20 backdrop-blur-lg text-gray-900 dark:text-white border-gray-200 dark:border-white/10">
-          {navigationItems.map(item => <option key={item.path} value={item.path} className="bg-white dark:bg-black/20">
+          {navigationItems.map(item => <option key={item.path} value={item.path} className="bg-white dark:bg-[#0B1222]">
               {item.label}
             </option>)}
         </select>
       </div>
 
       {}
-      <div className="hidden md:block w-64 bg-transparent shadow-sm border-r border-gray-200 dark:border-white/10">
+      <div className="hidden md:block w-64 dark:bg-[#0B1222] border-r border-gray-200 dark:border-white/10">
         <div className="p-6">
           <div className="flex flex-col items-center">
             <img src={user?.avatar_url} alt="Profile" className="w-24 h-24 rounded-full border-2 border-gray-200 dark:border-white/10" />
