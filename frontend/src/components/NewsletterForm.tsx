@@ -16,6 +16,7 @@ const NewsletterForm = () => {
       setStatus('success');
       setMessage(response.data.message);
       setEmail('');
+      document.title = document.title;
     } catch (error: any) {
       setStatus('error');
       setMessage(error.response?.data?.error || 'Something went wrong. Please try again later.');
