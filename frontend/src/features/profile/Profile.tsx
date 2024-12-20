@@ -2,8 +2,10 @@ import { useSelector } from 'react-redux';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Activity, Settings, FileText } from 'lucide-react';
 import type { RootState } from '../../store';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 const Profile = () => {
+  usePageTitle('Profile');
   const { user } = useSelector((state: RootState) => state.auth);
   const location = useLocation();
   const navigate = useNavigate();

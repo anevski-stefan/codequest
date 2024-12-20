@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Calendar, MapPin, Trophy } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 interface Hackathon {
   title: string;
@@ -16,6 +17,7 @@ interface Hackathon {
 }
 
 export default function HackathonList() {
+  usePageTitle('Hackathons');
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);

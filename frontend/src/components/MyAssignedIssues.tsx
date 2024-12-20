@@ -6,6 +6,7 @@ import { MessageCircle } from 'lucide-react';
 import type { Issue } from '../types/github';
 import CommentsModal, { Comment as ModalComment } from './CommentsModal';
 import LoadingSpinner from './LoadingSpinner';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const getLabelColors = (color: string) => {
   // Convert hex to RGB to check brightness
@@ -23,6 +24,7 @@ const getLabelColors = (color: string) => {
 };
 
 const MyAssignedIssues = () => {
+  usePageTitle('My Assigned Issues');
   const [issueState, setIssueState] = useState<string>('open');
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);

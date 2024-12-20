@@ -11,8 +11,10 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { FilterDropdown } from './components/FilterDropdown';
 import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from './constants/filterOptions';
 import { getStateColor, getLabelColors } from './utils/filterUtils';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 const Dashboard = () => {
+  usePageTitle('Dashboard');
   const [filter, setFilter] = useState<IssueParams>({
     language: '',
     sort: 'created',

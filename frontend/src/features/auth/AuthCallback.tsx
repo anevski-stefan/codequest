@@ -2,8 +2,10 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import axios from 'axios';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 const AuthCallback = () => {
+  usePageTitle('Authenticating');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { login } = useAuth();
