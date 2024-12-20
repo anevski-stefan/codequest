@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { usePageTitle } from '../../hooks/usePageTitle';
 const ProfileSettings = () => {
+  usePageTitle('Settings');
   const {
     theme: currentTheme,
     setTheme

@@ -4,7 +4,9 @@ import { useSelector } from 'react-redux';
 import { Github } from 'lucide-react';
 import type { RootState } from '../../store';
 import NewsletterForm from '../../components/NewsletterForm';
+import { usePageTitle } from '../../hooks/usePageTitle';
 const Login = () => {
+  usePageTitle('Login');
   const navigate = useNavigate();
   const {
     isAuthenticated
