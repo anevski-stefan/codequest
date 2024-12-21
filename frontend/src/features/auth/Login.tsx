@@ -44,22 +44,24 @@ const Login = () => {
           {/* Left Column - Main Content */}
           <div className="flex flex-col items-start justify-center lg:items-center lg:border-r border-gray-200 dark:border-white/10">
             <div className="space-y-12 w-full max-w-md">
-              <div className="space-y-6">
-                {/* Project Matching Banner */}
-                <div className="inline-flex items-center px-4 py-2 bg-blue-50 dark:bg-blue-500/10 rounded-full border border-blue-100 dark:border-blue-500/20">
-                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                    New: Project Matching Available →
-                  </span>
-                </div>
+              <div className="space-y-4 sm:space-y-12">
+                <div className="space-y-2 sm:space-y-6">
+                  {/* Project Matching Banner */}
+                  <div className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-50 dark:bg-blue-500/10 rounded-full border border-blue-100 dark:border-blue-500/20">
+                    <span className="text-[10px] sm:text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      New: Project Matching Available →
+                    </span>
+                  </div>
 
-                {/* Hackathons Banner - Add this */}
-                <div className="inline-flex items-center px-4 py-2 bg-purple-50 dark:bg-purple-500/10 rounded-full border border-purple-100 dark:border-purple-500/20">
-                  <a 
-                    href="/hackathons" 
-                    className="text-xs font-semibold text-purple-600 dark:text-purple-400"
-                  >
-                    Looking for Hackathons? Check our Database →
-                  </a>
+                  {/* Hackathons Banner */}
+                  <div className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-purple-50 dark:bg-purple-500/10 rounded-full border border-purple-100 dark:border-purple-500/20">
+                    <a 
+                      href="/hackathons" 
+                      className="text-[10px] sm:text-xs font-semibold text-purple-600 dark:text-purple-400"
+                    >
+                      Looking for Hackathons? Check our Database →
+                    </a>
+                  </div>
                 </div>
 
                 <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
