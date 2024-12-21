@@ -14,7 +14,7 @@ const Layout = () => {
   } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  return <div className="min-h-screen flex flex-col bg-white dark:bg-[#0B1222]">
+  return <div className="min-h-screen flex flex-col bg-white dark:bg-[#0B1222] overflow-x-hidden">
       {isAuthenticated && <nav className="bg-white/80 dark:bg-transparent backdrop-blur-lg shadow h-20 flex items-center relative z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full h-full flex items-center">
             <div className="flex justify-between items-center w-full">
@@ -102,7 +102,9 @@ const Layout = () => {
           </div>
         </nav>}
       <div className="flex-1 flex overflow-hidden">
-        <Outlet />
+        <main className="w-full max-w-full">
+          <Outlet />
+        </main>
       </div>
     </div>;
 };
