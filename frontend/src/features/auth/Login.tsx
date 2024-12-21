@@ -43,21 +43,21 @@ const Login = () => {
         <div className="flex flex-col lg:grid lg:grid-cols-2 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 gap-8">
           {/* Left Column - Main Content */}
           <div className="flex flex-col items-start justify-center lg:items-center lg:border-r border-gray-200 dark:border-white/10">
-            <div className="space-y-12 w-full max-w-md">
-              <div className="space-y-4 sm:space-y-12">
-                <div className="space-y-2 sm:space-y-6">
+            <div className="space-y-8 w-full max-w-md">
+              <div className="space-y-4">
+                <div className="space-y-2 sm:space-y-4">
                   {/* Project Matching Banner */}
-                  <div className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-50 dark:bg-blue-500/10 rounded-full border border-blue-100 dark:border-blue-500/20">
-                    <span className="text-[10px] sm:text-xs font-semibold text-blue-600 dark:text-blue-400">
+                  <div className="inline-flex items-center px-4 py-2 sm:px-4 sm:py-2 bg-blue-50 dark:bg-blue-500/10 rounded-full border border-blue-100 dark:border-blue-500/20">
+                    <span className="text-xs sm:text-xs font-semibold text-blue-600 dark:text-blue-400">
                       New: Project Matching Available →
                     </span>
                   </div>
 
                   {/* Hackathons Banner */}
-                  <div className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-purple-50 dark:bg-purple-500/10 rounded-full border border-purple-100 dark:border-purple-500/20">
+                  <div className="inline-flex items-center px-4 py-2 sm:px-4 sm:py-2 bg-purple-50 dark:bg-purple-500/10 rounded-full border border-purple-100 dark:border-purple-500/20">
                     <a 
                       href="/hackathons" 
-                      className="text-[10px] sm:text-xs font-semibold text-purple-600 dark:text-purple-400"
+                      className="text-xs sm:text-xs font-semibold text-purple-600 dark:text-purple-400"
                     >
                       Looking for Hackathons? Check our Database →
                     </a>
