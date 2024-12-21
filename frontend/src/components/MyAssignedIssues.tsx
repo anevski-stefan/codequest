@@ -99,7 +99,7 @@ const MyAssignedIssues = () => {
             {data.issues.map((issue: Issue) => (
               <div key={issue.id} className="p-4 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="flex-1">
                       <a 
                         href={issue.url} 
@@ -113,7 +113,7 @@ const MyAssignedIssues = () => {
                         {issue.repository?.fullName} #{issue.number}
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 ml-4">
+                    <div className="flex flex-wrap gap-1.5">
                       {issue.labels.map((label) => (
                         <span
                           key={label.name}
@@ -125,27 +125,27 @@ const MyAssignedIssues = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center space-x-4 text-gray-500 dark:text-gray-400">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-gray-500 dark:text-gray-400">
                       <span className="inline-flex items-center">
                         <span className={`w-2 h-2 rounded-full mr-2 ${
                           issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'
                         }`} />
                         {issue.state}
                       </span>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span>
                         Updated {formatDistanceToNow(new Date(issue.updatedAt), { addSuffix: true })}
                       </span>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span>
                         {issue.commentsCount} comments
                       </span>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => handleOpenComments(issue.number, issue.repository.fullName)}
-                        className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
                       >
                         <MessageCircle size={14} className="mr-1.5" />
                         View Comments
@@ -154,7 +154,7 @@ const MyAssignedIssues = () => {
                         href={issue.url} 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors"
                       >
                         View on GitHub
                       </a>
