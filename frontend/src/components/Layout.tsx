@@ -14,7 +14,7 @@ const Layout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-[#0B1222]">
       {isAuthenticated && (
-        <nav className="bg-white/80 dark:bg-transparent backdrop-blur-lg shadow h-20 flex items-center">
+        <nav className="bg-white/80 dark:bg-transparent backdrop-blur-lg shadow h-20 flex items-center relative z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full h-full flex items-center">
             <div className="flex justify-between items-center w-full">
               <div className="flex items-center">
@@ -81,7 +81,7 @@ const Layout = () => {
 
           {/* Mobile menu */}
           <div 
-            className="md:hidden absolute top-16 inset-x-0 bg-white/80 dark:bg-transparent backdrop-blur-lg shadow-lg z-50"
+            className="md:hidden absolute top-16 inset-x-0 bg-[#0B1222] backdrop-blur-lg shadow-lg z-50"
             style={{
               opacity: isMobileMenuOpen ? 1 : 0,
               visibility: isMobileMenuOpen ? 'visible' : 'hidden',
