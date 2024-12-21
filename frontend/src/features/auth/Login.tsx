@@ -22,7 +22,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900">
+    <div className="relative min-h-screen w-full bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900">
       {/* Nav */}
       <nav className="fixed top-0 w-full z-50 px-8 py-5 bg-white/80 dark:bg-transparent backdrop-blur-lg border-b border-gray-200 dark:border-white/10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -39,10 +39,10 @@ const Login = () => {
       </nav>
 
       {/* Main Content */}
-      <div className="min-h-screen pt-20 w-full">
-        <div className="grid lg:grid-cols-2 h-[calc(100vh-5rem)] w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative w-full h-full pt-20 pb-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 gap-8">
           {/* Left Column - Main Content */}
-          <div className="flex items-center justify-center lg:border-r border-gray-200 dark:border-white/10">
+          <div className="flex flex-col items-start justify-start lg:items-center lg:justify-center lg:border-r border-gray-200 dark:border-white/10">
             <div className="space-y-12 w-full max-w-md">
               <div className="space-y-6">
                 {/* Project Matching Banner */}
@@ -86,7 +86,7 @@ const Login = () => {
           </div>
 
           {/* Right Column - Newsletter */}
-          <div className="flex items-center justify-center">
+          <div className="flex flex-col items-start justify-start lg:items-center lg:justify-center mt-8 lg:mt-0">
             <div className="w-full max-w-md">
               <div className="bg-gray-50 dark:bg-white/5 rounded-2xl p-8 border border-gray-200 
                 dark:border-white/10 dark:backdrop-blur-xl">
