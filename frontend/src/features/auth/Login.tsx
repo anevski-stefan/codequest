@@ -39,10 +39,10 @@ const Login = () => {
       </nav>
 
       {/* Main Content */}
-      <div className="relative w-full h-full pt-20 pb-8">
+      <div className="relative w-full min-h-screen flex items-center justify-center pt-20 pb-8">
         <div className="flex flex-col lg:grid lg:grid-cols-2 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 gap-8">
           {/* Left Column - Main Content */}
-          <div className="flex flex-col items-start justify-start lg:items-center lg:justify-center lg:border-r border-gray-200 dark:border-white/10">
+          <div className="flex flex-col items-start justify-center lg:items-center lg:border-r border-gray-200 dark:border-white/10">
             <div className="space-y-12 w-full max-w-md">
               <div className="space-y-6">
                 {/* Project Matching Banner */}
@@ -86,7 +86,7 @@ const Login = () => {
           </div>
 
           {/* Right Column - Newsletter */}
-          <div className="flex flex-col items-start justify-start lg:items-center lg:justify-center mt-8 lg:mt-0">
+          <div className="flex flex-col items-start justify-center lg:items-center mt-8 lg:mt-0">
             <div className="w-full max-w-md">
               <div className="bg-gray-50 dark:bg-white/5 rounded-2xl p-8 border border-gray-200 
                 dark:border-white/10 dark:backdrop-blur-xl">
