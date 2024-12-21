@@ -81,7 +81,7 @@ const Layout = () => {
 
           {/* Mobile menu */}
           <div 
-            className="md:hidden absolute top-16 inset-x-0 bg-[#0B1222] backdrop-blur-lg shadow-lg z-50"
+            className="md:hidden absolute top-16 inset-x-0 bg-white dark:bg-[#0B1222] backdrop-blur-lg shadow-lg z-50"
             style={{
               opacity: isMobileMenuOpen ? 1 : 0,
               visibility: isMobileMenuOpen ? 'visible' : 'hidden',
@@ -92,7 +92,7 @@ const Layout = () => {
             <div className="px-2 pt-4 pb-4 space-y-3">
               <button
                 onClick={() => {
-                  navigate('/profile');
+                  navigate('/profile/assigned');
                   setIsMobileMenuOpen(false);
                 }}
                 className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md"
