@@ -49,6 +49,9 @@ const Layout = () => {
                 <button onClick={() => navigate('/suggested')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
                   Suggested Issues
                 </button>
+                <button onClick={() => navigate('/explore')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
+                  Explore
+                </button>
                 <button onClick={logout} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors flex items-center">
                   <LogOut className="h-5 w-5 mr-2" />
                   Logout
