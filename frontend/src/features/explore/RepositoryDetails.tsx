@@ -99,6 +99,11 @@ interface PullRequest {
   review_comments: number;
 }
 
+interface PullRequestCounts {
+  open: number;
+  closed: number;
+}
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -136,10 +141,10 @@ const RepositoryDetails = () => {
     () => getContributorConfidence(owner!, repo!)
   );
 
-  const [prState, setPrState] = useState<'open' | 'closed'>('open');
-  const [page, setPage] = useState(1);
   const [allPullRequests, setAllPullRequests] = useState<PullRequest[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [prState, setPrState] = useState<'open' | 'closed'>('open');
+  const [isSwitching, setIsSwitching] = useState(false);
 
   const { data: pullRequestsData, isLoading: prsLoading } = useQuery<{
     pullRequests: PullRequest[];
@@ -163,10 +168,43 @@ const RepositoryDetails = () => {
             return [...prev, ...newUniquePRs];
           });
         }
-        setTotalCount(newData.totalCount);
+        setIsSwitching(false);
       }
     }
   );
+
+  const { data: prCounts } = useQuery<PullRequestCounts>(
+    ['pull-request-counts', owner, repo],
+    async () => {
+      const [openData, closedData] = await Promise.all([
+        getRepositoryPullRequests(owner!, repo!, 'open', 1),
+        getRepositoryPullRequests(owner!, repo!, 'closed', 1)
+      ]);
+      return {
+        open: openData.totalCount,
+        closed: closedData.totalCount
+      };
+    },
+    {
+      enabled: !!owner && !!repo
+    }
+  );
+
+  const handleOpenClick = () => {
+    if (prState !== 'open') {
+      setIsSwitching(true);
+      setPrState('open');
+      setPage(1);
+    }
+  };
+
+  const handleClosedClick = () => {
+    if (prState !== 'closed') {
+      setIsSwitching(true);
+      setPrState('closed');
+      setPage(1);
+    }
+  };
 
   const handleLoadMore = () => {
     setPage(prev => prev + 1);
@@ -401,7 +439,7 @@ const RepositoryDetails = () => {
                   Pull Requests
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {totalCount} {prState} pull requests
+                  {pullRequestsData?.totalCount || 0} {prState} pull requests
                 </p>
               </div>
               <select
@@ -419,10 +457,39 @@ const RepositoryDetails = () => {
             </div>
 
             <div className="space-y-4">
-              {prsLoading && page === 1 ? (
-                <LoadingSpinner />
-              ) : allPullRequests?.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <div className="flex justify-between items-center">
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleOpenClick}
+                    disabled={prState === 'open' || isSwitching}
+                    className={`px-3 py-1 rounded-md text-sm ${
+                      prState === 'open' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    Open ({prCounts?.open || 0})
+                  </button>
+                  <button
+                    onClick={handleClosedClick}
+                    disabled={prState === 'closed' || isSwitching}
+                    className={`px-3 py-1 rounded-md text-sm ${
+                      prState === 'closed'
+                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    Closed ({prCounts?.closed || 0})
+                  </button>
+                </div>
+              </div>
+
+              {(isSwitching || (prsLoading && page === 1)) ? (
+                <div className="flex justify-center py-8">
+                  <LoadingSpinner />
+                </div>
+              ) : allPullRequests.length === 0 ? (
+                <div className="text-center text-gray-600 dark:text-gray-400 py-8">
                   No {prState} pull requests found
                 </div>
               ) : (
@@ -432,33 +499,36 @@ const RepositoryDetails = () => {
                       key={pr.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700"
+                      className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6 border border-gray-200 dark:border-gray-700"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-4">
+                      {/* Header */}
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div className="flex items-start space-x-3">
                           <img
                             src={pr.user.avatar_url}
                             alt={pr.user.login}
-                            className="w-10 h-10 rounded-full"
+                            className="w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0"
                           />
-                          <div>
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-base md:text-lg font-medium text-gray-900 dark:text-white truncate">
                               {pr.title}
                             </h3>
-                            <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-500">
                               <span>#{pr.number}</span>
-                              <span>by {pr.user.login}</span>
+                              <span>•</span>
+                              <span>{pr.user.login}</span>
+                              <span>•</span>
                               <span>{formatDistanceToNow(new Date(pr.created_at), { addSuffix: true })}</span>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-2">
                           {pr.draft && (
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
                               Draft
                             </span>
                           )}
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                             pr.state === 'open'
                               ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                               : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
@@ -468,39 +538,53 @@ const RepositoryDetails = () => {
                         </div>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="flex items-center space-x-2">
-                          <GitCommit className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {(pr.commits || 0).toLocaleString()} commits
+                      {/* Stats Grid */}
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs md:text-sm">
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <GitCommit className="w-3.5 h-3.5" />
+                            <span className="md:hidden">Commits:</span>
+                          </div>
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {(pr.commits || 0).toLocaleString()}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <FileText className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {(pr.changed_files || 0).toLocaleString()} files changed
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <FileText className="w-3.5 h-3.5" />
+                            <span className="md:hidden">Files:</span>
+                          </div>
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {(pr.changed_files || 0).toLocaleString()}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Plus className="w-4 h-4 text-green-500" />
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {(pr.additions || 0).toLocaleString()} additions
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <Plus className="w-3.5 h-3.5 text-green-500" />
+                            <span className="md:hidden">Added:</span>
+                          </div>
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {(pr.additions || 0).toLocaleString()}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Minus className="w-4 h-4 text-red-500" />
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {(pr.deletions || 0).toLocaleString()} deletions
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <Minus className="w-3.5 h-3.5 text-red-500" />
+                            <span className="md:hidden">Removed:</span>
+                          </div>
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {(pr.deletions || 0).toLocaleString()}
                           </span>
                         </div>
                       </div>
 
+                      {/* Labels */}
                       {pr.labels.length > 0 && (
-                        <div className="mt-4 flex flex-wrap gap-2">
+                        <div className="mt-3 flex flex-wrap gap-1.5">
                           {pr.labels.map((label) => (
                             <span
                               key={label.name}
-                              className="px-2 py-1 rounded-full text-xs font-medium"
+                              className="px-2 py-0.5 rounded-full text-xs font-medium"
                               style={{
                                 backgroundColor: `#${label.color}20`,
                                 color: `#${label.color}`,
@@ -512,9 +596,10 @@ const RepositoryDetails = () => {
                         </div>
                       )}
 
+                      {/* Reviewers */}
                       {pr.requested_reviewers.length > 0 && (
-                        <div className="mt-4">
-                          <div className="text-sm text-gray-500 mb-2">Reviewers</div>
+                        <div className="mt-3">
+                          <div className="text-xs md:text-sm text-gray-500 mb-1.5">Reviewers</div>
                           <div className="flex -space-x-2">
                             {pr.requested_reviewers.map((reviewer) => (
                               <img
@@ -522,23 +607,35 @@ const RepositoryDetails = () => {
                                 src={reviewer.avatar_url}
                                 alt={reviewer.login}
                                 title={reviewer.login}
-                                className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800"
+                                className="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-white dark:border-gray-800"
                               />
                             ))}
                           </div>
                         </div>
                       )}
 
-                      <div className="mt-4 flex items-center space-x-4 text-sm text-gray-500">
+                      {/* Footer */}
+                      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs md:text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <MessageSquare className="w-4 h-4" />
                           <span>
-                            {((pr.comments || 0) + (pr.review_comments || 0)).toLocaleString()} comments
+                            {((pr.comments || 0) + (pr.review_comments || 0)).toLocaleString()}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <GitPullRequest className="w-4 h-4" />
-                          <span>{pr.base.ref} ← {pr.head.ref}</span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1">
+                            <GitPullRequest className="w-4 h-4 flex-shrink-0" />
+                            <span className="md:hidden">Branch changes:</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 min-w-0 font-mono text-xs">
+                            <span className="truncate text-gray-600 dark:text-gray-400" title={pr.base.ref}>
+                              {pr.base.ref}
+                            </span>
+                            <span className="text-gray-400">←</span>
+                            <span className="truncate text-gray-600 dark:text-gray-400" title={pr.head.ref}>
+                              {pr.head.ref}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </motion.div>
@@ -551,14 +648,14 @@ const RepositoryDetails = () => {
                         disabled={prsLoading}
                         className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {prsLoading ? 'Loading...' : `Load More (${allPullRequests.length} of ${totalCount})`}
+                        {prsLoading ? 'Loading...' : `Load More (${allPullRequests.length} of ${pullRequestsData?.totalCount || 0})`}
                       </button>
                     </div>
                   )}
 
                   {!pullRequestsData?.hasMore && allPullRequests.length > 0 && (
                     <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8">
-                      Showing {allPullRequests.length} of {totalCount} pull requests
+                      Showing {allPullRequests.length} of {pullRequestsData?.totalCount || 0} pull requests
                     </div>
                   )}
                 </>

@@ -133,8 +133,11 @@ const authenticateToken = (req, res, next) => {
 
 // Rate limiting middleware
 const limiter = rateLimit({
-  windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000, // 15 minutes
-  max: process.env.RATE_LIMIT_MAX_REQUESTS || 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
 });
 
 app.use(limiter);
@@ -696,7 +699,7 @@ app.post('/api/newsletter/subscribe', express.json(), async (req, res) => {
 });
 
 // Modify the hackathons endpoint
-app.get('/api/hackathons', async (req, res) => {
+app.get('/api/hackathons', limiter, async (req, res) => {
   try {
     const { page = 1, limit = 10, search, source } = req.query;
     

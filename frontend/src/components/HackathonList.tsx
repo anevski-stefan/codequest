@@ -24,13 +24,15 @@ export default function HackathonList() {
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchHackathons = async () => {
+  const fetchHackathons = async (retryCount = 0, maxRetries = 3) => {
     try {
       setLoading(true);
       setError(null);
       
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/hackathons`, {
-        params: { page, limit: 10 }
+        params: { page, limit: 10 },
+        timeout: 10000,
+        withCredentials: true
       });
       
       if (response.status === 202) {
@@ -43,17 +45,39 @@ export default function HackathonList() {
         setTotalPages(response.data.totalPages || 1);
         setLoading(false);
       } else {
-        console.error('Invalid response format:', response.data);
         throw new Error('Invalid response format from server');
       }
     } catch (error) {
       console.error('Error fetching hackathons:', error);
+      
       if (axios.isAxiosError(error)) {
-        const message = error.response?.data?.error || error.message;
-        setError(`Failed to load hackathons: ${message}`);
+        if (error.response?.status === 429) {
+          // Rate limit exceeded, implement exponential backoff
+          if (retryCount < maxRetries) {
+            const backoffTime = Math.min(1000 * Math.pow(2, retryCount), 10000);
+            console.log(`Rate limited. Retrying in ${backoffTime}ms...`);
+            setError(`Rate limited. Retrying in ${backoffTime/1000} seconds...`);
+            setTimeout(() => {
+              fetchHackathons(retryCount + 1, maxRetries);
+            }, backoffTime);
+            return;
+          }
+        }
+        
+        if (error.code === 'ECONNABORTED') {
+          setError('Request timed out. Please try again.');
+        } else if (error.response) {
+          const message = error.response.data?.error || error.message;
+          setError(`Server error: ${message}`);
+        } else if (error.request) {
+          setError('No response from server. Please check your connection.');
+        } else {
+          setError(`Network error: ${error.message}`);
+        }
       } else {
-        setError('Failed to load hackathons. Please try again later.');
+        setError('An unexpected error occurred. Please try again later.');
       }
+      
       setLoading(false);
     }
   };

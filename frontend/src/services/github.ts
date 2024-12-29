@@ -403,7 +403,19 @@ export const getContributorConfidence = async (owner: string, repo: string) => {
   return data;
 };
 
-export const getRepositoryPullRequests = async (owner: string, repo: string, state: 'open' | 'closed', page: number = 1) => {
-  const { data } = await api.get(`/api/repos/${owner}/${repo}/pulls?state=${state}&page=${page}`);
+export const getRepositoryPullRequests = async (
+  owner: string, 
+  repo: string, 
+  state: 'open' | 'closed', 
+  page: number = 1,
+  includeDetails: boolean = true
+) => {
+  const params = new URLSearchParams({
+    state,
+    page: page.toString(),
+    includeDetails: includeDetails.toString()
+  });
+  
+  const { data } = await api.get(`/api/repos/${owner}/${repo}/pulls?${params}`);
   return data;
 }; 
