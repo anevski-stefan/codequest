@@ -10,6 +10,8 @@ import ProfileActivity from './features/profile/ProfileActivity';
 import ProfileSettings from './features/profile/ProfileSettings';
 import SuggestedIssues from './features/suggested/SuggestedIssues';
 import HackathonList from './components/HackathonList';
+import Explore from './features/explore/Explore';
+import RepositoryDetails from './features/explore/RepositoryDetails';
 
 const AppRoutes = () => {
   return (
@@ -44,6 +46,22 @@ const AppRoutes = () => {
           element={
             <PrivateRoute>
               <SuggestedIssues />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/explore"
+          element={
+            <PrivateRoute>
+              <Explore />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/explore/:owner/:repo"
+          element={
+            <PrivateRoute>
+              <RepositoryDetails />
             </PrivateRoute>
           }
         />

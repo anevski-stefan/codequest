@@ -754,6 +754,180 @@ app.get('/api/hackathons', async (req, res) => {
   }
 });
 
+// Add repository details endpoint
+app.get('/api/repos/:owner/:repo', authenticateToken, async (req, res) => {
+  try {
+    const { owner, repo } = req.params;
+    const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}`, {
+      headers: {
+        Authorization: `token ${req.user.accessToken}`,
+        Accept: 'application/vnd.github.v3+json'
+      }
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching repository:', error.response?.data);
+    res.status(error.response?.status || 500).json({ 
+      error: error.response?.data?.message || 'Failed to fetch repository'
+    });
+  }
+});
+
+// Add repository contributors endpoint
+app.get('/api/repos/:owner/:repo/contributors/stats', authenticateToken, async (req, res) => {
+  try {
+    const { owner, repo } = req.params;
+    const response = await axios.get(
+      `https://api.github.com/repos/${owner}/${repo}/stats/contributors`,
+      {
+        headers: {
+          Authorization: `token ${req.user.accessToken}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+    
+    // Process and sort contributors
+    const contributors = response.data
+      .map(contributor => ({
+        login: contributor.author.login,
+        avatar_url: contributor.author.avatar_url,
+        contributions: contributor.total,
+        percentage: 0
+      }))
+      .sort((a, b) => b.contributions - a.contributions);
+    
+    // Calculate percentages
+    const total = contributors.reduce((sum, c) => sum + c.contributions, 0);
+    contributors.forEach(c => c.percentage = Math.round((c.contributions / total) * 100));
+    
+    res.json(contributors.slice(0, 5));
+  } catch (error) {
+    console.error('Error fetching contributors:', error.response?.data);
+    res.status(error.response?.status || 500).json({ 
+      error: error.response?.data?.message || 'Failed to fetch contributors'
+    });
+  }
+});
+
+// Add repository pull requests endpoint
+app.get('/api/repos/:owner/:repo/lottery-contributors', authenticateToken, async (req, res) => {
+  try {
+    const { owner, repo } = req.params;
+    const response = await axios.get(
+      `https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=100`,
+      {
+        headers: {
+          Authorization: `token ${req.user.accessToken}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+    
+    const pullRequests = response.data;
+    const contributorCounts = {};
+    
+    pullRequests.forEach(pr => {
+      const login = pr.user.login;
+      if (!contributorCounts[login]) {
+        contributorCounts[login] = { count: 0, avatar_url: pr.user.avatar_url };
+      }
+      contributorCounts[login].count++;
+    });
+    
+    const contributors = Object.entries(contributorCounts)
+      .map(([login, data]) => ({
+        login,
+        avatar_url: data.avatar_url,
+        pull_requests: data.count,
+        percentage: 0
+      }))
+      .sort((a, b) => b.pull_requests - a.pull_requests);
+    
+    const total = contributors.reduce((sum, c) => sum + c.pull_requests, 0);
+    contributors.forEach(c => c.percentage = Math.round((c.pull_requests / total) * 100));
+    
+    res.json(contributors.slice(0, 4));
+  } catch (error) {
+    console.error('Error fetching lottery contributors:', error.response?.data);
+    res.status(error.response?.status || 500).json({ 
+      error: error.response?.data?.message || 'Failed to fetch lottery contributors'
+    });
+  }
+});
+
+// Add contributor confidence endpoint
+app.get('/api/repos/:owner/:repo/contributor-confidence', authenticateToken, async (req, res) => {
+  try {
+    const { owner, repo } = req.params;
+    const [contributorsResponse, commitsResponse, prResponse] = await Promise.all([
+      axios.get(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=100`, {
+        headers: { Authorization: `token ${req.user.accessToken}` }
+      }),
+      axios.get(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=100`, {
+        headers: { Authorization: `token ${req.user.accessToken}` }
+      }),
+      axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=100`, {
+        headers: { Authorization: `token ${req.user.accessToken}` }
+      })
+    ]);
+
+    // Calculate metrics (same logic as before)
+    const contributors = contributorsResponse.data;
+    const commits = commitsResponse.data;
+    const prs = prResponse.data;
+
+    const totalContributors = contributors.length;
+    const activeContributors = contributors.filter(c => c.contributions >= 10).length;
+    const recentCommits = commits.filter(c => {
+      const commitDate = new Date(c.commit.author.date);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      return commitDate > threeMonthsAgo;
+    }).length;
+    const mergedPRs = prs.filter(pr => pr.merged_at).length;
+    const uniquePRAuthors = new Set(prs.map(pr => pr.user.login)).size;
+
+    const weights = {
+      activeContributorsRatio: 0.3,
+      recentActivityRatio: 0.3,
+      prSuccessRatio: 0.2,
+      contributorDiversityRatio: 0.2
+    };
+
+    const scores = {
+      activeContributor: Math.min((activeContributors / totalContributors) * 100, 100),
+      recentActivity: Math.min((recentCommits / 100) * 100, 100),
+      prSuccess: Math.min((mergedPRs / prs.length) * 100 || 0, 100),
+      contributorDiversity: Math.min((uniquePRAuthors / totalContributors) * 100, 100)
+    };
+
+    const confidenceScore = Math.round(
+      scores.activeContributor * weights.activeContributorsRatio +
+      scores.recentActivity * weights.recentActivityRatio +
+      scores.prSuccess * weights.prSuccessRatio +
+      scores.contributorDiversity * weights.contributorDiversityRatio
+    );
+
+    let message = "Few stargazers and forkers come back later on to a meaningful contribution.";
+    if (confidenceScore >= 75) {
+      message = "Strong and active contributor community with consistent engagement.";
+    } else if (confidenceScore >= 50) {
+      message = "Moderate contributor activity with room for growth.";
+    }
+
+    res.json({
+      percentage: confidenceScore,
+      message
+    });
+  } catch (error) {
+    console.error('Error calculating contributor confidence:', error.response?.data);
+    res.status(error.response?.status || 500).json({ 
+      error: error.response?.data?.message || 'Failed to calculate contributor confidence'
+    });
+  }
+});
+
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });

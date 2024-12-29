@@ -381,4 +381,24 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
     console.error('Failed to fetch suggested issues:', error);
     throw error;
   }
+};
+
+export const getRepositoryDetails = async (owner: string, repo: string) => {
+  const { data } = await api.get(`/api/repos/${owner}/${repo}`);
+  return data;
+};
+
+export const getTopContributors = async (owner: string, repo: string) => {
+  const { data } = await api.get(`/api/repos/${owner}/${repo}/contributors/stats`);
+  return data;
+};
+
+export const getLotteryContributors = async (owner: string, repo: string) => {
+  const { data } = await api.get(`/api/repos/${owner}/${repo}/lottery-contributors`);
+  return data;
+};
+
+export const getContributorConfidence = async (owner: string, repo: string) => {
+  const { data } = await api.get(`/api/repos/${owner}/${repo}/contributor-confidence`);
+  return data;
 }; 
