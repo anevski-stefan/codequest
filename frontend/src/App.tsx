@@ -5,7 +5,14 @@ import { store } from './store';
 import AppRoutes from './routes';
 import { useTheme } from './contexts/ThemeContext';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function App() {
   const { theme } = useTheme();

@@ -1046,6 +1046,66 @@ async function getClosedPullRequestsCount(owner, repo, token) {
   }
 }
 
+app.get('/api/repos/:owner/:repo/pulls/:pullNumber', authenticateToken, async (req, res) => {
+  try {
+    const { owner, repo, pullNumber } = req.params;
+    
+    const response = await axios.get(
+      `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}`,
+      {
+        headers: {
+          Authorization: `token ${req.user.accessToken}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+
+    // Get the files changed in this PR
+    const filesResponse = await axios.get(
+      `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/files`,
+      {
+        headers: {
+          Authorization: `token ${req.user.accessToken}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+
+    const details = {
+      number: response.data.number,
+      title: response.data.title,
+      state: response.data.state,
+      created_at: response.data.created_at,
+      updated_at: response.data.updated_at,
+      merged_at: response.data.merged_at,
+      closed_at: response.data.closed_at,
+      user: {
+        login: response.data.user.login,
+        avatar_url: response.data.user.avatar_url
+      },
+      files: filesResponse.data.map(file => ({
+        filename: file.filename,
+        status: file.status,
+        additions: file.additions,
+        deletions: file.deletions,
+        changes: file.changes,
+        patch: file.patch
+      })),
+      commits: response.data.commits,
+      additions: response.data.additions,
+      deletions: response.data.deletions,
+      changed_files: response.data.changed_files,
+      comments: response.data.comments,
+      review_comments: response.data.review_comments
+    };
+
+    res.json(details);
+  } catch (error) {
+    console.error('Error fetching pull request details:', error);
+    res.status(500).json({ error: 'Failed to fetch pull request details' });
+  }
+});
+
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
