@@ -229,7 +229,7 @@ const Dashboard = () => {
               <FilterDropdown
                 label="Comments"
                 options={commentRanges}
-                value={filter.commentsRange || ''}
+                value={filter.commentsRange}
                 onChange={(value) => handleFilterChange('commentsRange', value)}
               />
               <FilterDropdown

@@ -8,17 +8,15 @@ interface FilterDropdownProps {
 }
 
 export function FilterDropdown({ label, options, value, onChange }: FilterDropdownProps) {
-  const isCommentsFilter = label === "Comments";
-  const defaultValue = isCommentsFilter ? "" : value;
-
   return (
     <div className="relative w-full">
       <select
         className="w-full appearance-none bg-white dark:bg-[#0B1222] border border-gray-300 dark:border-white/10 rounded-lg pl-2 md:pl-3 pr-8 md:pr-10 py-1.5 md:py-2 text-sm md:text-base text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors dark:[&>option]:bg-[#0B1222] [&>option]:bg-white"
-        value={defaultValue}
+        value={value}
         onChange={(e) => {
           onChange(e.target.value);
         }}
+        aria-label={label}
       >
         {options.map((option) => (
           <option 
