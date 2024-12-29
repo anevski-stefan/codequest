@@ -207,10 +207,10 @@ const Dashboard = () => {
 
   return (
     <div className="flex min-h-screen w-full">
-      <div className="w-full">
+      <div className="w-full max-w-full overflow-x-hidden">
         <div className="p-3 md:p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 md:gap-4 items-start lg:items-center lg:justify-center">
-            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid lg:grid-cols-4 gap-2 md:gap-4">
+            <div className="grid grid-cols-2 gap-2 w-full">
               <FilterDropdown
                 label="Time Frame"
                 options={timeFrameOptions}
@@ -225,7 +225,7 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+            <div className="grid grid-cols-2 gap-2 w-full">
               <FilterDropdown
                 label="Comments"
                 options={commentRanges}
@@ -246,14 +246,14 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="w-full lg:w-auto lg:flex-grow-0">
+            <div className="w-full">
               <LabelsFilter
                 selectedLabels={filter.labels || []}
                 onLabelsChange={(labels) => handleFilterChange('labels', labels)}
               />
             </div>
 
-            <div className="w-full lg:w-auto flex items-center justify-start">
+            <div className="w-full flex items-center">
               <label className="inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
