@@ -193,15 +193,15 @@ const Dashboard = () => {
   };
   const showLoadingSpinner = isLoading || !initialFetchComplete;
   return <div className="flex min-h-screen w-full">
-      <div className="w-full">
+      <div className="w-full max-w-full overflow-x-hidden">
         <div className="p-3 md:p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 md:gap-4 items-start lg:items-center lg:justify-center">
-            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid lg:grid-cols-4 gap-2 md:gap-4">
+            <div className="grid grid-cols-2 gap-2 w-full">
               <FilterDropdown label="Time Frame" options={timeFrameOptions} value={filter.timeFrame} onChange={value => handleFilterChange('timeFrame', value)} />
               <FilterDropdown label="Sort By" options={sortOptions} value={filter.direction === 'asc' ? 'created-asc' : filter.sort} onChange={value => handleFilterChange('sort', value)} />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+            <div className="grid grid-cols-2 gap-2 w-full">
               <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange} onChange={value => handleFilterChange('commentsRange', value)} />
               <FilterDropdown label="Language" options={[{
               value: '',
@@ -212,11 +212,11 @@ const Dashboard = () => {
             }))]} value={filter.language} onChange={value => handleFilterChange('language', value as Language)} />
             </div>
 
-            <div className="w-full lg:w-auto lg:flex-grow-0">
+            <div className="w-full">
               <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={labels => handleFilterChange('labels', labels)} />
             </div>
 
-            <div className="w-full lg:w-auto flex items-center justify-start">
+            <div className="w-full flex items-center">
               <label className="inline-flex items-center cursor-pointer">
                 <input type="checkbox" checked={filter.unassigned} onChange={e => handleFilterChange('unassigned', e.target.checked)} className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
                 <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Unassigned only</span>
