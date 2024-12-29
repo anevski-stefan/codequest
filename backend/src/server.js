@@ -99,8 +99,13 @@ const authenticateToken = (req, res, next) => {
   next();
 };
 const limiter = rateLimit({
-  windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
-  max: process.env.RATE_LIMIT_MAX_REQUESTS || 100
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: {
+    error: 'Too many requests, please try again later'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
 });
 app.use(limiter);
 const cacheMiddleware = duration => {
@@ -596,7 +601,7 @@ app.post('/api/newsletter/subscribe', express.json(), async (req, res) => {
     });
   }
 });
-app.get('/api/hackathons', async (req, res) => {
+app.get('/api/hackathons', limiter, async (req, res) => {
   try {
     const {
       page = 1,
