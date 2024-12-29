@@ -928,6 +928,121 @@ app.get('/api/repos/:owner/:repo/contributor-confidence', authenticateToken, asy
   }
 });
 
+app.get('/api/repos/:owner/:repo/pulls', authenticateToken, async (req, res) => {
+  try {
+    const { owner, repo } = req.params;
+    const { state = 'open', page = 1 } = req.query;
+    const perPage = 30;
+    
+    // Get total count based on state using search API
+    const searchResponse = await axios.get(
+      `https://api.github.com/search/issues?q=repo:${owner}/${repo}+is:pr+state:${state}`,
+      {
+        headers: {
+          Authorization: `token ${req.user.accessToken}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+
+    const totalCount = searchResponse.data.total_count;
+
+    // Get pull requests for the current page
+    const pullRequestsResponse = await axios.get(
+      `https://api.github.com/repos/${owner}/${repo}/pulls`,
+      {
+        params: {
+          state,
+          page,
+          per_page: perPage
+        },
+        headers: {
+          Authorization: `token ${req.user.accessToken}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+
+    // Fetch detailed information for each PR
+    const pullRequestsWithDetails = await Promise.all(
+      pullRequestsResponse.data.map(async (pr) => {
+        const detailsResponse = await axios.get(
+          pr.url,
+          {
+            headers: {
+              Authorization: `token ${req.user.accessToken}`,
+              Accept: 'application/vnd.github.v3+json'
+            }
+          }
+        );
+        
+        return {
+          id: pr.id,
+          number: pr.number,
+          title: pr.title,
+          state: pr.state,
+          created_at: pr.created_at,
+          updated_at: pr.updated_at,
+          closed_at: pr.closed_at,
+          merged_at: pr.merged_at,
+          draft: pr.draft,
+          user: {
+            login: pr.user.login,
+            avatar_url: pr.user.avatar_url
+          },
+          labels: pr.labels,
+          requested_reviewers: pr.requested_reviewers,
+          head: {
+            ref: pr.head.ref,
+            sha: pr.head.sha
+          },
+          base: {
+            ref: pr.base.ref
+          },
+          commits: detailsResponse.data.commits || 0,
+          additions: detailsResponse.data.additions || 0,
+          deletions: detailsResponse.data.deletions || 0,
+          changed_files: detailsResponse.data.changed_files || 0,
+          comments: pr.comments || 0,
+          review_comments: pr.review_comments || 0
+        };
+      })
+    );
+
+    const hasMore = page * perPage < totalCount;
+
+    res.json({
+      pullRequests: pullRequestsWithDetails,
+      hasMore,
+      totalCount
+    });
+  } catch (error) {
+    console.error('Error fetching pull requests:', error.response?.data);
+    res.status(error.response?.status || 500).json({ 
+      error: error.response?.data?.message || 'Failed to fetch pull requests'
+    });
+  }
+});
+
+// Helper function to get closed pull requests count
+async function getClosedPullRequestsCount(owner, repo, token) {
+  try {
+    const response = await axios.get(
+      `https://api.github.com/search/issues?q=repo:${owner}/${repo}+type:pr+state:closed`,
+      {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+    return response.data.total_count;
+  } catch (error) {
+    console.error('Error getting closed PR count:', error);
+    return 0;
+  }
+}
+
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });

@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
-import { GitFork } from 'lucide-react';
+import { GitFork, GitPullRequest, MessageSquare, GitCommit, Plus, Minus, FileText } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { formatDistanceToNow } from 'date-fns';
@@ -18,7 +18,8 @@ import {
   Filler
 } from 'chart.js';
 import { motion } from 'framer-motion';
-import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence } from '../../services/github';
+import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests } from '../../services/github';
+import { useState } from 'react';
 
 interface Repository {
   id: number;
@@ -61,6 +62,43 @@ interface ContributorConfidence {
   message: string;
 }
 
+interface PullRequest {
+  id: number;
+  number: number;
+  title: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  merged_at: string | null;
+  draft: boolean;
+  user: {
+    login: string;
+    avatar_url: string;
+  };
+  labels: Array<{
+    name: string;
+    color: string;
+  }>;
+  requested_reviewers: Array<{
+    login: string;
+    avatar_url: string;
+  }>;
+  head: {
+    ref: string;
+    sha: string;
+  };
+  base: {
+    ref: string;
+  };
+  commits: number;
+  additions: number;
+  deletions: number;
+  changed_files: number;
+  comments: number;
+  review_comments: number;
+}
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -98,6 +136,42 @@ const RepositoryDetails = () => {
     () => getContributorConfidence(owner!, repo!)
   );
 
+  const [prState, setPrState] = useState<'open' | 'closed'>('open');
+  const [page, setPage] = useState(1);
+  const [allPullRequests, setAllPullRequests] = useState<PullRequest[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const { data: pullRequestsData, isLoading: prsLoading } = useQuery<{
+    pullRequests: PullRequest[];
+    hasMore: boolean;
+    totalCount: number;
+  }>(
+    ['pull-requests', owner, repo, prState, page],
+    () => getRepositoryPullRequests(owner!, repo!, prState, page),
+    {
+      enabled: !!owner && !!repo,
+      keepPreviousData: true,
+      onSuccess: (newData) => {
+        if (page === 1) {
+          setAllPullRequests(newData.pullRequests);
+        } else {
+          setAllPullRequests(prev => {
+            const existingIds = new Set(prev.map(pr => pr.id));
+            const newUniquePRs = newData.pullRequests.filter(
+              pr => !existingIds.has(pr.id)
+            );
+            return [...prev, ...newUniquePRs];
+          });
+        }
+        setTotalCount(newData.totalCount);
+      }
+    }
+  );
+
+  const handleLoadMore = () => {
+    setPage(prev => prev + 1);
+  };
+
   if (repoLoading) return <LoadingSpinner />;
   if (!repository) return null;
 
@@ -107,9 +181,14 @@ const RepositoryDetails = () => {
       <div className="flex items-center gap-4 mb-8">
         <img src={repository.owner.avatar_url} alt="" className="w-16 h-16 rounded" />
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <a 
+            href={repository.html_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-2xl font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          >
             {repository.full_name}
-          </h1>
+          </a>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-sm text-gray-600 dark:text-gray-400">
               Last updated {formatDistanceToNow(new Date(repository.updated_at), { addSuffix: true })}
@@ -313,6 +392,179 @@ const RepositoryDetails = () => {
               </motion.div>
             </div>
           </motion.div>
+
+          {/* Pull Requests Section */}
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Pull Requests
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {totalCount} {prState} pull requests
+                </p>
+              </div>
+              <select
+                value={prState}
+                onChange={(e) => {
+                  setPrState(e.target.value as 'open' | 'closed');
+                  setPage(1);
+                  setAllPullRequests([]);
+                }}
+                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm"
+              >
+                <option value="open">Open</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+
+            <div className="space-y-4">
+              {prsLoading && page === 1 ? (
+                <LoadingSpinner />
+              ) : allPullRequests?.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  No {prState} pull requests found
+                </div>
+              ) : (
+                <>
+                  {allPullRequests?.map((pr) => (
+                    <motion.div
+                      key={pr.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-4">
+                          <img
+                            src={pr.user.avatar_url}
+                            alt={pr.user.login}
+                            className="w-10 h-10 rounded-full"
+                          />
+                          <div>
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                              {pr.title}
+                            </h3>
+                            <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
+                              <span>#{pr.number}</span>
+                              <span>by {pr.user.login}</span>
+                              <span>{formatDistanceToNow(new Date(pr.created_at), { addSuffix: true })}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {pr.draft && (
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                              Draft
+                            </span>
+                          )}
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            pr.state === 'open'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+                          }`}>
+                            {pr.merged_at ? 'Merged' : pr.state}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="flex items-center space-x-2">
+                          <GitCommit className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {(pr.commits || 0).toLocaleString()} commits
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <FileText className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {(pr.changed_files || 0).toLocaleString()} files changed
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Plus className="w-4 h-4 text-green-500" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {(pr.additions || 0).toLocaleString()} additions
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Minus className="w-4 h-4 text-red-500" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {(pr.deletions || 0).toLocaleString()} deletions
+                          </span>
+                        </div>
+                      </div>
+
+                      {pr.labels.length > 0 && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {pr.labels.map((label) => (
+                            <span
+                              key={label.name}
+                              className="px-2 py-1 rounded-full text-xs font-medium"
+                              style={{
+                                backgroundColor: `#${label.color}20`,
+                                color: `#${label.color}`,
+                              }}
+                            >
+                              {label.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {pr.requested_reviewers.length > 0 && (
+                        <div className="mt-4">
+                          <div className="text-sm text-gray-500 mb-2">Reviewers</div>
+                          <div className="flex -space-x-2">
+                            {pr.requested_reviewers.map((reviewer) => (
+                              <img
+                                key={reviewer.login}
+                                src={reviewer.avatar_url}
+                                alt={reviewer.login}
+                                title={reviewer.login}
+                                className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex items-center space-x-4 text-sm text-gray-500">
+                        <div className="flex items-center space-x-1">
+                          <MessageSquare className="w-4 h-4" />
+                          <span>
+                            {((pr.comments || 0) + (pr.review_comments || 0)).toLocaleString()} comments
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <GitPullRequest className="w-4 h-4" />
+                          <span>{pr.base.ref} ← {pr.head.ref}</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                  
+                  {pullRequestsData?.hasMore && (
+                    <div className="flex justify-center mt-4 md:mt-6">
+                      <button
+                        onClick={handleLoadMore}
+                        disabled={prsLoading}
+                        className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {prsLoading ? 'Loading...' : `Load More (${allPullRequests.length} of ${totalCount})`}
+                      </button>
+                    </div>
+                  )}
+
+                  {!pullRequestsData?.hasMore && allPullRequests.length > 0 && (
+                    <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8">
+                      Showing {allPullRequests.length} of {totalCount} pull requests
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Sidebar */}

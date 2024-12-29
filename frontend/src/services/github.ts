@@ -401,4 +401,9 @@ export const getLotteryContributors = async (owner: string, repo: string) => {
 export const getContributorConfidence = async (owner: string, repo: string) => {
   const { data } = await api.get(`/api/repos/${owner}/${repo}/contributor-confidence`);
   return data;
+};
+
+export const getRepositoryPullRequests = async (owner: string, repo: string, state: 'open' | 'closed', page: number = 1) => {
+  const { data } = await api.get(`/api/repos/${owner}/${repo}/pulls?state=${state}&page=${page}`);
+  return data;
 }; 
