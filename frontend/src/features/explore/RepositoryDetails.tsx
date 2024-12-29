@@ -1,12 +1,13 @@
 import { useParams } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { GitFork, GitPullRequest, MessageSquare, GitCommit, Plus, Minus, FileText } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { formatDistanceToNow } from 'date-fns';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { motion } from 'framer-motion';
-import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests } from '../../services/github';
+import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails } from '../../services/github';
+import PullRequestDetailsModal, { PullRequestDetails } from '../../components/PullRequestDetailsModal';
 import { useState } from 'react';
 interface Repository {
   id: number;
@@ -91,24 +92,40 @@ const RepositoryDetails = () => {
     owner,
     repo
   } = useParams();
+  const queryClient = useQueryClient();
   usePageTitle(`${owner}/${repo}`);
   const {
     data: repository,
     isLoading: repoLoading
-  } = useQuery<Repository>(['repository', owner, repo], () => getRepositoryDetails(owner!, repo!));
+  } = useQuery<Repository>(['repository', owner, repo], () => getRepositoryDetails(owner!, repo!), {
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000
+  });
   const {
     data: topContributors
-  } = useQuery<TopContributor[]>(['top-contributors', owner, repo], () => getTopContributors(owner!, repo!));
+  } = useQuery<TopContributor[]>(['top-contributors', owner, repo], () => getTopContributors(owner!, repo!), {
+    staleTime: 15 * 60 * 1000,
+    cacheTime: 60 * 60 * 1000
+  });
   const {
     data: lotteryContributors
-  } = useQuery<LotteryContributor[]>(['lottery-contributors', owner, repo], () => getLotteryContributors(owner!, repo!));
+  } = useQuery<LotteryContributor[]>(['lottery-contributors', owner, repo], () => getLotteryContributors(owner!, repo!), {
+    staleTime: 15 * 60 * 1000,
+    cacheTime: 60 * 60 * 1000
+  });
   const {
     data: contributorConfidence
-  } = useQuery<ContributorConfidence>(['contributor-confidence', owner, repo], () => getContributorConfidence(owner!, repo!));
+  } = useQuery<ContributorConfidence>(['contributor-confidence', owner, repo], () => getContributorConfidence(owner!, repo!), {
+    staleTime: 15 * 60 * 1000,
+    cacheTime: 60 * 60 * 1000
+  });
   const [allPullRequests, setAllPullRequests] = useState<PullRequest[]>([]);
   const [page, setPage] = useState(1);
   const [prState, setPrState] = useState<'open' | 'closed'>('open');
   const [isSwitching, setIsSwitching] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [prDetails, setPrDetails] = useState<PullRequestDetails | undefined>(undefined);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const {
     data: pullRequestsData,
     isLoading: prsLoading
@@ -119,7 +136,11 @@ const RepositoryDetails = () => {
   }>(['pull-requests', owner, repo, prState, page], () => getRepositoryPullRequests(owner!, repo!, prState, page), {
     enabled: !!owner && !!repo,
     keepPreviousData: true,
+    staleTime: 2 * 60 * 1000,
     onSuccess: newData => {
+      if (newData.hasMore) {
+        queryClient.prefetchQuery(['pull-requests', owner, repo, prState, page + 1], () => getRepositoryPullRequests(owner!, repo!, prState, page + 1));
+      }
       if (page === 1) {
         setAllPullRequests(newData.pullRequests);
       } else {
@@ -135,14 +156,29 @@ const RepositoryDetails = () => {
   const {
     data: prCounts
   } = useQuery<PullRequestCounts>(['pull-request-counts', owner, repo], async () => {
-    const [openData, closedData] = await Promise.all([getRepositoryPullRequests(owner!, repo!, 'open', 1), getRepositoryPullRequests(owner!, repo!, 'closed', 1)]);
+    const openData = queryClient.getQueryData(['pull-requests', owner, repo, 'open', 1]) as any;
+    const closedData = queryClient.getQueryData(['pull-requests', owner, repo, 'closed', 1]) as any;
+    if (openData && closedData) {
+      return {
+        open: openData.totalCount,
+        closed: closedData.totalCount
+      };
+    }
+    const [newOpenData, newClosedData] = await Promise.all([getRepositoryPullRequests(owner!, repo!, 'open', 1), getRepositoryPullRequests(owner!, repo!, 'closed', 1)]);
     return {
-      open: openData.totalCount,
-      closed: closedData.totalCount
+      open: newOpenData.totalCount,
+      closed: newClosedData.totalCount
     };
   }, {
-    enabled: !!owner && !!repo
+    enabled: !!owner && !!repo,
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000
   });
+  const prefetchPRDetails = (pr: PullRequest) => {
+    queryClient.prefetchQuery(['pr-details', owner, repo, pr.number], () => getPullRequestDetails(owner!, repo!, pr.number), {
+      staleTime: 5 * 60 * 1000
+    });
+  };
   const handleOpenClick = () => {
     if (prState !== 'open') {
       setIsSwitching(true);
@@ -159,6 +195,21 @@ const RepositoryDetails = () => {
   };
   const handleLoadMore = () => {
     setPage(prev => prev + 1);
+  };
+  const handleViewPullRequest = async (prNumber: number) => {
+    try {
+      setIsLoadingDetails(true);
+      const details = await getPullRequestDetails(owner!, repo!, prNumber);
+      if (!details || typeof details === 'string') {
+        throw new Error('Invalid pull request details received');
+      }
+      setPrDetails(details);
+      setIsDetailsModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching PR details:', error);
+    } finally {
+      setIsLoadingDetails(false);
+    }
   };
   if (repoLoading) return <LoadingSpinner />;
   if (!repository) return null;
@@ -382,7 +433,7 @@ const RepositoryDetails = () => {
                         <div className="flex items-start space-x-3">
                           <img src={pr.user.avatar_url} alt={pr.user.login} className="w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0" />
                           <div className="min-w-0 flex-1">
-                            <h3 className="text-base md:text-lg font-medium text-gray-900 dark:text-white truncate">
+                            <h3 onClick={() => handleViewPullRequest(pr.number)} onMouseEnter={() => prefetchPRDetails(pr)} className="text-base md:text-lg font-medium text-gray-900 dark:text-white truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">
                               {pr.title}
                             </h3>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-500">
@@ -561,6 +612,8 @@ const RepositoryDetails = () => {
           </motion.div>
         </div>
       </div>
+
+      <PullRequestDetailsModal isOpen={isDetailsModalOpen} onClose={() => setIsDetailsModalOpen(false)} pullRequestDetails={prDetails} isLoading={isLoadingDetails} />
     </div>;
 };
 export default RepositoryDetails;
