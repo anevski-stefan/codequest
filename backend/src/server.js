@@ -1071,6 +1071,39 @@ app.get('/api/repos/:owner/:repo/pulls/:pullNumber', authenticateToken, async (r
       }
     );
 
+    const commitsResponse = await axios.get(
+      `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/commits`,
+      {
+        headers: {
+          Authorization: `token ${req.user.accessToken}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
+
+    // Get files for each commit
+    const commitsWithFiles = await Promise.all(commitsResponse.data.map(async (commit) => {
+      const commitFiles = await axios.get(
+        `https://api.github.com/repos/${owner}/${repo}/commits/${commit.sha}`,
+        {
+          headers: {
+            Authorization: `token ${req.user.accessToken}`,
+            Accept: 'application/vnd.github.v3+json'
+          }
+        }
+      );
+      
+      return {
+        sha: commit.sha,
+        commit: {
+          message: commit.commit.message,
+          author: commit.commit.author
+        },
+        author: commit.author,
+        files: commitFiles.data.files.map(file => file.filename)
+      };
+    }));
+
     const details = {
       number: response.data.number,
       title: response.data.title,
@@ -1096,7 +1129,8 @@ app.get('/api/repos/:owner/:repo/pulls/:pullNumber', authenticateToken, async (r
       deletions: response.data.deletions,
       changed_files: response.data.changed_files,
       comments: response.data.comments,
-      review_comments: response.data.review_comments
+      review_comments: response.data.review_comments,
+      commits_data: commitsWithFiles
     };
 
     res.json(details);

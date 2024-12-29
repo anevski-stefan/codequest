@@ -32,6 +32,22 @@ export interface PullRequestDetails {
   changed_files: number;
   comments: number;
   review_comments: number;
+  commits_data: {
+    sha: string;
+    commit: {
+      message: string;
+      author: {
+        name: string;
+        email: string;
+        date: string;
+      };
+    };
+    author: {
+      login: string;
+      avatar_url: string;
+    } | null;
+    files: string[];
+  }[];
 }
 
 interface Props {
@@ -46,6 +62,7 @@ type TabType = 'commits' | 'changes';
 export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDetails, isLoading }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('changes');
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
+  const [selectedCommitSha, setSelectedCommitSha] = useState<string | null>(null);
 
   const toggleFile = useCallback((filename: string) => {
     setExpandedFiles(prev => {
@@ -58,6 +75,16 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
       return newSet;
     });
   }, []);
+
+  const handleCommitClick = useCallback((sha: string) => {
+    const commit = pullRequestDetails?.commits_data?.find(c => c.sha === sha);
+    if (commit) {
+      setSelectedCommitSha(sha);
+      setActiveTab('changes');
+      const filesToExpand = new Set(commit.files);
+      setExpandedFiles(filesToExpand);
+    }
+  }, [pullRequestDetails]);
 
   const formatDate = useCallback((dateString?: string) => {
     if (!dateString) return '';
@@ -119,12 +146,85 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
     }
 
     switch (activeTab) {
+      case 'commits':
+        return (
+          <div className="space-y-4">
+            {pullRequestDetails?.commits_data?.map((commit) => {
+              const isSelected = commit.sha === selectedCommitSha;
+
+              return (
+                <button
+                  key={commit.sha}
+                  onClick={() => handleCommitClick(commit.sha)}
+                  className={`w-full text-left flex items-start gap-4 p-4 border ${
+                    isSelected 
+                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                  } rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors`}
+                >
+                  {commit.author?.avatar_url ? (
+                    <img
+                      src={commit.author.avatar_url}
+                      alt={commit.author.login || 'Committer'}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                      <GitCommit className="w-4 h-4 text-gray-500" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-x-4">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {commit.commit.message.split('\n')[0]}
+                      </div>
+                      <div className="text-xs text-gray-500 whitespace-nowrap">
+                        {formatDate(commit.commit.author.date)}
+                      </div>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                      <span className="font-mono">{commit.sha.substring(0, 7)}</span>
+                      <span>by</span>
+                      <span className="font-medium">
+                        {commit.author?.login || commit.commit.author.name}
+                      </span>
+                    </div>
+                    {commit.commit.message.includes('\n') && (
+                      <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                        {commit.commit.message.split('\n').slice(1).join('\n').trim()}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        );
+
       case 'changes':
         return pullRequestDetails?.files?.length ? (
           <div className="space-y-4">
+            {selectedCommitSha && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-blue-700 dark:text-blue-300">
+                    Showing changes for commit: {selectedCommitSha.substring(0, 7)}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setSelectedCommitSha(null);
+                      setExpandedFiles(new Set());
+                    }}
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
             {pullRequestDetails.files.map((file) => {
               const isExpanded = expandedFiles.has(file.filename);
-              
+
               const getStatusLabel = (status: string) => {
                 switch (status) {
                   case 'added':
@@ -153,6 +253,29 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
                   default:
                     return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
                 }
+              };
+
+              const formatHunkHeader = (line: string) => {
+                if (!line.startsWith('@@')) return line;
+                
+                // Extract the line numbers from the hunk header
+                const match = line.match(/@@ -(\d+),?(\d+)? \+(\d+),?(\d+)? @@(.*)$/);
+                if (!match) return line;
+
+                const [, oldStart, oldCount = '1', newStart, newCount = '1', context] = match;
+                return (
+                  <div className="flex items-center gap-2 py-1 text-gray-500 dark:text-gray-400 text-sm">
+                    <span className="font-normal">
+                      {`Lines ${oldStart}-${Number(oldStart) + Number(oldCount)} → ${newStart}-${Number(newStart) + Number(newCount)}`}
+                    </span>
+                    {context && (
+                      <>
+                        <span className="font-normal">in</span>
+                        <span className="font-mono">{context}</span>
+                      </>
+                    )}
+                  </div>
+                );
               };
 
               return (
@@ -187,19 +310,28 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
                   {isExpanded && file.patch && (
                     <div className="p-4 overflow-x-auto border-t border-gray-200 dark:border-gray-700">
                       <pre className="text-sm font-mono whitespace-pre">
-                        {file.patch.split('\n').map((line, index) => (
-                          <div
-                            key={index}
-                            className={`${
-                              line.startsWith('+') ? 'bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-300' :
-                              line.startsWith('-') ? 'bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-300' :
-                              line.startsWith('@') ? 'bg-blue-100 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300' :
-                              'text-gray-800 dark:text-gray-200'
-                            }`}
-                          >
-                            {line}
-                          </div>
-                        ))}
+                        {file.patch.split('\n').map((line, index) => {
+                          if (line.startsWith('@@')) {
+                            return (
+                              <div key={index} className="border-t border-b border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30 px-2 my-2">
+                                {formatHunkHeader(line)}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={index}
+                              className={`px-2 ${
+                                line.startsWith('+') ? 'bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-300' :
+                                line.startsWith('-') ? 'bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-300' :
+                                'text-gray-800 dark:text-gray-200'
+                              }`}
+                            >
+                              {line}
+                            </div>
+                          );
+                        })}
                       </pre>
                     </div>
                   )}
@@ -209,31 +341,12 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
           </div>
         ) : null;
 
-      case 'commits':
-        return (
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <GitCommit className="w-5 h-5 text-gray-500" />
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {pullRequestDetails?.commits} commits in this pull request
-              </span>
-            </div>
-          </div>
-        );
-
       default:
         return null;
     }
-  }, [activeTab, isLoading, pullRequestDetails, expandedFiles, toggleFile]);
+  }, [activeTab, isLoading, pullRequestDetails, expandedFiles, toggleFile, selectedCommitSha, formatDate, handleCommitClick]);
 
   if (!isOpen) return null;
-
-  console.log('Modal PR Details:', {
-    isLoading,
-    pullRequestDetails,
-    filesCount: pullRequestDetails?.files?.length,
-    files: pullRequestDetails?.files
-  });
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
