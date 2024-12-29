@@ -361,3 +361,9 @@ export const getRepositoryPullRequests = async (owner: string, repo: string, sta
   } = await api.get(`/api/repos/${owner}/${repo}/pulls?${params}`);
   return data;
 };
+export const getPullRequestDetails = async (owner: string, repo: string, pullNumber: number) => {
+  const {
+    data
+  } = await api.get(`/api/repos/${owner}/${repo}/pulls/${pullNumber}`);
+  return data;
+};
