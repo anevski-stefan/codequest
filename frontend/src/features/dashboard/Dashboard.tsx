@@ -202,7 +202,7 @@ const Dashboard = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
-              <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange || ''} onChange={value => handleFilterChange('commentsRange', value)} />
+              <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange} onChange={value => handleFilterChange('commentsRange', value)} />
               <FilterDropdown label="Language" options={[{
               value: '',
               label: 'All Languages'
