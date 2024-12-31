@@ -66,6 +66,7 @@ export interface GithubUser {
   name: string | null;
   bio: string | null;
   public_repos: number;
+  public_gists: number;
   followers: number;
   following: number;
   contributions?: number;
@@ -74,4 +75,5 @@ export interface GithubUser {
   blog: string | null;
   twitter_username: string | null;
   created_at: string;
+  hireable: boolean | null;
 }
