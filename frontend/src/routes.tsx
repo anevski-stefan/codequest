@@ -4,15 +4,15 @@ import Login from './features/auth/Login';
 import Dashboard from './features/dashboard/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
 import AuthCallback from './features/auth/AuthCallback';
-import MyAssignedIssues from './components/MyAssignedIssues';
 import Profile from './features/profile/Profile';
 import ProfileActivity from './features/profile/ProfileActivity';
-import ProfileSettings from './features/profile/ProfileSettings';
+import Settings from './features/settings/Settings';
 import SuggestedIssues from './features/suggested/SuggestedIssues';
 import HackathonList from './components/HackathonList';
 import Explore from './features/explore/Explore';
 import RepositoryDetails from './features/explore/RepositoryDetails';
 import ContributorProfile from './features/explore/ContributorProfile';
+import AssignedIssuesPage from './features/assigned/AssignedIssues';
 
 const AppRoutes = () => {
   return (
@@ -38,10 +38,16 @@ const AppRoutes = () => {
             </PrivateRoute>
           }
         >
-          <Route path="assigned" element={<MyAssignedIssues />} />
           <Route path="activity" element={<ProfileActivity />} />
-          <Route path="settings" element={<ProfileSettings />} />
         </Route>
+        <Route
+          path="/settings"
+          element={
+            <PrivateRoute>
+              <Settings />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/suggested"
           element={
@@ -71,6 +77,14 @@ const AppRoutes = () => {
           element={
             <PrivateRoute>
               <ContributorProfile />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/assigned"
+          element={
+            <PrivateRoute>
+              <AssignedIssuesPage />
             </PrivateRoute>
           }
         />

@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, Settings, FileText } from 'lucide-react';
+import { Activity, Settings } from 'lucide-react';
 import type { RootState } from '../../store';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
@@ -11,14 +11,19 @@ const Profile = () => {
   const navigate = useNavigate();
 
   const navigationItems = [
-    { icon: FileText, label: 'Assigned Issues', path: '/profile/assigned' },
     { icon: Activity, label: 'Activity', path: '/profile/activity' },
     { icon: Settings, label: 'Settings', path: '/profile/settings' },
   ];
 
-  // Redirect to assigned issues if on root profile path
+  // Redirect to activity if on root profile path
   if (location.pathname === '/profile') {
-    navigate('/profile/assigned');
+    navigate('/profile/activity', { replace: true });
+    return null;
+  }
+
+  // Redirect to activity if on assigned path (to handle old bookmarks)
+  if (location.pathname === '/profile/assigned') {
+    navigate('/profile/activity', { replace: true });
     return null;
   }
 

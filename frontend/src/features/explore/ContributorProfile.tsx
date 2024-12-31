@@ -187,7 +187,7 @@ const ContributorProfile = () => {
   if (!user) return <div>User not found</div>;
 
   return (
-    <div className="flex flex-col md:flex-row flex-1 dark:bg-[#0B1222] mt-8 gap-6 px-4 md:px-8">
+    <div className="flex flex-col md:flex-row flex-1 dark:bg-[#0B1222] mt-8 gap-6 p-4 md:p-6">
       {/* Sidebar */}
       <div className="md:w-80 shrink-0">
         <div className="sticky top-8">
