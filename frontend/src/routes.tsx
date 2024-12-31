@@ -12,6 +12,7 @@ import SuggestedIssues from './features/suggested/SuggestedIssues';
 import HackathonList from './components/HackathonList';
 import Explore from './features/explore/Explore';
 import RepositoryDetails from './features/explore/RepositoryDetails';
+import ContributorProfile from './features/explore/ContributorProfile';
 const AppRoutes = () => {
   return <Routes>
       <Route element={<Layout />}>
@@ -37,6 +38,9 @@ const AppRoutes = () => {
             </PrivateRoute>} />
         <Route path="/explore/:owner/:repo" element={<PrivateRoute>
               <RepositoryDetails />
+            </PrivateRoute>} />
+        <Route path="/contributors/:username" element={<PrivateRoute>
+              <ContributorProfile />
             </PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
