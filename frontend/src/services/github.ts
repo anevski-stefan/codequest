@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { IssueParams, IssueResponse } from '../types/github';
+import type { IssueParams, IssueResponse, GithubUser } from '../types/github';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -423,4 +423,23 @@ export const getRepositoryPullRequests = async (
 export const getPullRequestDetails = async (owner: string, repo: string, pullNumber: number) => {
   const { data } = await api.get(`/api/repos/${owner}/${repo}/pulls/${pullNumber}`);
   return data;
+};
+
+export const searchTopContributors = async (query: string): Promise<GithubUser[]> => {
+  const response = await fetch(
+    `https://api.github.com/search/users?q=${query}+type:user&sort=followers&order=desc`,
+    {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch contributors');
+  }
+
+  const data = await response.json();
+  return data.items.slice(0, 10); // Limit to top 10 contributors
 }; 

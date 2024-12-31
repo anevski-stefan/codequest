@@ -116,4 +116,15 @@ export interface Comment {
     avatarUrl: string;
   };
   createdAt: string;
-} 
+}
+
+export interface GithubUser {
+  id: number;
+  login: string;
+  avatar_url: string;
+  name: string | null;
+  bio: string | null;
+  public_repos: number;
+  followers: number;
+  contributions?: number;
+}

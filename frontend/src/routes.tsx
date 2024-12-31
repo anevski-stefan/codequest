@@ -12,6 +12,7 @@ import SuggestedIssues from './features/suggested/SuggestedIssues';
 import HackathonList from './components/HackathonList';
 import Explore from './features/explore/Explore';
 import RepositoryDetails from './features/explore/RepositoryDetails';
+import ContributorProfile from './features/explore/ContributorProfile';
 
 const AppRoutes = () => {
   return (
@@ -62,6 +63,14 @@ const AppRoutes = () => {
           element={
             <PrivateRoute>
               <RepositoryDetails />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/contributors/:username"
+          element={
+            <PrivateRoute>
+              <ContributorProfile />
             </PrivateRoute>
           }
         />

@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import axios from 'axios';
-import { Search } from 'lucide-react';
+import { Search, Users } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { searchTopContributors } from '../../services/github';
+import type { GithubUser } from '../../types/github';
 
 interface Repository {
   id: number;
@@ -19,11 +21,37 @@ interface Repository {
   };
 }
 
+const ContributorsList = ({ contributors }: { contributors: GithubUser[] }) => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+      {contributors.map((user) => (
+        <div
+          key={user.id}
+          onClick={() => navigate(`/contributors/${user.login}`)}
+          className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center space-x-4">
+            <img src={user.avatar_url} alt="" className="w-12 h-12 rounded-full" />
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white">{user.login}</h3>
+              <p className="text-xs text-gray-500">{user.public_repos} repositories</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const Explore = () => {
   const navigate = useNavigate();
   usePageTitle('Explore');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [showContributors, setShowContributors] = useState(false);
+  const [contributorQuery, setContributorQuery] = useState('');
 
   const { data, isLoading, error } = useQuery(
     ['repositories', debouncedQuery],
@@ -38,6 +66,14 @@ const Explore = () => {
     },
     {
       enabled: !!debouncedQuery,
+    }
+  );
+
+  const { data: contributors, isLoading: contributorsLoading } = useQuery(
+    ['contributors', contributorQuery],
+    () => searchTopContributors(contributorQuery || 'followers:>1000'),
+    {
+      enabled: showContributors,
     }
   );
 
@@ -59,7 +95,8 @@ const Explore = () => {
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
           Explore <span className="text-orange-500">Open Source</span>
         </h1>
-        <div className="max-w-2xl mx-auto relative">
+        
+        <div className="max-w-2xl mx-auto relative mb-6">
           <input
             type="text"
             value={searchQuery}
@@ -68,11 +105,36 @@ const Explore = () => {
             className="w-full px-4 py-3 pl-12 text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-          <div className="absolute right-4 top-3 text-xs text-gray-400">
-            CTRL+K
-          </div>
         </div>
+
+        <button
+          onClick={() => setShowContributors(!showContributors)}
+          className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          <Users className="w-5 h-5 mr-2" />
+          {showContributors ? 'Hide Contributors' : 'Show Contributors'}
+        </button>
+
+        {showContributors && (
+          <div className="max-w-2xl mx-auto relative mt-4">
+            <input
+              type="text"
+              value={contributorQuery}
+              onChange={(e) => setContributorQuery(e.target.value)}
+              placeholder="Search contributors..."
+              className="w-full px-4 py-3 pl-12 text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+            <Users className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+          </div>
+        )}
       </div>
+
+      {showContributors && (
+        <>
+          {contributorsLoading && <LoadingSpinner />}
+          {contributors && <ContributorsList contributors={contributors} />}
+        </>
+      )}
 
       {isLoading && <LoadingSpinner />}
 
