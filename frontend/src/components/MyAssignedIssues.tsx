@@ -4,7 +4,8 @@ import { getAssignedIssues, getIssueComments, addIssueComment } from '../service
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle } from 'lucide-react';
 import type { Issue } from '../types/github';
-import CommentsModal, { Comment as ModalComment } from './CommentsModal';
+import type { Comment } from '../types/comments';
+import CommentsModal from './CommentsModal';
 import LoadingSpinner from './LoadingSpinner';
 import { usePageTitle } from '../hooks/usePageTitle';
 
@@ -28,7 +29,7 @@ const MyAssignedIssues = () => {
   const [issueState, setIssueState] = useState<string>('open');
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
-  const [comments, setComments] = useState<ModalComment[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
 
   const { data, isLoading, error } = useQuery(
