@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useQuery, useInfiniteQuery } from 'react-query';
 import { 
   Star, 
   GitFork, 
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { motion } from 'framer-motion';
+import StatsModal from '../../components/StatsModal';
 
 interface ContributorDetails {
   login: string;
@@ -67,7 +68,8 @@ const ContributorProfile = () => {
   const { username } = useParams<{ username: string }>();
   const [activeTab, setActiveTab] = useState<'overview' | 'repositories'>('overview');
   const [page, setPage] = useState(1);
-  const PER_PAGE = 10;
+  const PER_PAGE = 30;
+  const [activeModal, setActiveModal] = useState<'followers' | 'following' | 'repos' | null>(null);
 
   const { data: user, isLoading: userLoading } = useQuery<ContributorDetails>(
     ['contributor', username],
@@ -77,21 +79,6 @@ const ContributorProfile = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      return response.json();
-    }
-  );
-
-  const { data: repos, isLoading: reposLoading } = useQuery<Repository[]>(
-    ['contributor-repos', username, page],
-    async () => {
-      const response = await fetch(
-        `https://api.github.com/users/${username}/repos?sort=stars&per_page=${PER_PAGE}&page=${page}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
       return response.json();
     }
   );
@@ -134,6 +121,90 @@ const ContributorProfile = () => {
     }
   );
 
+  const { 
+    data: followers, 
+    isLoading: followersLoading, 
+    isFetchingNextPage: isLoadingMoreFollowers, 
+    fetchNextPage: fetchMoreFollowers, 
+    hasNextPage: hasMoreFollowers 
+  } = useInfiniteQuery(
+    ['contributor-followers', username],
+    async ({ pageParam = 1 }) => {
+      const response = await fetch(
+        `https://api.github.com/users/${username}/followers?per_page=${PER_PAGE}&page=${pageParam}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      const data = await response.json();
+      return {
+        data,
+        nextPage: data.length === PER_PAGE ? pageParam + 1 : undefined,
+      };
+    },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextPage,
+      enabled: activeModal === 'followers',
+    }
+  );
+
+  const { 
+    data: following, 
+    isLoading: followingLoading, 
+    isFetchingNextPage: isLoadingMoreFollowing, 
+    fetchNextPage: fetchMoreFollowing, 
+    hasNextPage: hasMoreFollowing 
+  } = useInfiniteQuery(
+    ['contributor-following', username],
+    async ({ pageParam = 1 }) => {
+      const response = await fetch(
+        `https://api.github.com/users/${username}/following?per_page=${PER_PAGE}&page=${pageParam}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      const data = await response.json();
+      return {
+        data,
+        nextPage: data.length === PER_PAGE ? pageParam + 1 : undefined,
+      };
+    },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextPage,
+      enabled: activeModal === 'following',
+    }
+  );
+
+  const { 
+    data: repos, 
+    isLoading: reposLoading, 
+    isFetchingNextPage: isLoadingMoreRepos, 
+    fetchNextPage: fetchMoreRepos, 
+    hasNextPage: hasMoreRepos 
+  } = useInfiniteQuery<Repository[]>(
+    ['contributor-repos', username],
+    async ({ pageParam = 1 }) => {
+      const response = await fetch(
+        `https://api.github.com/users/${username}/repos?sort=stars&per_page=${PER_PAGE}&page=${pageParam}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      return response.json();
+    },
+    {
+      getNextPageParam: (lastPage) => 
+        lastPage.length >= PER_PAGE ? lastPage.length / PER_PAGE + 1 : undefined,
+      enabled: activeModal === 'repos',
+    }
+  );
+
   const Pagination = () => (
     <div className="mt-6 flex items-center justify-center gap-4">
       <button
@@ -152,9 +223,9 @@ const ContributorProfile = () => {
       </span>
       <button
         onClick={() => setPage(p => p + 1)}
-        disabled={!repos || repos.length < PER_PAGE}
+        disabled={!repos?.pages[0] || repos.pages[0].length < PER_PAGE}
         className={`p-2 rounded-lg ${
-          !repos || repos.length < PER_PAGE
+          !repos?.pages[0] || repos.pages[0].length < PER_PAGE
             ? 'text-gray-400 cursor-not-allowed'
             : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
         }`}
@@ -214,18 +285,27 @@ const ContributorProfile = () => {
               )}
 
               <div className="mt-6 flex items-center justify-center space-x-6 text-gray-600 dark:text-gray-300">
-                <div className="flex flex-col items-center">
+                <button
+                  onClick={() => setActiveModal('followers')}
+                  className="flex flex-col items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
                   <span className="text-2xl font-bold">{user.followers}</span>
                   <span className="text-sm">Followers</span>
-                </div>
-                <div className="flex flex-col items-center">
+                </button>
+                <button
+                  onClick={() => setActiveModal('following')}
+                  className="flex flex-col items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
                   <span className="text-2xl font-bold">{user.following}</span>
                   <span className="text-sm">Following</span>
-                </div>
-                <div className="flex flex-col items-center">
+                </button>
+                <button
+                  onClick={() => setActiveModal('repos')}
+                  className="flex flex-col items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
                   <span className="text-2xl font-bold">{user.public_repos}</span>
                   <span className="text-sm">Repos</span>
-                </div>
+                </button>
               </div>
 
               <div className="mt-6 w-full space-y-3">
@@ -422,7 +502,7 @@ const ContributorProfile = () => {
                     <LoadingSpinner />
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {repos?.slice(0, 6).map((repo) => (
+                      {repos?.pages[0]?.slice(0, 6).map((repo: Repository) => (
                         <motion.a
                           key={repo.id}
                           href={repo.html_url}
@@ -464,7 +544,7 @@ const ContributorProfile = () => {
                     <LoadingSpinner />
                   ) : (
                     <>
-                      {repos?.map((repo) => (
+                      {repos?.pages.flatMap((page: Repository[]) => page).map((repo: Repository) => (
                         <motion.div
                           key={repo.id}
                           initial={{ opacity: 0 }}
@@ -506,6 +586,39 @@ const ContributorProfile = () => {
           </div>
         </div>
       </div>
+
+      <StatsModal
+        isOpen={activeModal === 'followers'}
+        onClose={() => setActiveModal(null)}
+        title="Followers"
+        data={followers?.pages.flatMap(page => page.data)}
+        isLoading={followersLoading}
+        hasMore={hasMoreFollowers}
+        onLoadMore={() => fetchMoreFollowers()}
+        isLoadingMore={isLoadingMoreFollowers}
+      />
+
+      <StatsModal
+        isOpen={activeModal === 'following'}
+        onClose={() => setActiveModal(null)}
+        title="Following"
+        data={following?.pages.flatMap(page => page.data)}
+        isLoading={followingLoading}
+        hasMore={hasMoreFollowing}
+        onLoadMore={() => fetchMoreFollowing()}
+        isLoadingMore={isLoadingMoreFollowing}
+      />
+
+      <StatsModal
+        isOpen={activeModal === 'repos'}
+        onClose={() => setActiveModal(null)}
+        title="Repositories"
+        data={repos?.pages.flat()}
+        isLoading={reposLoading}
+        hasMore={hasMoreRepos}
+        onLoadMore={() => fetchMoreRepos()}
+        isLoadingMore={isLoadingMoreRepos}
+      />
     </div>
   );
 };
