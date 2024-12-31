@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import useAuth from '../hooks/useAuth';
-import { LogOut } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import type { RootState } from '../store';
 import { useState } from 'react';
 const Layout = () => {
@@ -38,7 +38,7 @@ const Layout = () => {
 
               {}
               <div className="hidden md:flex items-center space-x-4">
-                <button onClick={() => navigate('/profile/assigned')} className="flex items-center space-x-2">
+                <button onClick={() => navigate('/profile/activity')} className="flex items-center space-x-2">
                   <div className="relative w-10 h-10 overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-full">
                     <img src={user?.avatar_url} alt="Profile" className="h-full w-full object-cover" />
                   </div>
@@ -46,11 +46,17 @@ const Layout = () => {
                     {user?.login}
                   </span>
                 </button>
+                <button onClick={() => navigate('/assigned')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
+                  Assigned Issues
+                </button>
                 <button onClick={() => navigate('/suggested')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
                   Suggested Issues
                 </button>
                 <button onClick={() => navigate('/explore')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
                   Explore
+                </button>
+                <button onClick={() => navigate('/settings')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
+                  <Settings className="h-5 w-5" />
                 </button>
                 <button onClick={logout} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors flex items-center">
                   <LogOut className="h-5 w-5 mr-2" />
@@ -69,7 +75,7 @@ const Layout = () => {
       }}>
             <div className="px-2 pt-4 pb-4 space-y-3">
               <button onClick={() => {
-            navigate('/profile/assigned');
+            navigate('/profile/activity');
             setIsMobileMenuOpen(false);
           }} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md" style={{
             transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
@@ -89,6 +95,17 @@ const Layout = () => {
             transitionDelay: '75ms'
           }}>
                 Suggested Issues
+              </button>
+              <button onClick={() => {
+            navigate('/settings');
+            setIsMobileMenuOpen(false);
+          }} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md" style={{
+            transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
+            opacity: isMobileMenuOpen ? 1 : 0,
+            transition: 'all 0.2s ease-out',
+            transitionDelay: '75ms'
+          }}>
+                Settings
               </button>
               <button onClick={() => {
             logout();
