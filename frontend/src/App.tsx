@@ -1,35 +1,37 @@
-import { BrowserRouter as Router } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from 'react-query';
 import { Provider } from 'react-redux';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { store } from './store';
 import AppRoutes from './routes';
-import { useTheme } from './contexts/ThemeContext';
 
+// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: false,
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
 
-function App() {
-  const { theme } = useTheme();
-  
+const App = () => {
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <div className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>
-            <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900">
-              <AppRoutes />
+    <ThemeProvider>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+              <div className="min-h-screen">
+                <AppRoutes />
+              </div>
             </div>
-          </div>
-        </Router>
-      </QueryClientProvider>
-    </Provider>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </Provider>
+    </ThemeProvider>
   );
-}
+};
 
 export default App;
