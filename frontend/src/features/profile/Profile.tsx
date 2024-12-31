@@ -17,6 +17,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import type { RootState } from '../../store';
 import type { GithubUser } from '../../types/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import { getUserRepositories, getUserActivities, getUserStarredCount } from '../../services/github';
 
 const Profile = () => {
   usePageTitle('Profile');
@@ -27,58 +28,20 @@ const Profile = () => {
 
   const { data: repos, isLoading: reposLoading } = useQuery(
     ['user-repos', page],
-    async () => {
-      const response = await fetch(
-        `https://api.github.com/user/repos?sort=updated&per_page=${PER_PAGE}&page=${page}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      return response.json();
-    }
+    () => getUserRepositories(page, PER_PAGE)
   );
 
   const { data: activities, isLoading: activitiesLoading } = useQuery(
     ['user-activities'],
-    async () => {
-      const response = await fetch(`https://api.github.com/users/${user?.login}/events/public`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      return response.json();
-    },
+    () => getUserActivities(user?.login as string),
     {
       enabled: !!user?.login
     }
   );
 
-  const { data: organizations } = useQuery(
-    ['user-orgs'],
-    async () => {
-      const response = await fetch(`https://api.github.com/user/orgs`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      return response.json();
-    }
-  );
-
   const { data: starredCount } = useQuery(
     ['user-starred'],
-    async () => {
-      const response = await fetch(`https://api.github.com/user/starred?per_page=1`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const links = response.headers.get('link');
-      const match = links?.match(/page=(\d+)>; rel="last"/);
-      return match ? parseInt(match[1]) : 0;
-    }
+    getUserStarredCount
   );
 
   const Pagination = () => (
@@ -245,36 +208,6 @@ const Profile = () => {
               )}
             </div>
           </motion.div>
-
-          {organizations?.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-6 bg-white dark:bg-[#0B1222] rounded-xl p-6 shadow-sm border border-gray-200 dark:border-white/10"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Organizations
-              </h3>
-              <div className="grid grid-cols-4 gap-4">
-                {organizations.map((org: { id: number; avatar_url: string; login: string }) => (
-                  <a
-                    key={org.id}
-                    href={`https://github.com/${org.login}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:opacity-80 transition-opacity"
-                  >
-                    <img
-                      src={org.avatar_url}
-                      alt={org.login}
-                      className="w-12 h-12 rounded-lg"
-                      title={org.login}
-                    />
-                  </a>
-                ))}
-              </div>
-            </motion.div>
-          )}
         </div>
       </div>
 
@@ -303,14 +236,14 @@ const Profile = () => {
                   >
                     <div className="flex-shrink-0">
                       <img
-                        src={user.avatar_url}
-                        alt={user.name || user.login}
+                        src={event.actor.avatar_url}
+                        alt={event.actor.login}
                         className="w-8 h-8 rounded-full"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-900 dark:text-white">
-                        <span className="font-medium">{user.login}</span>{' '}
+                        <span className="font-medium">{event.actor.login}</span>{' '}
                         {formatActivityMessage(event)}{' '}
                         <a
                           href={`https://github.com/${event.repo.name}`}

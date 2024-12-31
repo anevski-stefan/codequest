@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import axios from 'axios';
@@ -21,26 +21,50 @@ interface Repository {
   };
 }
 
-const ContributorsList = ({ contributors }: { contributors: GithubUser[] }) => {
+const ContributorsList = ({ 
+  contributors, 
+  onLoadMore, 
+  hasMore, 
+  isLoading 
+}: { 
+  contributors: GithubUser[],
+  onLoadMore: () => void,
+  hasMore: boolean,
+  isLoading: boolean
+}) => {
   const navigate = useNavigate();
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-      {contributors.map((user) => (
-        <div
-          key={user.id}
-          onClick={() => navigate(`/contributors/${user.login}`)}
-          className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center space-x-4">
-            <img src={user.avatar_url} alt="" className="w-12 h-12 rounded-full" />
-            <div>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white">{user.login}</h3>
-              <p className="text-xs text-gray-500">{user.public_repos} repositories</p>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {contributors.map((user) => (
+          <div
+            key={user.id}
+            onClick={() => navigate(`/contributors/${user.login}`)}
+            className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center space-x-4">
+              <img src={user.avatar_url} alt="" className="w-12 h-12 rounded-full" />
+              <div>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white">{user.login}</h3>
+                <p className="text-xs text-gray-500">{user.public_repos} repositories</p>
+              </div>
             </div>
           </div>
+        ))}
+      </div>
+      
+      {hasMore && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={onLoadMore}
+            disabled={isLoading}
+            className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors disabled:opacity-50"
+          >
+            {isLoading ? 'Loading...' : 'Load More'}
+          </button>
         </div>
-      ))}
+      )}
     </div>
   );
 };
@@ -52,6 +76,8 @@ const Explore = () => {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [showContributors, setShowContributors] = useState(false);
   const [contributorQuery, setContributorQuery] = useState('');
+  const [contributorsPage, setContributorsPage] = useState(1);
+  const [allContributors, setAllContributors] = useState<GithubUser[]>([]);
 
   const { data, isLoading, error } = useQuery(
     ['repositories', debouncedQuery],
@@ -69,13 +95,25 @@ const Explore = () => {
     }
   );
 
-  const { data: contributors, isLoading: contributorsLoading } = useQuery(
-    ['contributors', contributorQuery],
-    () => searchTopContributors(contributorQuery || 'followers:>1000'),
+  const { data: contributorsData, isLoading: contributorsLoading } = useQuery(
+    ['contributors', contributorQuery, contributorsPage],
+    () => searchTopContributors(contributorQuery || 'followers:>1000', contributorsPage),
     {
       enabled: showContributors,
+      onSuccess: (data) => {
+        if (contributorsPage === 1) {
+          setAllContributors(data.users);
+        } else {
+          setAllContributors(prev => [...prev, ...data.users]);
+        }
+      }
     }
   );
+
+  useEffect(() => {
+    setContributorsPage(1);
+    setAllContributors([]);
+  }, [contributorQuery]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -87,6 +125,10 @@ const Explore = () => {
   const handleRepositoryClick = (fullName: string) => {
     const [owner, repo] = fullName.split('/');
     navigate(`/explore/${owner}/${repo}`);
+  };
+
+  const handleLoadMoreContributors = () => {
+    setContributorsPage(prev => prev + 1);
   };
 
   return (
@@ -131,8 +173,15 @@ const Explore = () => {
 
       {showContributors && (
         <>
-          {contributorsLoading && <LoadingSpinner />}
-          {contributors && <ContributorsList contributors={contributors} />}
+          {contributorsLoading && contributorsPage === 1 && <LoadingSpinner />}
+          {allContributors.length > 0 && (
+            <ContributorsList 
+              contributors={allContributors}
+              onLoadMore={handleLoadMoreContributors}
+              hasMore={!!contributorsData?.hasMore}
+              isLoading={contributorsLoading}
+            />
+          )}
         </>
       )}
 

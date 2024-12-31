@@ -41,7 +41,6 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   // Build the base search query
   let searchQuery = 'is:issue is:unlocked '; // Only get issues that allow comments
   let startDate: string | undefined;
-  let endDate: string | undefined;
   
   // Add language filter
   if (params.language) {
@@ -64,7 +63,6 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   // Add time frame filter with precise timestamp handling
   if (params.timeFrame && params.timeFrame !== 'all') {
     const now = new Date();
-    endDate = now.toISOString();
     
     switch (params.timeFrame) {
       case 'day':
@@ -127,16 +125,6 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     page: params.page?.toString() || '1'
   });
 
-  console.log('Search query:', {
-    searchQuery,
-    sort: params.sort,
-    order: params.direction,
-    timeFrame: params.timeFrame,
-    fullQuery: `https://api.github.com/search/issues?${queryParams}`,
-    startDate: params.timeFrame !== 'all' ? startDate : null,
-    endDate: params.timeFrame !== 'all' ? endDate : null
-  });
-
   try {
     const response = await fetch(`https://api.github.com/search/issues?${queryParams}`, {
       headers: {
@@ -147,13 +135,6 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
-        query: searchQuery
-      });
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
 
@@ -192,7 +173,6 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
       currentPage: parseInt(params.page?.toString() || '1')
     };
   } catch (error) {
-    console.error('Failed to fetch issues:', error);
     throw error;
   }
 };
@@ -205,8 +185,6 @@ export const getActivity = async () => {
 export const getIssueComments = async (issueNumber: number, repoFullName: string, page = 1) => {
   try {
     const [owner, repo] = repoFullName.split('/');
-    console.log('Fetching comments for:', { issueNumber, owner, repo, page });
-
     const response = await api.get(`/api/issues/${issueNumber}/comments`, {
       params: {
         owner,
@@ -214,11 +192,8 @@ export const getIssueComments = async (issueNumber: number, repoFullName: string
         page
       }
     });
-
-    console.log('Comments response:', response);
     return response.data;
   } catch (error) {
-    console.error('Error fetching comments:', error);
     throw error;
   }
 };
@@ -235,13 +210,6 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
       throw new Error('No authentication token found');
     }
 
-    console.log('Adding comment:', {
-      owner,
-      repo,
-      issueNumber,
-      comment
-    });
-
     const response = await api.post(
       `/api/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
       { body: comment },
@@ -253,10 +221,8 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
       }
     );
 
-    console.log('Comment created:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error adding comment:', error);
     throw error;
   }
 };
@@ -268,7 +234,6 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
     });
     return data;
   } catch (error) {
-    console.error('Failed to fetch assigned issues:', error);
     throw error;
   }
 };
@@ -276,24 +241,17 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
 export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResponse> => {
   let searchQuery = 'is:issue is:open no:assignee '; 
   
-  // Handle labels without parentheses
   if (params.labels && params.labels.length > 0) {
-    // Use the most important labels first
     searchQuery += 'label:"good first issue" label:"help wanted" ';
   }
 
-  // Add comments filter
   if (params.commentsRange === '0') {
     searchQuery += 'comments:0 ';
   }
 
-  // Use GitHub's date range syntax
   if (params.timeFrame === 'month') {
-    searchQuery += 'created:2024-01-01..* ';  // From start of 2024 to now
+    searchQuery += 'created:2024-01-01..* ';
   }
-
-  // Log the query for debugging
-  console.log('Final search query:', searchQuery);
 
   const queryParams = new URLSearchParams({
     q: searchQuery.trim(),
@@ -301,15 +259,6 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
     order: params.direction || 'desc',
     per_page: '100',
     page: params.page?.toString() || '1'
-  });
-
-  // Add logging
-  console.log('Suggested Issues Search query:', {
-    searchQuery,
-    sort: params.sort,
-    order: params.direction,
-    fullQuery: `https://api.github.com/search/issues?${queryParams}`,
-    labels: params.labels
   });
 
   try {
@@ -322,30 +271,11 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
-        query: searchQuery
-      });
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
     
-    // Add response data logging
-    console.log('GitHub API Response:', {
-      totalCount: data.total_count,
-      itemsCount: data.items?.length,
-      firstItem: data.items?.[0],
-      rateLimit: {
-        remaining: response.headers.get('x-ratelimit-remaining'),
-        limit: response.headers.get('x-ratelimit-limit'),
-        reset: response.headers.get('x-ratelimit-reset')
-      }
-    });
-
     const transformedIssues = data.items.map((item: any) => ({
       id: item.id,
       number: item.number,
@@ -378,7 +308,6 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
       currentPage: parseInt(params.page?.toString() || '1')
     };
   } catch (error) {
-    console.error('Failed to fetch suggested issues:', error);
     throw error;
   }
 };
@@ -425,9 +354,10 @@ export const getPullRequestDetails = async (owner: string, repo: string, pullNum
   return data;
 };
 
-export const searchTopContributors = async (query: string): Promise<GithubUser[]> => {
+export const searchTopContributors = async (query: string, page: number = 1): Promise<{users: GithubUser[], hasMore: boolean}> => {
+  const perPage = 10;
   const response = await fetch(
-    `https://api.github.com/search/users?q=${query}+type:user&sort=followers&order=desc`,
+    `https://api.github.com/search/users?q=${query}+type:user&sort=followers&order=desc&page=${page}&per_page=${perPage}`,
     {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
@@ -441,5 +371,43 @@ export const searchTopContributors = async (query: string): Promise<GithubUser[]
   }
 
   const data = await response.json();
-  return data.items.slice(0, 10); // Limit to top 10 contributors
+  return {
+    users: data.items,
+    hasMore: data.total_count > page * perPage
+  };
+};
+
+export const getUserRepositories = async (page: number, perPage: number) => {
+  const response = await fetch(
+    `https://api.github.com/user/repos?sort=updated&per_page=${perPage}&page=${page}`,
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Accept: 'application/vnd.github.v3+json'
+      },
+    }
+  );
+  return response.json();
+};
+
+export const getUserActivities = async (username: string) => {
+  const response = await fetch(`https://api.github.com/users/${username}/events/public`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Accept: 'application/vnd.github.v3+json'
+    },
+  });
+  return response.json();
+};
+
+export const getUserStarredCount = async () => {
+  const response = await fetch(`https://api.github.com/user/starred?per_page=1`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Accept: 'application/vnd.github.v3+json'
+    },
+  });
+  const links = response.headers.get('link');
+  const match = links?.match(/page=(\d+)>; rel="last"/);
+  return match ? parseInt(match[1]) : 0;
 }; 
