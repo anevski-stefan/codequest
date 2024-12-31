@@ -354,10 +354,11 @@ const ContributorProfile = () => {
                     className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                        {event.type === 'PushEvent' && <GitFork className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
-                        {event.type === 'WatchEvent' && <Star className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
-                      </div>
+                      <img
+                        src={user.avatar_url}
+                        alt={user.name || user.login}
+                        className="w-8 h-8 rounded-full"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-900 dark:text-white">

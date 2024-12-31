@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Github } from 'lucide-react';
 import type { RootState } from '../../store';
@@ -9,13 +9,16 @@ import { usePageTitle } from '../../hooks/usePageTitle';
 const Login = () => {
   usePageTitle('Login');
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      // Redirect to the originally requested URL or dashboard
+      const from = (location.state as { from?: Location })?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, location]);
 
   const handleGitHubLogin = () => {
     window.location.href = `${import.meta.env.VITE_API_URL}/auth/github`;
