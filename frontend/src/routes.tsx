@@ -5,7 +5,6 @@ import Dashboard from './features/dashboard/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
 import AuthCallback from './features/auth/AuthCallback';
 import Profile from './features/profile/Profile';
-import ProfileActivity from './features/profile/ProfileActivity';
 import Settings from './features/settings/Settings';
 import SuggestedIssues from './features/suggested/SuggestedIssues';
 import HackathonList from './components/HackathonList';
@@ -17,11 +16,10 @@ import AssignedIssuesPage from './features/assigned/AssignedIssues';
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Login />} />
+      <Route path="/" element={<Layout />}>
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/hackathons" element={<HackathonList />} />
-        
         <Route
           path="/dashboard"
           element={
@@ -37,9 +35,8 @@ const AppRoutes = () => {
               <Profile />
             </PrivateRoute>
           }
-        >
-          <Route path="activity" element={<ProfileActivity />} />
-        </Route>
+        />
+        <Route path="/hackathons" element={<HackathonList />} />
         <Route
           path="/settings"
           element={

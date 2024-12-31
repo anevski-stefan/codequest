@@ -126,5 +126,11 @@ export interface GithubUser {
   bio: string | null;
   public_repos: number;
   followers: number;
+  following: number;
   contributions?: number;
+  company: string | null;
+  location: string | null;
+  blog: string | null;
+  twitter_username: string | null;
+  created_at: string;
 }

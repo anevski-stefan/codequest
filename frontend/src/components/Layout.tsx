@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import useAuth from '../hooks/useAuth';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import type { RootState } from '../store';
 import { useState } from 'react';
 
@@ -48,7 +48,7 @@ const Layout = () => {
               {/* Desktop navigation */}
               <div className="hidden md:flex items-center space-x-4">
                 <button
-                  onClick={() => navigate('/profile/activity')}
+                  onClick={() => navigate('/profile')}
                   className="flex items-center space-x-2"
                 >
                   <div className="relative w-10 h-10 overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-full">
@@ -84,7 +84,7 @@ const Layout = () => {
                   onClick={() => navigate('/settings')}
                   className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors"
                 >
-                  <Settings className="h-5 w-5" />
+                  Settings
                 </button>
                 <button
                   onClick={logout}
@@ -110,7 +110,7 @@ const Layout = () => {
             <div className="px-2 pt-4 pb-4 space-y-3">
               <button
                 onClick={() => {
-                  navigate('/profile/activity');
+                  navigate('/assigned');
                   setIsMobileMenuOpen(false);
                 }}
                 className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md"
