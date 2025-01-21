@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-q
 import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
 import type { Issue, IssueParams, Language } from '../../types/github';
 import debounce from 'lodash/debounce';
+import { SlidersHorizontal, X } from 'lucide-react';
 import CommentsModal from '../../components/CommentsModal';
 import LabelsFilter from '../../components/LabelsFilter';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -30,6 +31,7 @@ const Dashboard = () => {
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   // Comments query
   const { 
@@ -206,11 +208,44 @@ const Dashboard = () => {
   const showLoadingSpinner = isLoading || !initialFetchComplete;
 
   return (
-    <div className="flex min-h-screen w-full">
-      {/* Left Sidebar with Filters */}
-      <aside className="w-80 shrink-0">
-        <div className="fixed w-80">
-          <div className="m-4">
+    <div className="flex min-h-screen w-full relative">
+      {/* Mobile Filter Toggle Button */}
+      <button
+        onClick={() => setIsMobileFiltersOpen(true)}
+        className="lg:hidden fixed bottom-4 right-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+      >
+        <SlidersHorizontal className="w-6 h-6" />
+      </button>
+
+      {/* Mobile Filter Overlay */}
+      <div
+        className={`lg:hidden fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 transition-opacity duration-300 ${
+          isMobileFiltersOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMobileFiltersOpen(false)}
+      />
+
+      {/* Left Sidebar with Filters - Modified for mobile */}
+      <aside
+        className={`
+          fixed lg:relative inset-y-0 left-0 z-50 w-full lg:w-80 shrink-0 transform transition-transform duration-300 ease-in-out
+          lg:translate-x-0 ${isMobileFiltersOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        <div className="h-full w-full lg:w-80 bg-white dark:bg-[#0B1222] lg:bg-transparent">
+          <div className="p-4">
+            {/* Mobile Close Button */}
+            <div className="flex items-center justify-between lg:hidden mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h2>
+              <button
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Existing filter content */}
             <div className="border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0B1222] rounded-lg">
               <div className="p-4 border-b border-gray-200 dark:border-white/10">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -301,9 +336,9 @@ const Dashboard = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-4">
-        <div className="w-full">
+      {/* Main Content - Modified for mobile */}
+      <main className="flex-1 p-4 lg:p-6 w-full lg:ml-0">
+        <div className="w-full max-w-[1200px] mx-auto">
           {showLoadingSpinner ? (
             <LoadingSpinner />
           ) : (
