@@ -8,7 +8,7 @@ interface CommentItemProps {
 
 const CommentItem = memo(({ comment }: CommentItemProps) => {
   return (
-    <div className="mb-6 last:mb-0 bg-white/90 dark:bg-black/30 backdrop-blur-lg rounded-lg p-4 hover:bg-gray-50/50 dark:hover:bg-white/10 transition-colors">
+    <div className="mb-6 last:mb-0 bg-white/90 dark:bg-[#0B1222] backdrop-blur-lg rounded-lg p-4 hover:bg-gray-50/50 dark:hover:bg-white/10 transition-colors">
       <div className="flex items-start space-x-4">
         <img
           src={comment.user.avatar_url}
