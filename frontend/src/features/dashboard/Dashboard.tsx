@@ -207,73 +207,107 @@ const Dashboard = () => {
 
   return (
     <div className="flex min-h-screen w-full">
-      <div className="w-full max-w-full overflow-x-hidden">
-        <div className="p-3 md:p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid lg:grid-cols-4 gap-2 md:gap-4">
-            <div className="grid grid-cols-2 gap-2 w-full">
-              <FilterDropdown
-                label="Time Frame"
-                options={timeFrameOptions}
-                value={filter.timeFrame}
-                onChange={(value) => handleFilterChange('timeFrame', value)}
-              />
-              <FilterDropdown
-                label="Sort By"
-                options={sortOptions}
-                value={filter.direction === 'asc' ? 'created-asc' : filter.sort}
-                onChange={(value) => handleFilterChange('sort', value)}
-              />
-            </div>
+      {/* Left Sidebar with Filters */}
+      <aside className="w-80 shrink-0">
+        <div className="fixed w-80">
+          <div className="m-4">
+            <div className="border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0B1222] rounded-lg">
+              <div className="p-4 border-b border-gray-200 dark:border-white/10">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Filters
+                </h2>
+              </div>
+              <div className="p-4 pb-6">
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Time Frame
+                    </label>
+                    <FilterDropdown
+                      label="Time Frame"
+                      options={timeFrameOptions}
+                      value={filter.timeFrame}
+                      onChange={(value) => handleFilterChange('timeFrame', value)}
+                    />
+                  </div>
 
-            <div className="grid grid-cols-2 gap-2 w-full">
-              <FilterDropdown
-                label="Comments"
-                options={commentRanges}
-                value={filter.commentsRange}
-                onChange={(value) => handleFilterChange('commentsRange', value)}
-              />
-              <FilterDropdown
-                label="Language"
-                options={[
-                  { value: '', label: 'All Languages' },
-                  ...languageOptions.slice(1).map(lang => ({
-                    value: lang,
-                    label: lang.charAt(0).toUpperCase() + lang.slice(1)
-                  }))
-                ]}
-                value={filter.language}
-                onChange={(value) => handleFilterChange('language', value as Language)}
-              />
-            </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Sort By
+                    </label>
+                    <FilterDropdown
+                      label="Sort By"
+                      options={sortOptions}
+                      value={filter.direction === 'asc' ? 'created-asc' : filter.sort}
+                      onChange={(value) => handleFilterChange('sort', value)}
+                    />
+                  </div>
 
-            <div className="w-full">
-              <LabelsFilter
-                selectedLabels={filter.labels || []}
-                onLabelsChange={(labels) => handleFilterChange('labels', labels)}
-              />
-            </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Comments
+                    </label>
+                    <FilterDropdown
+                      label="Comments"
+                      options={commentRanges}
+                      value={filter.commentsRange}
+                      onChange={(value) => handleFilterChange('commentsRange', value)}
+                    />
+                  </div>
 
-            <div className="w-full flex items-center">
-              <label className="inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filter.unassigned}
-                  onChange={(e) => handleFilterChange('unassigned', e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
-                />
-                <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Unassigned only</span>
-              </label>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Language
+                    </label>
+                    <FilterDropdown
+                      label="Language"
+                      options={[
+                        { value: '', label: 'All Languages' },
+                        ...languageOptions.slice(1).map(lang => ({
+                          value: lang,
+                          label: lang.charAt(0).toUpperCase() + lang.slice(1)
+                        }))
+                      ]}
+                      value={filter.language}
+                      onChange={(value) => handleFilterChange('language', value as Language)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Labels
+                    </label>
+                    <LabelsFilter
+                      selectedLabels={filter.labels || []}
+                      onLabelsChange={(labels) => handleFilterChange('labels', labels)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filter.unassigned}
+                        onChange={(e) => handleFilterChange('unassigned', e.target.checked)}
+                        className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
+                      />
+                      <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Unassigned only</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+      </aside>
 
-        <div className="p-3 md:p-4">
+      {/* Main Content */}
+      <main className="flex-1 p-4 overflow-x-auto">
+        <div className="min-h-[200px] w-full">
           {showLoadingSpinner ? (
-            <div className="min-h-[200px]">
-              <LoadingSpinner />
-            </div>
+            <LoadingSpinner />
           ) : (
-            <div className="min-h-[200px]">
+            <div className="min-h-[200px] w-full">
               {error instanceof Error && (
                 <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 rounded-lg w-full">
                   {error.message || 'Failed to load issues'}
@@ -289,11 +323,13 @@ const Dashboard = () => {
               )}
 
               {!isLoading && !isFilterLoading && allIssues.length > 0 && (
-                <div className="bg-white dark:bg-gray-900 shadow rounded-lg">
-                  <IssueTable 
-                    issues={allIssues}
-                    onViewComments={handleViewComments}
-                  />
+                <div className="bg-white dark:bg-gray-900 shadow rounded-lg overflow-hidden">
+                  <div className="min-w-full overflow-x-auto">
+                    <IssueTable 
+                      issues={allIssues}
+                      onViewComments={handleViewComments}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -316,7 +352,7 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       <CommentsModal
         isOpen={isCommentsModalOpen}
