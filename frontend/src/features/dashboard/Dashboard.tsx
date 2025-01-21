@@ -260,8 +260,8 @@ const Dashboard = () => {
       </aside>
 
       {}
-      <main className="flex-1 p-4 overflow-x-auto">
-        <div className="min-h-[200px] w-full">
+      <main className="flex-1 p-4">
+        <div className="min-h-[200px] w-full overflow-x-auto">
           {showLoadingSpinner ? <LoadingSpinner /> : <div className="min-h-[200px] w-full">
               {error instanceof Error && <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 rounded-lg w-full">
                   {error.message || 'Failed to load issues'}
@@ -273,8 +273,8 @@ const Dashboard = () => {
                   </p>
                 </div>}
 
-              {!isLoading && !isFilterLoading && allIssues.length > 0 && <div className="bg-white dark:bg-gray-900 shadow rounded-lg overflow-hidden">
-                  <div className="min-w-full overflow-x-auto">
+              {!isLoading && !isFilterLoading && allIssues.length > 0 && <div className="bg-white dark:bg-gray-900 shadow rounded-lg min-w-fit">
+                  <div className="w-full overflow-x-auto">
                     <IssueTable issues={allIssues} onViewComments={handleViewComments} />
                   </div>
                 </div>}
