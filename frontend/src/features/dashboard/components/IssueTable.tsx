@@ -33,7 +33,7 @@ const IssueTable = ({ issues, onViewComments }: IssueTableProps) => {
                   <th className="hidden lg:table-cell w-[15%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
                     Created
                   </th>
-                  <th className="w-[10%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                  <th className="w-[10%] px-2 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
                     Comments
                   </th>
                   <th className="w-[10%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
@@ -107,9 +107,9 @@ const IssueTable = ({ issues, onViewComments }: IssueTableProps) => {
                         </span>
                       </div>
                     </td>
-                    <td className="w-[10%] px-6 py-4">
+                    <td className="px-2 py-4">
                       <div className="flex justify-center items-center w-full">
-                        <span className="inline-block text-sm text-gray-500 dark:text-gray-400">
+                        <span className="inline-flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
                           {issue.commentsCount}
                         </span>
                       </div>
