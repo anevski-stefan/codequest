@@ -65,7 +65,7 @@ export default function LabelsFilter({ selectedLabels, onLabelsChange }: LabelsF
     <div className="relative">
       <div 
         onClick={handleContainerClick}
-        className="flex flex-wrap gap-2 p-2 bg-white/80 dark:bg-black/20 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg min-h-[42px] cursor-text"
+        className="flex flex-wrap gap-2 p-2 bg-white dark:bg-[#0B1222] border border-gray-300 dark:border-white/10 rounded-lg min-h-[42px] cursor-text"
       >
         {selectedLabels.map(label => (
           <span
