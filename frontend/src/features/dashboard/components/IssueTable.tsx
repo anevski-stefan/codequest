@@ -12,118 +12,124 @@ const IssueTable = ({ issues, onViewComments }: IssueTableProps) => {
   return (
     <>
       {/* Desktop Table View */}
-      <div className="hidden sm:block overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Title
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Repository
-              </th>
-              <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Labels
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Created
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Comments
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {issues.map((issue) => (
-              <tr key={`${issue.repository?.fullName}-${issue.number}`} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                <td className="px-6 py-4">
-                  <a
-                    href={issue.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group"
-                  >
-                    <div className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                      {issue.title}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      #{issue.number}
-                    </div>
-                  </a>
-                </td>
-                <td className="px-6 py-4">
-                  <a
-                    href={`https://github.com/${issue.repository?.fullName}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
-                  >
-                    {issue.repository?.fullName}
-                  </a>
-                </td>
-                <td className="hidden md:table-cell px-6 py-4">
-                  <div className="flex flex-wrap gap-1">
-                    {issue.labels.length > 0 ? (
-                      issue.labels.map((label) => (
-                        <span
-                          key={label.name}
-                          className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full"
-                          style={getLabelColors(label.color)}
-                        >
-                          {label.name}
+      <div className="hidden sm:block w-full">
+        <div className="w-full border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full table-fixed border-collapse divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                  <th className="w-[35%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                    Title
+                  </th>
+                  <th className="w-[25%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                    Repository
+                  </th>
+                  <th className="hidden md:table-cell w-[20%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                    Labels
+                  </th>
+                  <th className="w-[10%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                    Status
+                  </th>
+                  <th className="hidden lg:table-cell w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                    Created
+                  </th>
+                  <th className="w-[10%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                    Comments
+                  </th>
+                  <th className="w-[10%] px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {issues.map((issue) => (
+                  <tr key={`${issue.repository?.fullName}-${issue.number}`} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-6 py-4">
+                      <a
+                        href={issue.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group"
+                      >
+                        <div className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                          {issue.title}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          #{issue.number}
+                        </div>
+                      </a>
+                    </td>
+                    <td className="px-6 py-4 max-w-0">
+                      <a
+                        href={`https://github.com/${issue.repository?.fullName}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 block truncate"
+                        title={issue.repository?.fullName}
+                      >
+                        {issue.repository?.fullName}
+                      </a>
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4 max-w-0">
+                      <div className="flex flex-wrap gap-1 overflow-hidden">
+                        {issue.labels.length > 0 ? (
+                          issue.labels.map((label) => (
+                            <span
+                              key={label.name}
+                              className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full truncate max-w-[120px]"
+                              style={getLabelColors(label.color)}
+                              title={label.name}
+                            >
+                              {label.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-400 dark:text-gray-500 italic">
+                            No labels
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getStateColor(issue.state)}`}>
+                          <span className={`w-2 h-2 rounded-full mr-2 ${
+                            issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'
+                          }`} />
+                          {issue.state}
                         </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-gray-400 dark:text-gray-500 italic">
-                        No labels
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getStateColor(issue.state)}`}>
-                      <span className={`w-2 h-2 rounded-full mr-2 ${
-                        issue.state === 'open' ? 'bg-green-500' : 'bg-purple-500'
-                      }`} />
-                      {issue.state}
-                    </span>
-                  </div>
-                </td>
-                <td className="hidden lg:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                  {formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
-                  {issue.commentsCount}
-                </td>
-                <td className="px-6 py-4 text-sm font-medium text-center">
-                  <div className="flex justify-center space-x-3">
-                    <button
-                      onClick={() => onViewComments(issue)}
-                      className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                    >
-                      <MessageSquare size={16} />
-                    </button>
-                    <a
-                      href={issue.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
-                    >
-                      <ExternalLink size={16} />
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      </div>
+                    </td>
+                    <td className="hidden lg:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                      {formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
+                      {issue.commentsCount}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-center">
+                      <div className="flex justify-center space-x-3">
+                        <button
+                          onClick={() => onViewComments(issue)}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          <MessageSquare size={16} />
+                        </button>
+                        <a
+                          href={issue.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                        >
+                          <ExternalLink size={16} />
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* Mobile Card View */}
