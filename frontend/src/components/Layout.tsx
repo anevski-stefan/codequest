@@ -85,7 +85,7 @@ const Layout = () => {
       }}>
             <div className="px-2 pt-4 pb-4 space-y-3">
               <button onClick={() => {
-            navigate('/assigned');
+            navigate('/profile');
             setIsMobileMenuOpen(false);
           }} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md" style={{
             transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
@@ -93,7 +93,12 @@ const Layout = () => {
             transition: 'all 0.2s ease-out',
             transitionDelay: '75ms'
           }}>
-                Profile
+                <div className="flex items-center space-x-3">
+                  <div className="relative w-10 h-10 overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-full">
+                    <img src={user?.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                  </div>
+                  <span>{user?.login}</span>
+                </div>
               </button>
               <button onClick={() => {
             navigate('/suggested');
