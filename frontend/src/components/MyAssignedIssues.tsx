@@ -88,7 +88,7 @@ const MyAssignedIssues = () => {
           <select
             value={issueState}
             onChange={(e) => setIssueState(e.target.value)}
-            className="px-3 py-1.5 text-sm border rounded-md bg-white/80 dark:bg-black/20 backdrop-blur-lg text-gray-900 dark:text-white border-gray-200 dark:border-white/10 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1.5 text-sm border rounded-md bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg text-gray-900 dark:text-white border-gray-200 dark:border-white/10 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="open">Open</option>
             <option value="closed">Closed</option>
