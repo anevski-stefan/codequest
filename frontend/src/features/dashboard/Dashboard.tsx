@@ -303,11 +303,11 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="flex-1 p-4">
-        <div className="min-h-[200px] w-full overflow-x-auto">
+        <div className="w-full">
           {showLoadingSpinner ? (
             <LoadingSpinner />
           ) : (
-            <div className="min-h-[200px] w-full">
+            <div className="w-full">
               {error instanceof Error && (
                 <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 rounded-lg w-full">
                   {error.message || 'Failed to load issues'}
@@ -323,13 +323,11 @@ const Dashboard = () => {
               )}
 
               {!isLoading && !isFilterLoading && allIssues.length > 0 && (
-                <div className="bg-white dark:bg-gray-900 shadow rounded-lg min-w-fit">
-                  <div className="w-full overflow-x-auto">
-                    <IssueTable 
-                      issues={allIssues}
-                      onViewComments={handleViewComments}
-                    />
-                  </div>
+                <div className="bg-white dark:bg-gray-900 shadow rounded-lg">
+                  <IssueTable 
+                    issues={allIssues}
+                    onViewComments={handleViewComments}
+                  />
                 </div>
               )}
 
