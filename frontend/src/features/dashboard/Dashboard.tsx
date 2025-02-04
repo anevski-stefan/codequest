@@ -208,7 +208,7 @@ const Dashboard = () => {
   const showLoadingSpinner = isLoading || !initialFetchComplete;
 
   return (
-    <div className="flex min-h-screen w-full relative mt-12">
+    <div className="flex min-h-screen w-full relative pt-16">
       {/* Mobile Filter Toggle Button */}
       <button
         onClick={() => setIsMobileFiltersOpen(true)}
@@ -337,8 +337,8 @@ const Dashboard = () => {
       </aside>
 
       {/* Main Content - Modified for mobile */}
-      <main className="flex-1 p-4 lg:p-6 w-full lg:ml-0">
-        <div className="w-full max-w-[1200px] mx-auto">
+      <main className="flex-1 p-4 lg:p-4 w-full lg:ml-0">
+        <div className="w-full max-w-[1600px]">
           {showLoadingSpinner ? (
             <LoadingSpinner />
           ) : (
