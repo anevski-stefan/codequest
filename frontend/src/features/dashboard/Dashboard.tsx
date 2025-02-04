@@ -238,12 +238,13 @@ const Dashboard = () => {
       {/* Left Sidebar with Filters - Modified for mobile */}
       <aside
         className={`
-          fixed lg:relative inset-y-0 top-[64px] left-0 z-50 w-full lg:w-80 shrink-0 transform transition-transform duration-300 ease-in-out
+          fixed lg:sticky lg:top-[64px] inset-y-0 top-[64px] left-0 z-50 w-full lg:w-80 shrink-0 transform transition-transform duration-300 ease-in-out
           lg:translate-x-0 ${isMobileFiltersOpen ? 'translate-x-0' : '-translate-x-full'}
+          h-[calc(100vh-64px)] overflow-y-auto
         `}
       >
         <div className="h-full w-full lg:w-80 bg-white dark:bg-[#0B1222] lg:bg-transparent">
-          <div className="p-4">
+          <div className="p-4 sticky top-0 bg-white dark:bg-[#0B1222] z-10">
             {/* Mobile Close Button */}
             <div className="flex items-center justify-between lg:hidden mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h2>

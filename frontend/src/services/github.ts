@@ -37,6 +37,21 @@ api.interceptors.response.use(
   }
 );
 
+// Define constants at the top level
+const THROTTLE_WINDOW = 60 * 1000; // 1 minute window
+const MAX_REQUESTS_PER_WINDOW = 10;
+const requestTimestamps: number[] = [];
+
+// Helper function for throttling
+const isThrottled = () => {
+  const now = Date.now();
+  // Remove timestamps older than the window
+  while (requestTimestamps.length > 0 && requestTimestamps[0] < now - THROTTLE_WINDOW) {
+    requestTimestamps.shift();
+  }
+  return requestTimestamps.length >= MAX_REQUESTS_PER_WINDOW;
+};
+
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   // Build the base search query
   let searchQuery = 'is:issue is:unlocked '; // Only get issues that allow comments
@@ -239,7 +254,31 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
 };
 
 export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResponse> => {
-  let searchQuery = 'is:issue is:open no:assignee '; 
+  const cacheKey = `suggested-issues-${JSON.stringify(params)}`;
+  
+  // Check localStorage cache first
+  const cachedData = localStorage.getItem(cacheKey);
+  if (cachedData) {
+    const { data, timestamp } = JSON.parse(cachedData);
+    // Increase cache validity to 10 minutes
+    if (Date.now() - timestamp < 10 * 60 * 1000) {
+      return data;
+    }
+  }
+
+  // Check if we're being throttled
+  if (isThrottled()) {
+    if (cachedData) {
+      const { data } = JSON.parse(cachedData);
+      return data;
+    }
+    throw new Error('Rate limit exceeded. Please wait before trying again.');
+  }
+
+  // Add current timestamp to track request rate
+  requestTimestamps.push(Date.now());
+
+  let searchQuery = 'is:issue is:open no:assignee ';
   
   if (params.labels && params.labels.length > 0) {
     searchQuery += 'label:"good first issue" label:"help wanted" ';
@@ -262,52 +301,60 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
   });
 
   try {
-    const response = await fetch(`https://api.github.com/search/issues?${queryParams}`, {
+    // Use axios instance instead of fetch to leverage existing interceptors
+    const response = await api.get(`https://api.github.com/search/issues?${queryParams}`, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
         'X-GitHub-Api-Version': '2022-11-28'
       }
     });
 
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    if (!response.data) {
+      throw new Error('No data received from API');
     }
 
-    const data = await response.json();
-    
-    const transformedIssues = data.items.map((item: any) => ({
-      id: item.id,
-      number: item.number,
-      title: item.title,
-      body: item.body,
-      state: item.state,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at,
-      commentsCount: item.comments,
-      labels: item.labels.map((label: any) => ({
-        name: label.name,
-        color: label.color
+    const result = {
+      issues: response.data.items.map((item: any) => ({
+        id: item.id,
+        number: item.number,
+        title: item.title,
+        body: item.body,
+        state: item.state,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        commentsCount: item.comments,
+        labels: item.labels.map((label: any) => ({
+          name: label.name,
+          color: label.color
+        })),
+        repository: {
+          id: item.repository_url.split('/').pop(),
+          fullName: item.repository_url.split('/').slice(-2).join('/'),
+          url: item.repository_url
+        },
+        user: {
+          login: item.user.login,
+          avatarUrl: item.user.avatar_url
+        },
+        url: item.html_url
       })),
-      repository: {
-        id: item.repository_url.split('/').pop(),
-        fullName: item.repository_url.split('/').slice(-2).join('/'),
-        url: item.repository_url
-      },
-      user: {
-        login: item.user.login,
-        avatarUrl: item.user.avatar_url
-      },
-      url: item.html_url
-    }));
-
-    return {
-      issues: transformedIssues,
-      totalCount: data.total_count,
-      hasMore: data.total_count > (params.page || 1) * 100,
+      totalCount: response.data.total_count,
+      hasMore: response.data.total_count > (params.page || 1) * 100,
       currentPage: parseInt(params.page?.toString() || '1')
     };
+
+    // Cache the result in localStorage
+    localStorage.setItem(cacheKey, JSON.stringify({
+      data: result,
+      timestamp: Date.now()
+    }));
+
+    return result;
   } catch (error) {
+    if (cachedData) {
+      const { data } = JSON.parse(cachedData);
+      return data;
+    }
     throw error;
   }
 };

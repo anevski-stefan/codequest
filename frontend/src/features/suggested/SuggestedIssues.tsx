@@ -80,6 +80,14 @@ const SuggestedIssues = () => {
     () => getSuggestedIssues(filter),
     {
       keepPreviousData: true,
+      staleTime: 10 * 60 * 1000, // Increase stale time to 10 minutes
+      cacheTime: 60 * 60 * 1000, // Increase cache time to 1 hour
+      refetchOnWindowFocus: false,
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 60000), // Longer retry delays
+      onError: (error) => {
+        console.error('Query error:', error);
+      },
       onSuccess: (newData) => {
         if (filter.page === 1) {
           setAllIssues(newData.issues);
