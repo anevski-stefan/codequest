@@ -194,7 +194,7 @@ const Dashboard = () => {
     }
   };
   const showLoadingSpinner = isLoading || !initialFetchComplete;
-  return <div className="flex min-h-screen w-full relative">
+  return <div className="flex min-h-screen w-full relative mt-12">
       {}
       <button onClick={() => setIsMobileFiltersOpen(true)} className="lg:hidden fixed bottom-4 right-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors">
         <SlidersHorizontal className="w-6 h-6" />
