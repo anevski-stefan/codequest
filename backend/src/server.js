@@ -54,7 +54,7 @@ passport.use(new GitHubStrategy({
   clientID: process.env.GITHUB_CLIENT_ID,
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
   callbackURL: "http://localhost:3000/auth/github/callback",
-  scope: ['repo', 'read:user', 'user:email'],
+  scope: ['read:user', 'user:email'],
   proxy: true
 }, async function (accessToken, refreshToken, profile, done) {
   try {
@@ -77,7 +77,7 @@ passport.deserializeUser((user, done) => {
   done(null, user);
 });
 app.get('/auth/github', passport.authenticate('github', {
-  scope: ['repo', 'read:user', 'user:email']
+  scope: ['read:user', 'user:email']
 }));
 app.get('/auth/github/callback', passport.authenticate('github', {
   failureRedirect: 'http://localhost:5173/login',
