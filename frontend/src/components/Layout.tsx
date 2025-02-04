@@ -1,9 +1,10 @@
-import { Outlet, useNavigate, Link } from 'react-router-dom';
+import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import useAuth from '../hooks/useAuth';
 import { LogOut } from 'lucide-react';
 import type { RootState } from '../store';
 import { useState, useEffect, ReactNode } from 'react';
+import FeedbackModal from './FeedbackModal';
 interface LayoutProps {
   children?: ReactNode;
 }
@@ -18,8 +19,10 @@ const Layout = ({
     logout
   } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 0);
@@ -80,9 +83,11 @@ const Layout = ({
                   </button>
                 </div>
               </> : <div className="flex items-center space-x-4">
-                <Link to="/login" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-                  Login
-                </Link>
+                {location.pathname === '/login' ? <button onClick={() => setIsFeedbackOpen(true)} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
+                    Send Feedback
+                  </button> : <Link to="/login" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
+                    Login
+                  </Link>}
               </div>}
           </div>
         </div>
@@ -153,6 +158,7 @@ const Layout = ({
           {children || <Outlet />}
         </main>
       </div>
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
     </div>;
 };
 export default Layout;
