@@ -1,22 +1,14 @@
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { store } from './store';
 import AppRoutes from './routes';
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: false,
-      staleTime: 5 * 60 * 1000
-    }
-  }
-});
+const queryClient = new QueryClient();
 const App = () => {
-  return <ThemeProvider>
+  return <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
           <BrowserRouter>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
               <div className="min-h-screen">
@@ -24,8 +16,8 @@ const App = () => {
               </div>
             </div>
           </BrowserRouter>
-        </QueryClientProvider>
+        </ThemeProvider>
       </Provider>
-    </ThemeProvider>;
+    </QueryClientProvider>;
 };
 export default App;
