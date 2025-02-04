@@ -12,6 +12,8 @@ import Explore from './features/explore/Explore';
 import RepositoryDetails from './features/explore/RepositoryDetails';
 import ContributorProfile from './features/explore/ContributorProfile';
 import AssignedIssuesPage from './features/assigned/AssignedIssues';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsOfService from './components/TermsOfService';
 
 const AppRoutes = () => {
   return (
@@ -85,6 +87,8 @@ const AppRoutes = () => {
             </PrivateRoute>
           }
         />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

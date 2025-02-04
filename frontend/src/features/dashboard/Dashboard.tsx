@@ -208,7 +208,7 @@ const Dashboard = () => {
   const showLoadingSpinner = isLoading || !initialFetchComplete;
 
   return (
-    <div className="flex min-h-screen w-full relative">
+    <div className="flex min-h-screen w-full relative mt-12">
       {/* Mobile Filter Toggle Button */}
       <button
         onClick={() => setIsMobileFiltersOpen(true)}

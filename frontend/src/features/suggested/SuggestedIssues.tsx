@@ -119,7 +119,7 @@ const SuggestedIssues = () => {
   const showLoadingSpinner = isLoading || !initialFetchComplete;
 
   return (
-    <div className="w-full p-6 dark:bg-[#0B1222]">
+    <div className="w-full p-6 dark:bg-[#0B1222] mt-12">
       <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
         Suggested Issues for Beginners
       </h1>

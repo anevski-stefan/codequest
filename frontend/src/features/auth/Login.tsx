@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Github } from 'lucide-react';
 import type { RootState } from '../../store';
@@ -112,8 +112,22 @@ const Login = () => {
                   <NewsletterForm />
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     By subscribing, you agree to our{' '}
-                    <a href="#" className="underline hover:text-gray-700 dark:hover:text-gray-300">privacy policy</a> and{' '}
-                    <a href="#" className="underline hover:text-gray-700 dark:hover:text-gray-300">terms of service</a>.
+                    <Link 
+                      to="/privacy" 
+                      className="underline hover:text-gray-700 dark:hover:text-gray-300"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      privacy policy
+                    </Link> and{' '}
+                    <Link 
+                      to="/terms" 
+                      className="underline hover:text-gray-700 dark:hover:text-gray-300"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      terms of service
+                    </Link>.
                   </p>
                 </div>
               </div>
