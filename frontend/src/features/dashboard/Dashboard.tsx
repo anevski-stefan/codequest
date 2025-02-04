@@ -194,7 +194,7 @@ const Dashboard = () => {
     }
   };
   const showLoadingSpinner = isLoading || !initialFetchComplete;
-  return <div className="flex min-h-screen w-full relative mt-12">
+  return <div className="flex min-h-screen w-full relative pt-16">
       {}
       <button onClick={() => setIsMobileFiltersOpen(true)} className="lg:hidden fixed bottom-4 right-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors">
         <SlidersHorizontal className="w-6 h-6" />
@@ -282,8 +282,8 @@ const Dashboard = () => {
       </aside>
 
       {}
-      <main className="flex-1 p-4 lg:p-6 w-full lg:ml-0">
-        <div className="w-full max-w-[1200px] mx-auto">
+      <main className="flex-1 p-4 lg:p-4 w-full lg:ml-0">
+        <div className="w-full max-w-[1600px]">
           {showLoadingSpinner ? <LoadingSpinner /> : <div className="w-full">
               {error instanceof Error && <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 rounded-lg w-full">
                   {error.message || 'Failed to load issues'}
