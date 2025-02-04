@@ -12,6 +12,7 @@ const cron = require('node-cron');
 const mongoose = require('mongoose');
 const HackathonCrawler = require('./services/hackathonCrawler');
 const crawler = new HackathonCrawler();
+const nodemailer = require('nodemailer');
 
 // Add after line 12
 let isInitialCrawlComplete = false;
@@ -695,6 +696,34 @@ app.post('/api/newsletter/subscribe', express.json(), async (req, res) => {
     res.status(500).json({
       error: 'Failed to subscribe. Please try again later.'
     });
+  }
+});
+
+// Add feedback endpoint
+app.post('/api/feedback', express.json(), async (req, res) => {
+  const { message } = req.body;
+  
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD
+    }
+  });
+
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: 'anevskistefan11@gmail.com',
+      subject: 'New Code Quest Feedback',
+      text: message
+    });
+
+    console.log('Feedback email sent successfully');
+    res.status(200).json({ message: 'Feedback sent successfully' });
+  } catch (error) {
+    console.error('Error sending feedback email:', error);
+    res.status(500).json({ error: 'Failed to send feedback' });
   }
 });
 
