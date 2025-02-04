@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Github } from 'lucide-react';
 import type { RootState } from '../../store';
 import NewsletterForm from '../../components/NewsletterForm';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import FeedbackModal from '../../components/FeedbackModal';
 const Login = () => {
   usePageTitle('Login');
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const Login = () => {
   const {
     isAuthenticated
   } = useSelector((state: RootState) => state.auth);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   useEffect(() => {
     if (isAuthenticated) {
       const from = (location.state as {
@@ -32,9 +34,9 @@ const Login = () => {
           <button onClick={() => navigate('/')} className="text-xl font-bold text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
             Code Quest
           </button>
-          <a href="#" className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-            Need help?
-          </a>
+          <button onClick={() => setIsFeedbackOpen(true)} className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
+            Send Feedback
+          </button>
         </div>
       </nav>
 
@@ -86,18 +88,20 @@ const Login = () => {
             <div className="w-full max-w-md">
               <div className="bg-gray-50 dark:bg-white/5 rounded-2xl p-8 border border-gray-200 
                 dark:border-white/10 dark:backdrop-blur-xl">
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                <div className="space-y-8">
+                  <div className="space-y-3">
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                       Stay in the loop
                     </h3>
-                    <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
+                    <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
                       Get weekly updates on new features, community highlights, and upcoming events
                     </p>
                   </div>
                   <NewsletterForm />
-                  <p className="text-sm text-gray-500">
-                    By subscribing, you agree to our privacy policy and terms of service.
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    By subscribing, you agree to our{' '}
+                    <a href="#" className="underline hover:text-gray-700 dark:hover:text-gray-300">privacy policy</a> and{' '}
+                    <a href="#" className="underline hover:text-gray-700 dark:hover:text-gray-300">terms of service</a>.
                   </p>
                 </div>
               </div>
@@ -105,6 +109,8 @@ const Login = () => {
           </div>
         </div>
       </div>
+
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
     </div>;
 };
 export default Login;
