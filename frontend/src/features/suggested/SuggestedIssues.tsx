@@ -67,6 +67,14 @@ const SuggestedIssues = () => {
     error
   } = useQuery(['suggested-issues', filter], () => getSuggestedIssues(filter), {
     keepPreviousData: true,
+    staleTime: 10 * 60 * 1000,
+    cacheTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 60000),
+    onError: error => {
+      console.error('Query error:', error);
+    },
     onSuccess: newData => {
       if (filter.page === 1) {
         setAllIssues(newData.issues);
