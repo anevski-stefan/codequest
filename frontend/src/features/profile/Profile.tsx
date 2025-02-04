@@ -8,6 +8,7 @@ import type { RootState } from '../../store';
 import type { GithubUser } from '../../types/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getUserRepositories, getUserActivities, getUserStarredCount } from '../../services/github';
+import { ProfileSkeleton } from '../../components/skeletons/ProfileSkeleton';
 const Profile = () => {
   usePageTitle('Profile');
   const {
@@ -29,8 +30,10 @@ const Profile = () => {
     enabled: !!user?.login
   });
   const {
-    data: starredCount
+    data: starredCount,
+    isLoading: starredLoading
   } = useQuery(['user-starred'], getUserStarredCount);
+  const isLoading = reposLoading || activitiesLoading || starredLoading;
   const Pagination = () => <div className="mt-6 flex items-center justify-center gap-4">
       <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`p-2 rounded-lg ${page === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
         <ChevronLeft className="w-5 h-5" />
@@ -60,7 +63,7 @@ const Profile = () => {
         return 'interacted with';
     }
   };
-  if (!user) return null;
+  if (isLoading || !user) return <ProfileSkeleton />;
   return <div className="flex flex-col md:flex-row flex-1 dark:bg-[#0B1222] mt-8 gap-6 p-4 md:p-6">
       {}
       <div className="md:w-80 shrink-0">

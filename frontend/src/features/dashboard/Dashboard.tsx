@@ -6,11 +6,11 @@ import debounce from 'lodash/debounce';
 import { SlidersHorizontal, X } from 'lucide-react';
 import CommentsModal from '../../components/CommentsModal';
 import LabelsFilter from '../../components/LabelsFilter';
-import LoadingSpinner from '../../components/LoadingSpinner';
 import { FilterDropdown } from './components/FilterDropdown';
 import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from './constants/filterOptions';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import IssueTable from './components/IssueTable';
+import { CardSkeleton } from '../../components/skeletons';
 const Dashboard = () => {
   usePageTitle('Dashboard');
   const [filter, setFilter] = useState<IssueParams>({
@@ -194,18 +194,23 @@ const Dashboard = () => {
     }
   };
   const showLoadingSpinner = isLoading || !initialFetchComplete;
-  return <div className="flex min-h-screen w-full relative pt-16">
+  if (showLoadingSpinner) {
+    return <div className="mt-[64px] p-4 grid gap-6">
+        {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
+      </div>;
+  }
+  return <div className="flex min-h-screen w-full relative mt-[64px]">
       {}
       <button onClick={() => setIsMobileFiltersOpen(true)} className="lg:hidden fixed bottom-4 right-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors">
         <SlidersHorizontal className="w-6 h-6" />
       </button>
 
       {}
-      <div className={`lg:hidden fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 transition-opacity duration-300 ${isMobileFiltersOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileFiltersOpen(false)} />
+      <div className={`lg:hidden fixed inset-0 mt-[64px] bg-gray-900/50 backdrop-blur-sm z-50 transition-opacity duration-300 ${isMobileFiltersOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileFiltersOpen(false)} />
 
       {}
       <aside className={`
-          fixed lg:relative inset-y-0 left-0 z-50 w-full lg:w-80 shrink-0 transform transition-transform duration-300 ease-in-out
+          fixed lg:relative inset-y-0 top-[64px] left-0 z-50 w-full lg:w-80 shrink-0 transform transition-transform duration-300 ease-in-out
           lg:translate-x-0 ${isMobileFiltersOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
         <div className="h-full w-full lg:w-80 bg-white dark:bg-[#0B1222] lg:bg-transparent">
@@ -284,7 +289,9 @@ const Dashboard = () => {
       {}
       <main className="flex-1 p-4 lg:p-4 w-full lg:ml-0">
         <div className="w-full max-w-[1600px]">
-          {showLoadingSpinner ? <LoadingSpinner /> : <div className="w-full">
+          {showLoadingSpinner ? <div className="grid gap-6">
+              {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
+            </div> : <div className="w-full">
               {error instanceof Error && <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 rounded-lg w-full">
                   {error.message || 'Failed to load issues'}
                 </div>}

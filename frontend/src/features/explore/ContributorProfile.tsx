@@ -5,6 +5,7 @@ import { Star, GitFork, Calendar, MapPin, Link as LinkIcon, Building, X, Chevron
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { motion } from 'framer-motion';
 import StatsModal from '../../components/StatsModal';
+import { ProfileSkeleton } from '../../components/skeletons';
 interface ContributorDetails {
   login: string;
   name: string;
@@ -198,7 +199,7 @@ const ContributorProfile = () => {
         return 'interacted with';
     }
   };
-  if (userLoading) return <LoadingSpinner />;
+  if (userLoading) return <ProfileSkeleton />;
   if (!user) return <div>User not found</div>;
   return <div className="flex flex-col md:flex-row flex-1 dark:bg-[#0B1222] mt-8 gap-6 p-4 md:p-6">
       {}
