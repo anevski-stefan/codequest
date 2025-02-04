@@ -25,9 +25,9 @@ const Login = () => {
   const handleGitHubLogin = () => {
     window.location.href = `${import.meta.env.VITE_API_URL}/auth/github`;
   };
-  return <div className="relative min-h-screen w-full bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900">
+  return <div className="fixed inset-0 bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900">
       {}
-      <nav className="fixed top-0 w-full z-50 px-8 py-5 bg-white/80 dark:bg-transparent backdrop-blur-lg border-b border-gray-200 dark:border-white/10">
+      <nav className="absolute top-0 w-full z-50 px-8 py-5 bg-white/80 dark:bg-transparent backdrop-blur-lg border-b border-gray-200 dark:border-white/10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <button onClick={() => navigate('/')} className="text-xl font-bold text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
             Code Quest
@@ -39,11 +39,11 @@ const Login = () => {
       </nav>
 
       {}
-      <div className="relative w-full min-h-screen flex items-center justify-center pt-20 pb-8">
-        <div className="flex flex-col lg:grid lg:grid-cols-2 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 gap-8">
+      <div className="absolute inset-0 mt-[64px] flex items-start lg:items-center justify-center overflow-y-auto lg:overflow-hidden">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 gap-8 py-8 lg:py-0">
           {}
           <div className="flex flex-col items-start justify-center lg:items-center lg:border-r border-gray-200 dark:border-white/10">
-            <div className="space-y-8 w-full max-w-md">
+            <div className="space-y-6 w-full max-w-md">
               <div className="space-y-4">
                 <div className="space-y-2 sm:space-y-4">
                   {}
@@ -82,7 +82,7 @@ const Login = () => {
           </div>
 
           {}
-          <div className="flex flex-col items-start justify-center lg:items-center mt-8 lg:mt-0">
+          <div className="flex flex-col items-start justify-center lg:items-center lg:mt-0">
             <div className="w-full max-w-md">
               <div className="bg-gray-50 dark:bg-white/5 rounded-2xl p-8 border border-gray-200 
                 dark:border-white/10 dark:backdrop-blur-xl">
