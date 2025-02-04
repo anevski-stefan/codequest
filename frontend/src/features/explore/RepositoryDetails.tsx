@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails } from '../../services/github';
 import PullRequestDetailsModal, { PullRequestDetails } from '../../components/PullRequestDetailsModal';
 import { useState } from 'react';
+import { RepositorySkeleton } from '../../components/skeletons';
 interface Repository {
   id: number;
   full_name: string;
@@ -211,7 +212,7 @@ const RepositoryDetails = () => {
       setIsLoadingDetails(false);
     }
   };
-  if (repoLoading) return <LoadingSpinner />;
+  if (repoLoading) return <RepositorySkeleton />;
   if (!repository) return null;
   return <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {}
