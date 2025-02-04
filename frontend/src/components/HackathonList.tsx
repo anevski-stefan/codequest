@@ -36,7 +36,7 @@ export default function HackathonList() {
   if (isError) {
     return <ErrorDisplay error={error instanceof Error ? error.message : 'An error occurred'} title="Upcoming Hackathons" />;
   }
-  return <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  return <div className="max-w-7xl mx-auto py-8 mt-12">
       <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
         Upcoming Hackathons
       </h2>
