@@ -6,11 +6,11 @@ import debounce from 'lodash/debounce';
 import { SlidersHorizontal, X } from 'lucide-react';
 import CommentsModal from '../../components/CommentsModal';
 import LabelsFilter from '../../components/LabelsFilter';
-import LoadingSpinner from '../../components/LoadingSpinner';
 import { FilterDropdown } from './components/FilterDropdown';
 import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from './constants/filterOptions';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import IssueTable from './components/IssueTable';
+import { CardSkeleton } from '../../components/skeletons';
 
 const Dashboard = () => {
   usePageTitle('Dashboard');
@@ -207,8 +207,18 @@ const Dashboard = () => {
 
   const showLoadingSpinner = isLoading || !initialFetchComplete;
 
+  if (showLoadingSpinner) {
+    return (
+      <div className="mt-[64px] p-4 grid gap-6">
+        {[1, 2, 3].map((i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen w-full relative pt-16">
+    <div className="flex min-h-screen w-full relative mt-[64px]">
       {/* Mobile Filter Toggle Button */}
       <button
         onClick={() => setIsMobileFiltersOpen(true)}
@@ -219,7 +229,7 @@ const Dashboard = () => {
 
       {/* Mobile Filter Overlay */}
       <div
-        className={`lg:hidden fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 transition-opacity duration-300 ${
+        className={`lg:hidden fixed inset-0 mt-[64px] bg-gray-900/50 backdrop-blur-sm z-50 transition-opacity duration-300 ${
           isMobileFiltersOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setIsMobileFiltersOpen(false)}
@@ -228,7 +238,7 @@ const Dashboard = () => {
       {/* Left Sidebar with Filters - Modified for mobile */}
       <aside
         className={`
-          fixed lg:relative inset-y-0 left-0 z-50 w-full lg:w-80 shrink-0 transform transition-transform duration-300 ease-in-out
+          fixed lg:relative inset-y-0 top-[64px] left-0 z-50 w-full lg:w-80 shrink-0 transform transition-transform duration-300 ease-in-out
           lg:translate-x-0 ${isMobileFiltersOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
@@ -340,7 +350,11 @@ const Dashboard = () => {
       <main className="flex-1 p-4 lg:p-4 w-full lg:ml-0">
         <div className="w-full max-w-[1600px]">
           {showLoadingSpinner ? (
-            <LoadingSpinner />
+            <div className="grid gap-6">
+              {[1, 2, 3].map((i) => (
+                <CardSkeleton key={i} />
+              ))}
+            </div>
           ) : (
             <div className="w-full">
               {error instanceof Error && (

@@ -4,9 +4,9 @@ import { useQuery } from 'react-query';
 import axios from 'axios';
 import { Search, Users } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import LoadingSpinner from '../../components/LoadingSpinner';
 import { searchTopContributors } from '../../services/github';
 import type { GithubUser } from '../../types/github';
+import { CardSkeleton } from '../../components/skeletons/CardSkeleton';
 
 interface Repository {
   id: number;
@@ -35,7 +35,7 @@ const ContributorsList = ({
   const navigate = useNavigate();
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-12">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {contributors.map((user) => (
           <div
@@ -132,7 +132,7 @@ const Explore = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-48px)]">
+    <div className="flex items-center justify-center min-h-[calc(100vh-64px)] mt-[64px]">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -172,66 +172,100 @@ const Explore = () => {
           )}
         </div>
 
-        {showContributors && (
+        {showContributors ? (
           <>
-            {contributorsLoading && contributorsPage === 1 && <LoadingSpinner />}
-            {allContributors.length > 0 && (
-              <ContributorsList 
-                contributors={allContributors}
-                onLoadMore={handleLoadMoreContributors}
-                hasMore={!!contributorsData?.hasMore}
-                isLoading={contributorsLoading}
-              />
+            {showContributors && (contributorsLoading && contributorsPage === 1) ? (
+              <div className="mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow p-4">
+                      <CardSkeleton />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              allContributors.length > 0 && (
+                <ContributorsList 
+                  contributors={allContributors}
+                  onLoadMore={handleLoadMoreContributors}
+                  hasMore={!!contributorsData?.hasMore}
+                  isLoading={contributorsLoading}
+                />
+              )
+            )}
+          </>
+        ) : (
+          <>
+            {debouncedQuery && (isLoading || !data) ? (
+              <div className="mt-6">
+                <div className="grid gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow p-4">
+                      <CardSkeleton />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              data?.items?.length > 0 && (
+                <div className="mt-6 grid gap-4">
+                  {data.items.map((repo: Repository) => (
+                    <div 
+                      key={repo.id} 
+                      className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => handleRepositoryClick(repo.full_name)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">
+                              {repo.full_name}
+                            </a>
+                          </h3>
+                          <p className="mt-2 text-gray-600 dark:text-gray-300">{repo.description}</p>
+                          <div className="mt-4 flex items-center space-x-4">
+                            {repo.language && (
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {repo.language}
+                              </span>
+                            )}
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              ★ {repo.stargazers_count.toLocaleString()}
+                            </span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              🍴 {repo.forks_count.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        <img
+                          src={repo.owner.avatar_url}
+                          alt=""
+                          className="w-12 h-12 rounded-full"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
           </>
         )}
 
-        {isLoading && <LoadingSpinner />}
-
-        {error && (
-          <div className="text-center text-red-600 dark:text-red-400">
-            An error occurred while fetching repositories
-          </div>
-        )}
-
-        {data?.items && (
-          <div className="grid gap-6">
-            {data.items.map((repo: Repository) => (
-              <div 
-                key={repo.id} 
-                className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleRepositoryClick(repo.full_name)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">
-                        {repo.full_name}
-                      </a>
-                    </h3>
-                    <p className="mt-2 text-gray-600 dark:text-gray-300">{repo.description}</p>
-                    <div className="mt-4 flex items-center space-x-4">
-                      {repo.language && (
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          {repo.language}
-                        </span>
-                      )}
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        ★ {repo.stargazers_count.toLocaleString()}
-                      </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        🍴 {repo.forks_count.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  <img
-                    src={repo.owner.avatar_url}
-                    alt=""
-                    className="w-12 h-12 rounded-full"
-                  />
-                </div>
-              </div>
-            ))}
+        {error instanceof Error && (
+          <div className="mt-6 bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg p-6 text-center">
+            <p className="text-red-600 dark:text-red-400 mb-2">
+              {error.message.includes('rate limit') ? 
+                'GitHub API rate limit exceeded' : 
+                'Failed to load data'
+              }
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {error.message.includes('rate limit') ? 
+                'Please wait a few minutes before trying again.' : 
+                error.message
+              }
+            </p>
           </div>
         )}
       </div>

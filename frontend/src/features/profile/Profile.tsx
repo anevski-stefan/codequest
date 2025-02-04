@@ -18,6 +18,7 @@ import type { RootState } from '../../store';
 import type { GithubUser } from '../../types/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getUserRepositories, getUserActivities, getUserStarredCount } from '../../services/github';
+import { ProfileSkeleton } from '../../components/skeletons/ProfileSkeleton';
 
 const Profile = () => {
   usePageTitle('Profile');
@@ -39,10 +40,13 @@ const Profile = () => {
     }
   );
 
-  const { data: starredCount } = useQuery(
+  const { data: starredCount, isLoading: starredLoading } = useQuery(
     ['user-starred'],
     getUserStarredCount
   );
+
+  // Combine all loading states
+  const isLoading = reposLoading || activitiesLoading || starredLoading;
 
   const Pagination = () => (
     <div className="mt-6 flex items-center justify-center gap-4">
@@ -93,7 +97,7 @@ const Profile = () => {
     }
   };
 
-  if (!user) return null;
+  if (isLoading || !user) return <ProfileSkeleton />;
 
   return (
     <div className="flex flex-col md:flex-row flex-1 dark:bg-[#0B1222] mt-8 gap-6 p-4 md:p-6">

@@ -15,6 +15,7 @@ import {
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { motion } from 'framer-motion';
 import StatsModal from '../../components/StatsModal';
+import { ProfileSkeleton } from '../../components/skeletons';
 
 interface ContributorDetails {
   login: string;
@@ -254,7 +255,7 @@ const ContributorProfile = () => {
     }
   };
 
-  if (userLoading) return <LoadingSpinner />;
+  if (userLoading) return <ProfileSkeleton />;
   if (!user) return <div>User not found</div>;
 
   return (

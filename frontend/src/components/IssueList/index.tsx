@@ -1,8 +1,8 @@
 import type { IssueListProps } from './types';
 import { IssueCard } from './IssueCard';
 import { LoadMoreButton } from './LoadMoreButton';
-import LoadingSpinner from '../LoadingSpinner';
 import { memo } from 'react';
+import { CardSkeleton } from '../skeletons';
 
 const ErrorMessage = memo(({ message }: { message: string }) => (
   <div className="text-red-600">{message}</div>
@@ -18,7 +18,15 @@ const IssueList = ({
   hasMore, 
   onLoadMore 
 }: IssueListProps) => {
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) {
+    return (
+      <div className="grid gap-6">
+        {[1, 2, 3].map((i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
   if (error) return <ErrorMessage message={error.message} />;
 
   return (

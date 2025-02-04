@@ -6,8 +6,8 @@ import { MessageCircle } from 'lucide-react';
 import type { Issue } from '../types/github';
 import type { Comment } from '../types/comments';
 import CommentsModal from './CommentsModal';
-import LoadingSpinner from './LoadingSpinner';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { CardSkeleton } from './skeletons';
 
 const getLabelColors = (color: string) => {
   // Convert hex to RGB to check brightness
@@ -69,19 +69,25 @@ const MyAssignedIssues = () => {
   };
 
   if (isLoading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="mt-[64px] p-4 grid gap-6">
+        {[1, 2, 3].map((i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="w-full text-center text-red-600 dark:text-red-400 p-4">
+      <div className="mt-[64px] w-full text-center text-red-600 dark:text-red-400 p-4">
         {error instanceof Error ? error.message : 'Failed to load assigned issues'}
       </div>
     );
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full p-4">
       <div className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow">
         <div className="flex justify-between items-center mb-6 p-6 border-b border-gray-200 dark:border-white/10">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">My Assigned Issues</h1>

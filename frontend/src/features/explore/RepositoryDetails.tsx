@@ -21,6 +21,7 @@ import { motion } from 'framer-motion';
 import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails } from '../../services/github';
 import PullRequestDetailsModal, { PullRequestDetails } from '../../components/PullRequestDetailsModal';
 import { useState } from 'react';
+import { RepositorySkeleton } from '../../components/skeletons';
 
 interface Repository {
   id: number;
@@ -280,7 +281,7 @@ const RepositoryDetails = () => {
     }
   };
 
-  if (repoLoading) return <LoadingSpinner />;
+  if (repoLoading) return <RepositorySkeleton />;
   if (!repository) return null;
 
   return (

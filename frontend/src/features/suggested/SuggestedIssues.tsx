@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-q
 import { getSuggestedIssues, getIssueComments, addIssueComment } from '../../services/github';
 import type { Issue, IssueParams } from '../../types/github';
 import CommentsModal from '../../components/CommentsModal';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { CardSkeleton } from '../../components/skeletons';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import IssueTable from '../dashboard/components/IssueTable';
 
@@ -118,11 +118,15 @@ const SuggestedIssues = () => {
 
   const showLoadingSpinner = isLoading || !initialFetchComplete;
 
+  const isRateLimitError = error instanceof Error && 
+    (error.message.includes('rate limit') || error.message.includes('secondary rate limit'));
+
   return (
-    <div className="w-full p-6 dark:bg-[#0B1222] mt-12">
+    <div className="w-full p-6 dark:bg-[#0B1222] mt-[64px]">
       <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
         Suggested Issues for Beginners
       </h1>
+      
       <div className="w-full mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
         <h2 className="text-lg font-semibold mb-2 text-blue-800 dark:text-blue-200">
           Tips for Getting Started
@@ -136,44 +140,60 @@ const SuggestedIssues = () => {
       </div>
 
       <div className="w-full min-h-[200px]">
-        {showLoadingSpinner ? (
-          <LoadingSpinner />
-        ) : (
-          <>
-            {error instanceof Error && (
-              <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 rounded-lg w-full">
-                {error.message || 'Failed to load issues'}
-              </div>
-            )}
-            
-            {!isLoading && !error && allIssues.length === 0 && initialFetchComplete && (
-              <div className="text-center p-8">
-                <p className="text-gray-500 dark:text-gray-400">
-                  No issues found
-                </p>
-              </div>
-            )}
+        {showLoadingSpinner && (
+          <div className="grid gap-6">
+            <div className="w-full p-4 bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow">
+              <CardSkeleton />
+            </div>
+            <div className="w-full p-4 bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow">
+              <CardSkeleton />
+            </div>
+            <div className="w-full p-4 bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow">
+              <CardSkeleton />
+            </div>
+          </div>
+        )}
 
-            {!isLoading && allIssues.length > 0 && (
-              <div className="bg-white dark:bg-gray-900 shadow rounded-lg">
-                <IssueTable 
-                  issues={allIssues}
-                  onViewComments={handleViewComments}
-                />
-              </div>
-            )}
+        {!showLoadingSpinner && error instanceof Error && (
+          <div className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg p-6 text-center">
+            <p className="text-red-600 dark:text-red-400 mb-2">
+              {isRateLimitError ? 'GitHub API rate limit exceeded' : 'Failed to load issues'}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {isRateLimitError ? 
+                'Please wait a few minutes before trying again.' : 
+                error.message
+              }
+            </p>
+          </div>
+        )}
+        
+        {!showLoadingSpinner && allIssues.length === 0 && initialFetchComplete && (
+          <div className="text-center p-8">
+            <p className="text-gray-500 dark:text-gray-400">
+              No issues found
+            </p>
+          </div>
+        )}
 
-            {!isLoading && data?.hasMore && allIssues.length > 0 && (
-              <div className="flex justify-center mt-4 md:mt-6">
-                <button
-                  onClick={() => setFilter(prev => ({ ...prev, page: prev.page + 1 }))}
-                  className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm"
-                >
-                  Load More
-                </button>
-              </div>
-            )}
-          </>
+        {!showLoadingSpinner && allIssues.length > 0 && (
+          <div className="bg-white dark:bg-gray-900 shadow rounded-lg">
+            <IssueTable 
+              issues={allIssues}
+              onViewComments={handleViewComments}
+            />
+          </div>
+        )}
+
+        {!showLoadingSpinner && data?.hasMore && allIssues.length > 0 && (
+          <div className="flex justify-center mt-4 md:mt-6">
+            <button
+              onClick={() => setFilter(prev => ({ ...prev, page: prev.page + 1 }))}
+              className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm"
+            >
+              Load More
+            </button>
+          </div>
         )}
       </div>
 
