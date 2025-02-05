@@ -1,6 +1,14 @@
 import CryptoJS from 'crypto-js';
 
-const ENCRYPTION_KEY = 'your-secure-key'; // In production, this should be an environment variable
+// Generate a random encryption key on app initialization
+const ENCRYPTION_KEY = (() => {
+  let key = sessionStorage.getItem('app_encryption_key');
+  if (!key) {
+    key = CryptoJS.lib.WordArray.random(32).toString();
+    sessionStorage.setItem('app_encryption_key', key);
+  }
+  return key;
+})();
 
 export const encryptData = (data: string): string => {
   if (!data) return '';
