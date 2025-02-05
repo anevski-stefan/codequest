@@ -23,10 +23,6 @@ Remember to:
 6. Do not skip any available issues`;
 class CodeBuddyService {
   constructor() {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY environment variable is not set');
-    }
-    this.apiKey = process.env.OPENAI_API_KEY;
     this.cache = new Map();
     setInterval(() => {
       this.cache.clear();
@@ -72,10 +68,9 @@ class CodeBuddyService {
       throw error;
     }
   }
-  async getResponse(userMessage, context, previousMessages, token) {
+  async getResponse(userMessage, context, previousMessages, token, service, apiKey) {
     try {
       const issues = await this.getGitHubIssues(token);
-      console.log('Issues retrieved:', issues.length);
       if (!issues || issues.length === 0) {
         return "I apologize, but I couldn't find any beginner-friendly issues at the moment. Please try again later.";
       }
@@ -84,8 +79,25 @@ class CodeBuddyService {
         Repository: ${issue.repo}
         URL: ${issue.html_url || issue.url}
         Description: ${issue.description || 'No description provided'}`).join('\n\n');
-      console.log('Number of issues in context:', issues.length);
-      const messages = [{
+      if (!service || !apiKey) {
+        throw new Error(`${service?.toUpperCase() || 'AI'} service configuration is missing`);
+      }
+      if (service === 'chatgpt') {
+        return await this.getChatGPTResponse(userMessage, issuesContext, previousMessages, apiKey);
+      } else if (service === 'gemini') {
+        return await this.getGeminiResponse(userMessage, issuesContext, previousMessages, apiKey);
+      } else {
+        throw new Error('Invalid AI service selected');
+      }
+    } catch (error) {
+      console.error('Error in getResponse:', error);
+      throw error;
+    }
+  }
+  async getChatGPTResponse(userMessage, issuesContext, previousMessages, apiKey) {
+    const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+      model: 'gpt-3.5-turbo',
+      messages: [{
         role: 'system',
         content: SYSTEM_PROMPT
       }, {
@@ -94,27 +106,60 @@ class CodeBuddyService {
       }, ...previousMessages, {
         role: 'user',
         content: userMessage
-      }];
-      const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-        model: 'gpt-3.5-turbo',
-        messages,
-        temperature: 0.7,
-        max_tokens: 1000,
-        presence_penalty: 0.6,
-        frequency_penalty: 0.3
+      }],
+      temperature: 0.7,
+      max_tokens: 1000
+    }, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data.choices[0].message.content;
+  }
+  async getGeminiResponse(userMessage, issuesContext, previousMessages, apiKey) {
+    try {
+      const response = await axios.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: SYSTEM_PROMPT
+          }]
+        }, {
+          role: 'user',
+          parts: [{
+            text: `Here are the current available beginner issues:\n\n${issuesContext}`
+          }]
+        }, ...previousMessages.map(msg => ({
+          role: msg.role,
+          parts: [{
+            text: msg.content
+          }]
+        })), {
+          role: 'user',
+          parts: [{
+            text: userMessage
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1000
+        }
       }, {
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
+        },
+        params: {
+          key: apiKey
         }
       });
-      if (!response.data?.choices?.[0]?.message?.content) {
-        throw new Error('Invalid response from OpenAI API');
+      if (!response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        throw new Error('Invalid response format from Gemini API');
       }
-      return response.data.choices[0].message.content;
+      return response.data.candidates[0].content.parts[0].text;
     } catch (error) {
-      console.error('Error in getResponse:', error);
-      throw error;
+      console.error('Gemini API error:', error.response?.data || error.message);
+      throw new Error(`Gemini API error: ${error.response?.data?.error?.message || error.message}`);
     }
   }
 }
