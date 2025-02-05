@@ -31,7 +31,17 @@ const MyAssignedIssues = () => {
     error
   } = useQuery(['assignedIssues', issueState], () => getAssignedIssues(issueState), {
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: 2,
+    onError: error => {
+      console.error('Failed to fetch assigned issues:', error);
+    },
+    select: data => ({
+      issues: Array.isArray(data) ? data : data.issues || [],
+      totalCount: Array.isArray(data) ? data.length : data.issues?.length || 0,
+      currentPage: 1,
+      hasMore: false
+    })
   });
   const handleOpenComments = async (issueNumber: number, repoFullName: string) => {
     setSelectedIssueId(issueNumber);

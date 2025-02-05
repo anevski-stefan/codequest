@@ -214,14 +214,34 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
   return response.data;
 };
 export const getAssignedIssues = async (state?: string): Promise<IssueResponse> => {
-  const {
-    data
-  } = await api.get('/api/assigned-issues', {
-    params: {
-      state
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication required');
     }
-  });
-  return data;
+    const {
+      data
+    } = await api.get('/api/assigned-issues', {
+      params: {
+        state
+      },
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!data || !data.issues && !Array.isArray(data)) {
+      throw new Error('Invalid response format from server');
+    }
+    return {
+      issues: Array.isArray(data) ? data : data.issues || [],
+      totalCount: Array.isArray(data) ? data.length : data.issues?.length || 0,
+      currentPage: 1,
+      hasMore: false
+    };
+  } catch (error) {
+    console.error('Error in getAssignedIssues:', error);
+    throw error;
+  }
 };
 export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResponse> => {
   const cacheKey = `suggested-issues-${JSON.stringify(params)}`;
