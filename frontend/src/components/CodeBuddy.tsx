@@ -1,9 +1,11 @@
 import { AxiosError } from 'axios';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send, Bot, Minimize2, Maximize2 } from 'lucide-react';
+import { Send, Bot, Minimize2, Maximize2, User } from 'lucide-react';
 import { useMutation } from 'react-query';
 import { api } from '../services/github';
 import ReactMarkdown from 'react-markdown';
+import { useAIService } from '../hooks/useAIService';
+import { decryptData } from '../utils/encryption';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -55,6 +57,7 @@ const CodeBuddy = () => {
   const [currentTypingMessage, setCurrentTypingMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number>(0);
+  const selectedService = useAIService();
 
   // Handle textarea height adjustment
   useEffect(() => {
@@ -76,11 +79,34 @@ const CodeBuddy = () => {
         throw new Error('Authentication required');
       }
 
+      let currentService = localStorage.getItem('ai_service') || 'chatgpt';
+      const chatgptKey = decryptData(localStorage.getItem('chatgpt_api_key') || '');
+      const geminiKey = decryptData(localStorage.getItem('gemini_api_key') || '');
+      
+      if (!chatgptKey && !geminiKey) {
+        throw new Error('Please set up either ChatGPT or Gemini API key in settings');
+      }
+
+      if (currentService === 'chatgpt' && !chatgptKey && geminiKey) {
+        localStorage.setItem('ai_service', 'gemini');
+        currentService = 'gemini';
+      } else if (currentService === 'gemini' && !geminiKey && chatgptKey) {
+        localStorage.setItem('ai_service', 'chatgpt');
+        currentService = 'chatgpt';
+      }
+
+      const apiKey = currentService === 'chatgpt' ? chatgptKey : geminiKey;
+      if (!apiKey) {
+        throw new Error(`Please set up your ${currentService.toUpperCase()} API key in settings`);
+      }
+
       try {
         const response = await api.post('/api/code-buddy/chat', {
           message,
           context,
-          messages: messages.slice(-5)
+          messages: messages.slice(-5),
+          service: currentService,
+          apiKey
         }, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -151,14 +177,20 @@ const CodeBuddy = () => {
     return (
       <div
         key={idx}
-        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+        className={`flex items-center gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
       >
+        {msg.role === 'assistant' && (
+          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+            <Bot className="w-5 h-5 text-white" />
+          </div>
+        )}
+        
         <div
-          className={`w-full p-3 rounded-lg ${
+          className={`${
             msg.role === 'user'
               ? 'bg-blue-500 text-white'
               : 'bg-gray-100 dark:bg-gray-700'
-          }`}
+          } p-3 rounded-lg inline-block max-w-full my-auto`}
         >
           {msg.role === 'assistant' ? (
             showTypingAnimation ? (
@@ -184,6 +216,12 @@ const CodeBuddy = () => {
             msg.content
           )}
         </div>
+
+        {msg.role === 'user' && (
+          <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+            <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+          </div>
+        )}
       </div>
     );
   };
@@ -198,9 +236,16 @@ const CodeBuddy = () => {
         onClick={toggleExpanded}
         className="p-4 border-b dark:border-gray-700 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
       >
-        <div className="flex items-center">
-          <Bot className="w-6 h-6 mr-2 text-blue-500" />
-          <h3 className="text-lg font-semibold">Code Buddy</h3>
+        <div className="flex items-center gap-2">
+          <Bot className="w-6 h-6 text-blue-500" />
+          <div>
+            <h3 className="text-lg font-semibold">Code Buddy</h3>
+            {isExpanded && (
+              <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                Powered by {selectedService}
+              </span>
+            )}
+          </div>
         </div>
         <div className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
           {isExpanded ? (
@@ -223,7 +268,7 @@ const CodeBuddy = () => {
                 ref={textareaRef}
                 value={input}
                 onChange={(e) => {
-                  if (isTyping) return; // Prevent input changes during typing animation
+                  if (isTyping) return;
                   const selectionStart = e.target.selectionStart;
                   setInput(e.target.value);
                   cursorPositionRef.current = selectionStart;
@@ -240,8 +285,8 @@ const CodeBuddy = () => {
                     handleSend();
                   }
                 }}
-                disabled={isTyping} // Disable textarea during typing animation
-                placeholder="Ask about beginner-friendly issues..."
+                disabled={isTyping}
+                placeholder="Ask me anything about coding..."
                 className="flex-1 max-h-32 p-2 pr-10 bg-gray-100 dark:bg-gray-700 rounded-lg resize-none overflow-y-auto"
                 rows={1}
               />

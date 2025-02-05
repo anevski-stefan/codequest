@@ -1160,24 +1160,37 @@ const codeBuddyService = new CodeBuddyService();
 
 app.post('/api/code-buddy/chat', authenticateToken, express.json(), async (req, res) => {
   try {
-    const { message, context, messages } = req.body;
+    const { message, context, messages, service, apiKey } = req.body;
     
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    const response = await codeBuddyService.getResponse(
-      message,
-      context,
-      messages,
-      req.user.accessToken
-    );
+    if (!service || !apiKey) {
+      return res.status(400).json({ error: 'AI service and API key are required' });
+    }
 
-    res.json({
-      message: response,
-      timestamp: new Date()
-    });
+    try {
+      const response = await codeBuddyService.getResponse(
+        message,
+        context,
+        messages,
+        req.user.accessToken,
+        service,
+        apiKey
+      );
 
+      res.json({
+        message: response,
+        timestamp: new Date()
+      });
+    } catch (serviceError) {
+      console.error('Service error:', serviceError);
+      res.status(500).json({ 
+        error: 'AI service error',
+        details: serviceError.message
+      });
+    }
   } catch (error) {
     console.error('Chat error:', error);
     res.status(500).json({ 
