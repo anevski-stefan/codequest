@@ -89,9 +89,11 @@ const SuggestedIssues = () => {
     }
   });
   const handleViewComments = (issue: Issue) => {
-    setSelectedIssueId(issue.number);
-    setSelectedRepo(issue.repository.fullName);
-    setIsCommentsModalOpen(true);
+    if (selectedIssueId !== issue.number) {
+      setSelectedIssueId(issue.number);
+      setSelectedRepo(issue.repository.fullName);
+      setIsCommentsModalOpen(true);
+    }
   };
   const handleAddComment = async (comment: string) => {
     if (!selectedIssueId) return;

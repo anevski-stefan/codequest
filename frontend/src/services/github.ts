@@ -1,13 +1,16 @@
 import axios from 'axios';
-import type { IssueParams, IssueResponse, GithubUser } from '../types/github';
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL
+import type { IssueParams, IssueResponse, Issue, Label, GithubUser } from '../types/github';
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 const etagStore = new Map<string, string>();
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) {
-    config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`;
   }
   const etag = etagStore.get(config.url || '');
   if (etag) {
@@ -37,6 +40,47 @@ const isThrottled = () => {
   }
   return requestTimestamps.length >= MAX_REQUESTS_PER_WINDOW;
 };
+interface GitHubIssue {
+  id: number;
+  number: number;
+  title: string;
+  body: string | null;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  comments: number;
+  labels: Label[];
+  repository_url: string;
+  html_url: string;
+  user: {
+    login: string;
+    avatar_url: string;
+  };
+}
+const transformIssue = (item: GitHubIssue): Issue => ({
+  id: item.id,
+  number: item.number,
+  title: item.title,
+  body: item.body,
+  state: item.state,
+  createdAt: item.created_at,
+  updatedAt: item.updated_at,
+  commentsCount: item.comments,
+  labels: item.labels.map(label => ({
+    name: label.name,
+    color: label.color
+  })),
+  repository: {
+    id: item.repository_url.split('/').pop() || '',
+    fullName: item.repository_url.split('/').slice(-2).join('/'),
+    url: item.repository_url
+  },
+  user: {
+    login: item.user.login,
+    avatarUrl: item.user.avatar_url
+  },
+  url: item.html_url
+});
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   let searchQuery = 'is:issue is:unlocked ';
   let startDate: string | undefined;
@@ -56,27 +100,35 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     const now = new Date();
     switch (params.timeFrame) {
       case 'day':
-        const yesterday = new Date(now);
-        yesterday.setHours(now.getHours() - 24);
-        yesterday.setMinutes(now.getMinutes());
-        yesterday.setSeconds(now.getSeconds());
-        startDate = yesterday.toISOString();
-        break;
+        {
+          const yesterday = new Date(now);
+          yesterday.setHours(now.getHours() - 24);
+          yesterday.setMinutes(now.getMinutes());
+          yesterday.setSeconds(now.getSeconds());
+          startDate = yesterday.toISOString();
+          break;
+        }
       case 'week':
-        const lastWeek = new Date(now);
-        lastWeek.setDate(now.getDate() - 7);
-        startDate = lastWeek.toISOString();
-        break;
+        {
+          const lastWeek = new Date(now);
+          lastWeek.setDate(now.getDate() - 7);
+          startDate = lastWeek.toISOString();
+          break;
+        }
       case 'month':
-        const lastMonth = new Date(now);
-        lastMonth.setMonth(now.getMonth() - 1);
-        startDate = lastMonth.toISOString();
-        break;
+        {
+          const lastMonth = new Date(now);
+          lastMonth.setMonth(now.getMonth() - 1);
+          startDate = lastMonth.toISOString();
+          break;
+        }
       case 'year':
-        const lastYear = new Date(now);
-        lastYear.setFullYear(now.getFullYear() - 1);
-        startDate = lastYear.toISOString();
-        break;
+        {
+          const lastYear = new Date(now);
+          lastYear.setFullYear(now.getFullYear() - 1);
+          startDate = lastYear.toISOString();
+          break;
+        }
     }
     searchQuery += `${params.sort}:>=${startDate} `;
   }
@@ -106,51 +158,24 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     per_page: '100',
     page: params.page?.toString() || '1'
   });
-  try {
-    const response = await fetch(`https://api.github.com/search/issues?${queryParams}`, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'X-GitHub-Api-Version': '2022-11-28'
-      }
-    });
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  const response = await fetch(`https://api.github.com/search/issues?${queryParams}`, {
+    headers: {
+      'Accept': 'application/vnd.github.v3+json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'X-GitHub-Api-Version': '2022-11-28'
     }
-    const data = await response.json();
-    const transformedIssues = data.items.map((item: any) => ({
-      id: item.id,
-      number: item.number,
-      title: item.title,
-      body: item.body,
-      state: item.state,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at,
-      commentsCount: item.comments,
-      labels: item.labels.map((label: any) => ({
-        name: label.name,
-        color: label.color
-      })),
-      repository: {
-        id: item.repository_url.split('/').pop(),
-        fullName: item.repository_url.split('/').slice(-2).join('/'),
-        url: item.repository_url
-      },
-      user: {
-        login: item.user.login,
-        avatarUrl: item.user.avatar_url
-      },
-      url: item.html_url
-    }));
-    return {
-      issues: transformedIssues,
-      totalCount: data.total_count,
-      hasMore: data.total_count > (params.page || 1) * 100,
-      currentPage: parseInt(params.page?.toString() || '1')
-    };
-  } catch (error) {
-    throw error;
+  });
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
+  const data = await response.json();
+  const transformedIssues = data.items.map(transformIssue);
+  return {
+    issues: transformedIssues,
+    totalCount: data.total_count,
+    hasMore: data.total_count > (params.page || 1) * 100,
+    currentPage: parseInt(params.page?.toString() || '1')
+  };
 };
 export const getActivity = async () => {
   const {
@@ -159,56 +184,44 @@ export const getActivity = async () => {
   return data;
 };
 export const getIssueComments = async (issueNumber: number, repoFullName: string, page = 1) => {
-  try {
-    const [owner, repo] = repoFullName.split('/');
-    const response = await api.get(`/api/issues/${issueNumber}/comments`, {
-      params: {
-        owner,
-        repo,
-        page
-      }
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const [owner, repo] = repoFullName.split('/');
+  const response = await api.get(`/api/issues/${issueNumber}/comments`, {
+    params: {
+      owner,
+      repo,
+      page
+    }
+  });
+  return response.data;
 };
 export const addIssueComment = async (issueNumber: number, repoFullName: string, comment: string) => {
-  try {
-    const [owner, repo] = repoFullName.split('/');
-    if (!owner || !repo) {
-      throw new Error(`Invalid repository name: ${repoFullName}`);
-    }
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    const response = await api.post(`/api/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
-      body: comment
-    }, {
-      headers: {
-        Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
+  const [owner, repo] = repoFullName.split('/');
+  if (!owner || !repo) {
+    throw new Error(`Invalid repository name: ${repoFullName}`);
   }
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  const response = await api.post(`/api/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
+    body: comment
+  }, {
+    headers: {
+      Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.data;
 };
 export const getAssignedIssues = async (state?: string): Promise<IssueResponse> => {
-  try {
-    const {
-      data
-    } = await api.get('/api/assigned-issues', {
-      params: {
-        state
-      }
-    });
-    return data;
-  } catch (error) {
-    throw error;
-  }
+  const {
+    data
+  } = await api.get('/api/assigned-issues', {
+    params: {
+      state
+    }
+  });
+  return data;
 };
 export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResponse> => {
   const cacheKey = `suggested-issues-${JSON.stringify(params)}`;
@@ -249,59 +262,26 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
     per_page: '100',
     page: params.page?.toString() || '1'
   });
-  try {
-    const response = await api.get(`https://api.github.com/search/issues?${queryParams}`, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': '2022-11-28'
-      }
-    });
-    if (!response.data) {
-      throw new Error('No data received from API');
+  const response = await api.get(`https://api.github.com/search/issues?${queryParams}`, {
+    headers: {
+      'Accept': 'application/vnd.github.v3+json',
+      'X-GitHub-Api-Version': '2022-11-28'
     }
-    const result = {
-      issues: response.data.items.map((item: any) => ({
-        id: item.id,
-        number: item.number,
-        title: item.title,
-        body: item.body,
-        state: item.state,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        commentsCount: item.comments,
-        labels: item.labels.map((label: any) => ({
-          name: label.name,
-          color: label.color
-        })),
-        repository: {
-          id: item.repository_url.split('/').pop(),
-          fullName: item.repository_url.split('/').slice(-2).join('/'),
-          url: item.repository_url
-        },
-        user: {
-          login: item.user.login,
-          avatarUrl: item.user.avatar_url
-        },
-        url: item.html_url
-      })),
-      totalCount: response.data.total_count,
-      hasMore: response.data.total_count > (params.page || 1) * 100,
-      currentPage: parseInt(params.page?.toString() || '1')
-    };
-    localStorage.setItem(cacheKey, JSON.stringify({
-      data: result,
-      timestamp: Date.now()
-    }));
-    return result;
-  } catch (error) {
-    if (cachedData) {
-      const {
-        data
-      } = JSON.parse(cachedData);
-      return data;
-    }
-    throw error;
+  });
+  if (!response.data) {
+    throw new Error('No data received from API');
   }
+  const result = {
+    issues: response.data.items.map(transformIssue),
+    totalCount: response.data.total_count,
+    hasMore: response.data.total_count > (params.page || 1) * 100,
+    currentPage: parseInt(params.page?.toString() || '1')
+  };
+  localStorage.setItem(cacheKey, JSON.stringify({
+    data: result,
+    timestamp: Date.now()
+  }));
+  return result;
 };
 export const getRepositoryDetails = async (owner: string, repo: string) => {
   const {

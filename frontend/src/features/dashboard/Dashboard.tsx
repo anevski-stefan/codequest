@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
 import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
-import type { Issue, IssueParams, Language } from '../../types/github';
+import type { Issue, IssueParams, Language, IssueResponse } from '../../types/github';
 import debounce from 'lodash/debounce';
 import { SlidersHorizontal, X } from 'lucide-react';
 import CommentsModal from '../../components/CommentsModal';
@@ -88,7 +88,7 @@ const Dashboard = () => {
       console.error('Error in mutation:', error);
     }
   });
-  const debouncedSetFilter = useCallback(debounce((newFilter: IssueParams) => {
+  const debouncedSetFilter = useMemo(() => debounce((newFilter: IssueParams) => {
     console.log('Debounced setFilter executing with:', newFilter);
     setFilter(newFilter);
     setInitialFetchComplete(false);
@@ -97,7 +97,7 @@ const Dashboard = () => {
     data,
     isLoading,
     error
-  } = useQuery<any, Error>(['issues', filter], () => {
+  } = useQuery<IssueResponse, Error>(['issues', filter], () => {
     console.log('Executing query with filter:', filter);
     return getIssues(filter);
   }, {
@@ -130,41 +130,43 @@ const Dashboard = () => {
       setInitialFetchComplete(true);
     }
   });
-  const handleFilterChange = (key: keyof IssueParams, value: string | boolean | string[]) => {
-    console.log('Filter change:', {
-      key,
-      value
+  const handleFilterChange = useCallback((newFilter: Partial<IssueParams>) => {
+    setFilter(prev => ({
+      ...prev,
+      ...Object.fromEntries(Object.entries(newFilter).filter(([, value]) => value != null))
+    }));
+  }, []);
+  const handleTimeFrameChange = useCallback((value: string) => {
+    handleFilterChange({
+      timeFrame: value
     });
-    setIsFilterLoading(true);
-    setInitialFetchComplete(false);
-    const newFilter = {
-      ...filter,
-      [key]: value,
-      page: 1
-    };
-    if (key === 'sort' && typeof value === 'string') {
-      console.log('Sort before:', {
-        sort: newFilter.sort,
-        direction: newFilter.direction
-      });
-      if (value === 'created-asc') {
-        newFilter.sort = 'created';
-        newFilter.direction = 'asc';
-      } else if (value === 'comments') {
-        newFilter.sort = 'comments';
-        newFilter.direction = 'desc';
-      } else {
-        newFilter.sort = value;
-        newFilter.direction = 'desc';
-      }
-      console.log('Sort after:', {
-        sort: newFilter.sort,
-        direction: newFilter.direction
-      });
-    }
-    console.log('New filter:', newFilter);
-    debouncedSetFilter(newFilter);
-  };
+  }, [handleFilterChange]);
+  const handleSortChange = useCallback((value: string) => {
+    handleFilterChange({
+      sort: value as Language,
+      direction: value === 'created-asc' ? 'asc' : 'desc'
+    });
+  }, [handleFilterChange]);
+  const handleCommentsRangeChange = useCallback((value: string) => {
+    handleFilterChange({
+      commentsRange: value
+    });
+  }, [handleFilterChange]);
+  const handleLanguageChange = useCallback((value: string) => {
+    handleFilterChange({
+      language: value as Language
+    });
+  }, [handleFilterChange]);
+  const handleLabelsChange = useCallback((labels: string[]) => {
+    handleFilterChange({
+      labels
+    });
+  }, [handleFilterChange]);
+  const handleUnassignedChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFilterChange({
+      unassigned: e.target.checked
+    });
+  }, [handleFilterChange]);
   const handleLoadMore = () => {
     setFilter(prev => ({
       ...prev,
@@ -194,6 +196,11 @@ const Dashboard = () => {
     }
   };
   const showLoadingSpinner = isLoading || !initialFetchComplete;
+  useEffect(() => {
+    return () => {
+      debouncedSetFilter.cancel();
+    };
+  }, [debouncedSetFilter]);
   if (showLoadingSpinner) {
     return <div className="mt-[64px] p-4 grid gap-6">
         {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
@@ -237,21 +244,21 @@ const Dashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Time Frame
                     </label>
-                    <FilterDropdown label="Time Frame" options={timeFrameOptions} value={filter.timeFrame} onChange={value => handleFilterChange('timeFrame', value)} />
+                    <FilterDropdown label="Time Frame" options={timeFrameOptions} value={filter.timeFrame} onChange={handleTimeFrameChange} />
                   </div>
 
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Sort By
                     </label>
-                    <FilterDropdown label="Sort By" options={sortOptions} value={filter.direction === 'asc' ? 'created-asc' : filter.sort} onChange={value => handleFilterChange('sort', value)} />
+                    <FilterDropdown label="Sort By" options={sortOptions} value={filter.direction === 'asc' ? 'created-asc' : filter.sort} onChange={handleSortChange} />
                   </div>
 
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Comments
                     </label>
-                    <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange} onChange={value => handleFilterChange('commentsRange', value)} />
+                    <FilterDropdown label="Comments" options={commentRanges} value={filter.commentsRange} onChange={handleCommentsRangeChange} />
                   </div>
 
                   <div className="space-y-2">
@@ -264,19 +271,19 @@ const Dashboard = () => {
                   }, ...languageOptions.slice(1).map(lang => ({
                     value: lang,
                     label: lang.charAt(0).toUpperCase() + lang.slice(1)
-                  }))]} value={filter.language} onChange={value => handleFilterChange('language', value as Language)} />
+                  }))]} value={filter.language} onChange={handleLanguageChange} />
                   </div>
 
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Labels
                     </label>
-                    <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={labels => handleFilterChange('labels', labels)} />
+                    <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={handleLabelsChange} />
                   </div>
 
                   <div>
                     <label className="inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked={filter.unassigned} onChange={e => handleFilterChange('unassigned', e.target.checked)} className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                      <input type="checkbox" checked={filter.unassigned} onChange={handleUnassignedChange} className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
                       <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Unassigned only</span>
                     </label>
                   </div>
