@@ -1,22 +1,23 @@
 const axios = require('axios');
 const GitHubService = require('./githubService');
+const OpenAI = require('openai');
 const SYSTEM_PROMPT = `You are Code Buddy, an AI assistant helping developers find beginner-friendly open source issues.
 When suggesting issues, ALWAYS show at least 5 issues (or all available if fewer than 5) and format your response like this:
 
 # 📚 Available Issues
 1. **[Repository Name]**
    - Description: [Brief description]
-   - Link: [URL]
+   - Link: [Click here to view issue](URL)
 
 2. **[Repository Name]**
    - Description: [Brief description]
-   - Link: [URL]
+   - Link: [Click here to view issue](URL)
 
 (continue with remaining issues...)
 
 Remember to:
 1. ALWAYS show at least 5 issues when available
-2. Use the exact URLs provided
+2. Use the exact URLs provided, but display them as "[Click here to view issue](URL)"
 3. Keep all details exactly as provided
 4. Number each issue sequentially
 5. If fewer than 5 issues are available, explain that there are limited issues at the moment
@@ -95,30 +96,48 @@ class CodeBuddyService {
     }
   }
   async getChatGPTResponse(userMessage, issuesContext, previousMessages, apiKey) {
-    const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: 'gpt-3.5-turbo',
-      messages: [{
-        role: 'system',
-        content: SYSTEM_PROMPT
-      }, {
-        role: 'system',
-        content: `Here are the current available beginner issues:\n\n${issuesContext}`
-      }, ...previousMessages, {
-        role: 'user',
-        content: userMessage
-      }],
-      temperature: 0.7,
-      max_tokens: 1000
-    }, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    try {
+      const openai = new OpenAI({
+        apiKey: apiKey,
+        baseURL: 'https://models.inference.ai.azure.com',
+        defaultHeaders: {
+          'api-key': apiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{
+          role: 'system',
+          content: SYSTEM_PROMPT
+        }, {
+          role: 'system',
+          content: `Here are the current available beginner issues:\n\n${issuesContext}`
+        }, ...previousMessages, {
+          role: 'user',
+          content: userMessage
+        }],
+        temperature: 1,
+        max_tokens: 4096,
+        top_p: 1
+      });
+      return response.choices[0].message.content;
+    } catch (error) {
+      console.error('Azure OpenAI error:', error);
+      if (error.response?.status === 401) {
+        throw new Error('Invalid Azure OpenAI API key');
       }
-    });
-    return response.data.choices[0].message.content;
+      throw new Error(`Azure OpenAI error: ${error.response?.data?.error?.message || error.message}`);
+    }
   }
   async getGeminiResponse(userMessage, issuesContext, previousMessages, apiKey) {
     try {
+      const formattedMessages = previousMessages.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{
+          text: msg.content
+        }]
+      }));
       const response = await axios.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
         contents: [{
           role: 'user',
@@ -130,12 +149,7 @@ class CodeBuddyService {
           parts: [{
             text: `Here are the current available beginner issues:\n\n${issuesContext}`
           }]
-        }, ...previousMessages.map(msg => ({
-          role: msg.role,
-          parts: [{
-            text: msg.content
-          }]
-        })), {
+        }, ...formattedMessages, {
           role: 'user',
           parts: [{
             text: userMessage
@@ -159,6 +173,9 @@ class CodeBuddyService {
       return response.data.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error('Gemini API error:', error.response?.data || error.message);
+      if (error.response?.status === 401) {
+        throw new Error('Invalid Gemini API key');
+      }
       throw new Error(`Gemini API error: ${error.response?.data?.error?.message || error.message}`);
     }
   }

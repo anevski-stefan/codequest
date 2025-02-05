@@ -40,13 +40,30 @@ const SettingsPage = () => {
       setGeminiKey('');
     }
   };
+  const validateApiKey = (service: AIService, key: string): boolean => {
+    if (!key) return true;
+    if (service === 'chatgpt') {
+      return key.length >= 20;
+    } else if (service === 'gemini') {
+      return key.length >= 20;
+    }
+    return false;
+  };
   const handleSaveChanges = async () => {
+    if (chatgptKey && !validateApiKey('chatgpt', chatgptKey)) {
+      toast.error('Invalid ChatGPT API key format');
+      return;
+    }
+    if (geminiKey && !validateApiKey('gemini', geminiKey)) {
+      toast.error('Invalid Gemini API key format');
+      return;
+    }
     setIsSaving(true);
     const savePromise = new Promise(resolve => {
       setTimeout(() => {
         setTheme(selectedTheme);
-        localStorage.setItem('chatgpt_api_key', encryptData(chatgptKey));
-        localStorage.setItem('gemini_api_key', encryptData(geminiKey));
+        if (chatgptKey) localStorage.setItem('chatgpt_api_key', encryptData(chatgptKey));
+        if (geminiKey) localStorage.setItem('gemini_api_key', encryptData(geminiKey));
         localStorage.setItem('ai_service', selectedService);
         resolve(true);
       }, 500);
