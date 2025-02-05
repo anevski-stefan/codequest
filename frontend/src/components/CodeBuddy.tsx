@@ -1,7 +1,7 @@
 import { AxiosError } from 'axios';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send, Bot, Minimize2, Maximize2, User, StopCircle } from 'lucide-react';
-import { useMutation } from 'react-query';
+import { Send, Bot, Minimize2, Maximize2, User, StopCircle, History, X } from 'lucide-react';
+import { useMutation, useQuery } from 'react-query';
 import { api } from '../services/github';
 import ReactMarkdown from 'react-markdown';
 import { useAIService } from '../hooks/useAIService';
@@ -9,6 +9,7 @@ import { decryptData } from '../utils/encryption';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import type { Components } from 'react-markdown';
+import { toast } from 'react-hot-toast';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -21,6 +22,14 @@ interface ChatContext {
   interests?: string[];
   recentSearches?: string[];
   lastViewedIssues?: string[];
+}
+
+interface ChatHistory {
+  id: string;
+  user_id: string;
+  title: string;
+  messages: Message[];
+  created_at: string;
 }
 
 const markdownComponents: Components = {
@@ -74,11 +83,56 @@ const CodeBuddy = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [currentTypingMessage, setCurrentTypingMessage] = useState('');
   const [isThinking, setIsThinking] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number>(0);
   const selectedService = useAIService();
   const abortControllerRef = useRef<AbortController | null>(null);
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+
+  const { data: chatHistory } = useQuery<ChatHistory[]>(
+    ['chatHistory', user?.id],
+    async () => {
+      const token = localStorage.getItem('token');
+      if (!token || !user?.id) throw new Error('Not authenticated');
+      
+      try {
+        console.log('Fetching chats for user:', user.id);
+        
+        const response = await api.get(`/api/chats/${user.id}`, {
+          headers: {
+            'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`
+          }
+        });
+        return response.data;
+      } catch (error) {
+        if (error instanceof AxiosError) {
+          console.error('Chat history fetch error details:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            userId: user.id,
+            headers: error.response?.headers
+          });
+        }
+        throw error;
+      }
+    },
+    {
+      enabled: !!user?.id && isAuthenticated && showSidebar,
+      staleTime: 1000 * 60 * 5,
+      retry: false,
+      onError: (error) => {
+        toast.error('Failed to load chat history');
+        console.error('Query error:', error);
+      }
+    }
+  );
+
+  const loadChat = (chat: ChatHistory) => {
+    setMessages(chat.messages);
+    setShowSidebar(false);
+  };
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -100,7 +154,7 @@ const CodeBuddy = () => {
         throw new Error('Authentication required');
       }
 
-      let currentService = localStorage.getItem('ai_service') || 'chatgpt';
+      let currentService = selectedService;
       const chatgptKey = decryptData(localStorage.getItem('chatgpt_api_key') || '');
       const geminiKey = decryptData(localStorage.getItem('gemini_api_key') || '');
       
@@ -143,6 +197,29 @@ const CodeBuddy = () => {
         
         if (!response.data?.message) {
           throw new Error('Invalid response from server');
+        }
+        
+        // After getting the AI response, save the chat
+        if (response.data?.message && isAuthenticated && user?.id) {
+          const updatedMessages = [...messages, 
+            { role: 'user', content: message, timestamp: new Date() },
+            { role: 'assistant', content: response.data.message, timestamp: new Date() }
+          ];
+
+          try {
+            await api.post('/api/chats', {
+              messages: updatedMessages,
+              userId: user.id,
+              title: messages.length === 0 ? message.substring(0, 50) + '...' : undefined
+            }, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+          } catch (error) {
+            console.error('Failed to save chat:', error);
+            toast.error('Failed to save chat history');
+          }
         }
         
         return response.data;
@@ -230,16 +307,35 @@ const CodeBuddy = () => {
     cursorPositionRef.current = 0;
 
     try {
-      await chatMutation.mutateAsync({
+      // First, get the chat response
+      const chatResponse = await chatMutation.mutateAsync({
         message: input,
         context
       });
+
+      // Then save the chat history
+      const token = localStorage.getItem('token');
+      if (token) {
+        await api.post('/api/chats', {
+          messages: [...messages, userMessage, {
+            role: 'assistant',
+            content: chatResponse.message,
+            timestamp: new Date()
+          }],
+          userId: user?.id,
+          title: messages.length === 0 ? userMessage.content.substring(0, 50) + '...' : undefined
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      }
     } catch (error) {
       if (error instanceof Error && error.message !== 'Request cancelled') {
         console.error('Chat error:', error);
       }
     }
-  }, [input, context, chatMutation, isTyping]);
+  }, [input, context, chatMutation, isTyping, messages, user?.id]);
 
   const handleStop = useCallback(() => {
     if (abortControllerRef.current) {
@@ -350,87 +446,137 @@ const CodeBuddy = () => {
   };
 
   return (
-    <div 
-      className={`fixed bottom-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg flex flex-col transition-all duration-300 ${
-        isExpanded ? 'w-[450px] h-[600px]' : 'w-72 h-16'
-      }`}
-    >
-      <div 
-        onClick={toggleExpanded}
-        className="p-4 border-b dark:border-gray-700 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <Bot className="w-6 h-6 text-blue-500" />
-          <div>
-            <h3 className="text-lg font-semibold">Code Buddy</h3>
-            {isExpanded && (
-              <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                Powered by {selectedService}
-              </span>
+    <>
+      {isExpanded && showSidebar && (
+        <div className="fixed bottom-4 right-[470px] w-72 h-[600px] bg-white dark:bg-gray-800 rounded-lg shadow-lg flex flex-col">
+          <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Chat History</h3>
+            <button
+              onClick={() => setShowSidebar(false)}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {chatHistory?.length ? (
+              <div className="space-y-2">
+                {chatHistory.map((chat) => (
+                  <button
+                    key={chat.id}
+                    onClick={() => loadChat(chat)}
+                    className="w-full text-left p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <p className="text-sm font-medium truncate">{chat.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(chat.created_at).toLocaleDateString()}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-gray-500 dark:text-gray-400">
+                No chat history found
+              </p>
             )}
           </div>
         </div>
-        <div className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-          {isExpanded ? (
-            <Minimize2 className="w-5 h-5" />
-          ) : (
-            <Maximize2 className="w-5 h-5" />
-          )}
-        </div>
-      </div>
+      )}
 
-      {isExpanded && (
-        <>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((msg, idx) => renderMessage(msg, idx))}
-          </div>
-
-          <div className="p-4 border-t dark:border-gray-700">
-            <div className="relative flex items-end">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => {
-                  if (isTyping) return;
-                  const selectionStart = e.target.selectionStart;
-                  setInput(e.target.value);
-                  cursorPositionRef.current = selectionStart;
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                disabled={isTyping}
-                placeholder="Ask me anything about coding..."
-                className="flex-1 max-h-32 p-2 pr-10 bg-gray-100 dark:bg-gray-700 rounded-lg resize-none overflow-y-auto"
-                rows={1}
-              />
-              <div className="absolute right-2 bottom-2 flex gap-1">
-                {isThinking && (
-                  <button
-                    onClick={handleStop}
-                    className="p-1 text-red-500 hover:text-red-600"
-                    title="Stop generating"
-                  >
-                    <StopCircle className="w-5 h-5" />
-                  </button>
-                )}
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isTyping}
-                  className="p-1 text-blue-500 hover:text-blue-600 disabled:text-gray-400"
-                  title="Send message"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              </div>
+      <div 
+        className={`fixed bottom-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg flex flex-col transition-all duration-300 ${
+          isExpanded ? 'w-[450px] h-[600px]' : 'w-72 h-16'
+        }`}
+      >
+        <div 
+          onClick={toggleExpanded}
+          className="p-4 border-b dark:border-gray-700 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Bot className="w-6 h-6 text-blue-500" />
+            <div>
+              <h3 className="text-lg font-semibold">Code Buddy</h3>
+              {isExpanded && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                  Powered by {selectedService}
+                </span>
+              )}
             </div>
           </div>
-        </>
-      )}
-    </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSidebar(!showSidebar);
+              }}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+              title="Chat History"
+            >
+              <History className="w-5 h-5" />
+            </button>
+            <div className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+              {isExpanded ? (
+                <Minimize2 className="w-5 h-5" />
+              ) : (
+                <Maximize2 className="w-5 h-5" />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {isExpanded && (
+          <>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((msg, idx) => renderMessage(msg, idx))}
+            </div>
+
+            <div className="p-4 border-t dark:border-gray-700">
+              <div className="relative flex items-end">
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => {
+                    if (isTyping) return;
+                    const selectionStart = e.target.selectionStart;
+                    setInput(e.target.value);
+                    cursorPositionRef.current = selectionStart;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  disabled={isTyping}
+                  placeholder="Ask me anything about coding..."
+                  className="flex-1 max-h-32 p-2 pr-10 bg-gray-100 dark:bg-gray-700 rounded-lg resize-none overflow-y-auto"
+                  rows={1}
+                />
+                <div className="absolute right-2 bottom-2 flex gap-1">
+                  {isThinking && (
+                    <button
+                      onClick={handleStop}
+                      className="p-1 text-red-500 hover:text-red-600"
+                      title="Stop generating"
+                    >
+                      <StopCircle className="w-5 h-5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSend}
+                    disabled={!input.trim() || isTyping}
+                    className="p-1 text-blue-500 hover:text-blue-600 disabled:text-gray-400"
+                    title="Send message"
+                  >
+                    <Send className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 };
 

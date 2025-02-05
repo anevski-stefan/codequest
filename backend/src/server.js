@@ -14,6 +14,8 @@ const crawler = new HackathonCrawler();
 const nodemailer = require('nodemailer');
 const { CodeBuddyService } = require('./services/codeBuddyService.js');
 const GitHubService = require('./services/githubService');
+const supabaseService = require('./services/supabaseService');
+const chatRoutes = require('./routes/chatRoutes');
 
 // Add after line 12
 let isInitialCrawlComplete = false;
@@ -77,14 +79,16 @@ passport.use(new GitHubStrategy({
   },
   async function(accessToken, refreshToken, profile, done) {
     try {
-      // Store both profile and token
+      const userData = await supabaseService.createOrUpdateUser(profile);
+      
       const user = {
-        id: profile.id,
+        id: userData.id,
         username: profile.username,
         accessToken: accessToken,
         avatar_url: profile._json.avatar_url,
         email: profile.emails?.[0]?.value
       };
+
       return done(null, user);
     } catch (error) {
       return done(error, null);
@@ -1199,6 +1203,9 @@ app.post('/api/code-buddy/chat', authenticateToken, express.json(), async (req, 
     });
   }
 });
+
+// Add this line after your other app.use statements
+app.use('/api/chats', chatRoutes);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
