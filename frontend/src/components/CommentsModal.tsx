@@ -23,15 +23,31 @@ export default function CommentsModal({
     }
   }, [isLoadingMore, hasMoreComments, onLoadMore]);
 
+  const escapeHtml = useCallback((unsafe: string) => {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }, []);
+
   const handleAddComment = useCallback(async (comment: string) => {
-    await onAddComment(comment);
-  }, [onAddComment]);
+    const escapedComment = escapeHtml(comment);
+    await onAddComment(escapedComment);
+  }, [onAddComment, escapeHtml]);
+
+  // Escape comment content before displaying
+  const escapedComments = sortedComments.map(comment => ({
+    ...comment,
+    body: escapeHtml(comment.body)
+  }));
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Comments">
       <div className="flex-1 overflow-y-auto py-4 space-y-4">
         <CommentsList
-          comments={sortedComments}
+          comments={escapedComments}
           isLoading={isLoading}
           hasMoreComments={hasMoreComments}
           isLoadingMore={isLoadingMore}

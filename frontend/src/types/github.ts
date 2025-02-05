@@ -100,12 +100,36 @@ export interface IssueParams {
   labels: string[];
 }
 
+export interface ActivityPayload {
+  action?: string;
+  ref?: string;
+  ref_type?: string;
+  master_branch?: string;
+  description?: string;
+  pusher_type?: string;
+  push_id?: number;
+  size?: number;
+  distinct_size?: number;
+  head?: string;
+  before?: string;
+  commits?: Array<{
+    sha: string;
+    message: string;
+    author: {
+      name: string;
+      email: string;
+    };
+    url: string;
+    distinct: boolean;
+  }>;
+}
+
 export interface Activity {
   id: string;
   type: string;
   repo: string;
   date: string;
-  payload: any;
+  payload: ActivityPayload;
 }
 
 export interface Comment {

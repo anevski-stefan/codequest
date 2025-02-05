@@ -9,10 +9,11 @@ const rateLimit = require('express-rate-limit');
 const cache = require('memory-cache');
 const etag = require('etag');
 const cron = require('node-cron');
-const mongoose = require('mongoose');
 const HackathonCrawler = require('./services/hackathonCrawler');
 const crawler = new HackathonCrawler();
 const nodemailer = require('nodemailer');
+const { CodeBuddyService } = require('./services/codeBuddyService.js');
+const GitHubService = require('./services/githubService');
 
 // Add after line 12
 let isInitialCrawlComplete = false;
@@ -565,28 +566,21 @@ app.post('/api/repos/:owner/:repo/issues/:number/comments', authenticateToken, e
 // Add assigned issues endpoint with better error handling
 app.get('/api/assigned-issues', authenticateToken, async (req, res) => {
   try {
-    const { state } = req.query; // Get the state from query parameters
-    const queryState = state === 'closed' ? 'is:closed' : 'is:open'; // Default to open if not specified
-
-    const response = await axios.get('https://api.github.com/search/issues', {
-      headers: {
-        'Authorization': `Bearer ${req.user.accessToken}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': '2022-11-28'
-      },
-      params: {
-        q: `is:issue ${queryState} assignee:@me`, // Use the state in the query
-        per_page: 30,
-        sort: 'updated',
-        order: 'desc'
-      }
+    const { state } = req.query;
+    const queryState = state === 'closed' ? 'is:closed' : 'is:open';
+    const query = `is:issue ${queryState} assignee:@me`;
+    
+    const data = await GitHubService.searchIssues(req.user.accessToken, query, {
+      per_page: 30,
+      sort: 'updated',
+      order: 'desc'
     });
 
-    if (!response.data) {
+    if (!data) {
       throw new Error('No data received from GitHub API');
     }
 
-    const transformedIssues = response.data.items.map((item) => ({
+    const transformedIssues = data.items.map((item) => ({
       id: item.id,
       number: item.number,
       title: item.title,
@@ -611,14 +605,7 @@ app.get('/api/assigned-issues', authenticateToken, async (req, res) => {
       url: item.html_url
     }));
 
-    const responseData = {
-      issues: transformedIssues,
-      totalCount: response.data.total_count,
-      hasMore: transformedIssues.length === 30,
-      currentPage: 1
-    };
-
-    res.json(responseData);
+    res.json(transformedIssues);
   } catch (error) {
     console.error('Error fetching assigned issues:', error);
     
@@ -1166,6 +1153,37 @@ app.get('/api/repos/:owner/:repo/pulls/:pullNumber', authenticateToken, async (r
   } catch (error) {
     console.error('Error fetching pull request details:', error);
     res.status(500).json({ error: 'Failed to fetch pull request details' });
+  }
+});
+
+const codeBuddyService = new CodeBuddyService();
+
+app.post('/api/code-buddy/chat', authenticateToken, express.json(), async (req, res) => {
+  try {
+    const { message, context, messages } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const response = await codeBuddyService.getResponse(
+      message,
+      context,
+      messages,
+      req.user.accessToken
+    );
+
+    res.json({
+      message: response,
+      timestamp: new Date()
+    });
+
+  } catch (error) {
+    console.error('Chat error:', error);
+    res.status(500).json({ 
+      error: 'Failed to process chat message',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

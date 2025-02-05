@@ -1,7 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
 import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
-import type { Issue, IssueParams, Language } from '../../types/github';
+import type { 
+  Issue, 
+  IssueParams, 
+  Language,
+  IssueResponse 
+} from '../../types/github';
 import debounce from 'lodash/debounce';
 import { SlidersHorizontal, X } from 'lucide-react';
 import CommentsModal from '../../components/CommentsModal';
@@ -93,9 +98,9 @@ const Dashboard = () => {
     }
   });
 
-  // Debounced filter updates
-  const debouncedSetFilter = useCallback(
-    debounce((newFilter: IssueParams) => {
+  // Move debounce outside of component or use useMemo
+  const debouncedSetFilter = useMemo(
+    () => debounce((newFilter: IssueParams) => {
       console.log('Debounced setFilter executing with:', newFilter);
       setFilter(newFilter);
       setInitialFetchComplete(false);
@@ -103,7 +108,7 @@ const Dashboard = () => {
     []
   );
 
-  const { data, isLoading, error } = useQuery<any, Error>(
+  const { data, isLoading, error } = useQuery<IssueResponse, Error>(
     ['issues', filter],
     () => {
       console.log('Executing query with filter:', filter);
@@ -146,36 +151,42 @@ const Dashboard = () => {
   );
 
   // Update handleFilterChange to reset initialFetchComplete
-  const handleFilterChange = (key: keyof IssueParams, value: string | boolean | string[]) => {
-    console.log('Filter change:', { key, value });
+  const handleFilterChange = useCallback((newFilter: Partial<IssueParams>) => {
+    setFilter(prev => ({
+      ...prev,
+      ...Object.fromEntries(
+        Object.entries(newFilter).filter(([, value]) => value != null)
+      )
+    }));
+  }, []);
 
-    setIsFilterLoading(true);
-    setInitialFetchComplete(false);
-    const newFilter = { 
-      ...filter,
-      [key]: value,
-      page: 1
-    };
+  // Update filter change handlers
+  const handleTimeFrameChange = useCallback((value: string) => {
+    handleFilterChange({ timeFrame: value });
+  }, [handleFilterChange]);
 
-    // Special handling for sort with type guard
-    if (key === 'sort' && typeof value === 'string') {
-      console.log('Sort before:', { sort: newFilter.sort, direction: newFilter.direction });
-      if (value === 'created-asc') {
-        newFilter.sort = 'created';
-        newFilter.direction = 'asc';
-      } else if (value === 'comments') {
-        newFilter.sort = 'comments';
-        newFilter.direction = 'desc';
-      } else {
-        newFilter.sort = value;
-        newFilter.direction = 'desc';
-      }
-      console.log('Sort after:', { sort: newFilter.sort, direction: newFilter.direction });
-    }
+  const handleSortChange = useCallback((value: string) => {
+    handleFilterChange({ 
+      sort: value as Language, 
+      direction: value === 'created-asc' ? 'asc' : 'desc' 
+    });
+  }, [handleFilterChange]);
 
-    console.log('New filter:', newFilter);
-    debouncedSetFilter(newFilter);
-  };
+  const handleCommentsRangeChange = useCallback((value: string) => {
+    handleFilterChange({ commentsRange: value });
+  }, [handleFilterChange]);
+
+  const handleLanguageChange = useCallback((value: string) => {
+    handleFilterChange({ language: value as Language });
+  }, [handleFilterChange]);
+
+  const handleLabelsChange = useCallback((labels: string[]) => {
+    handleFilterChange({ labels });
+  }, [handleFilterChange]);
+
+  const handleUnassignedChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFilterChange({ unassigned: e.target.checked });
+  }, [handleFilterChange]);
 
   const handleLoadMore = () => {
     setFilter(prev => ({ ...prev, page: prev.page + 1 }));
@@ -206,6 +217,13 @@ const Dashboard = () => {
   };
 
   const showLoadingSpinner = isLoading || !initialFetchComplete;
+
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      debouncedSetFilter.cancel();
+    };
+  }, [debouncedSetFilter]);
 
   if (showLoadingSpinner) {
     return (
@@ -273,7 +291,7 @@ const Dashboard = () => {
                       label="Time Frame"
                       options={timeFrameOptions}
                       value={filter.timeFrame}
-                      onChange={(value) => handleFilterChange('timeFrame', value)}
+                      onChange={handleTimeFrameChange}
                     />
                   </div>
 
@@ -285,7 +303,7 @@ const Dashboard = () => {
                       label="Sort By"
                       options={sortOptions}
                       value={filter.direction === 'asc' ? 'created-asc' : filter.sort}
-                      onChange={(value) => handleFilterChange('sort', value)}
+                      onChange={handleSortChange}
                     />
                   </div>
 
@@ -297,7 +315,7 @@ const Dashboard = () => {
                       label="Comments"
                       options={commentRanges}
                       value={filter.commentsRange}
-                      onChange={(value) => handleFilterChange('commentsRange', value)}
+                      onChange={handleCommentsRangeChange}
                     />
                   </div>
 
@@ -315,7 +333,7 @@ const Dashboard = () => {
                         }))
                       ]}
                       value={filter.language}
-                      onChange={(value) => handleFilterChange('language', value as Language)}
+                      onChange={handleLanguageChange}
                     />
                   </div>
 
@@ -325,7 +343,7 @@ const Dashboard = () => {
                     </label>
                     <LabelsFilter
                       selectedLabels={filter.labels || []}
-                      onLabelsChange={(labels) => handleFilterChange('labels', labels)}
+                      onLabelsChange={handleLabelsChange}
                     />
                   </div>
 
@@ -334,7 +352,7 @@ const Dashboard = () => {
                       <input
                         type="checkbox"
                         checked={filter.unassigned}
-                        onChange={(e) => handleFilterChange('unassigned', e.target.checked)}
+                        onChange={handleUnassignedChange}
                         className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
                       />
                       <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Unassigned only</span>
