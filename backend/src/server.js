@@ -16,6 +16,8 @@ const {
   CodeBuddyService
 } = require('./services/codeBuddyService.js');
 const GitHubService = require('./services/githubService');
+const supabaseService = require('./services/supabaseService');
+const chatRoutes = require('./routes/chatRoutes');
 let isInitialCrawlComplete = false;
 const initializeCrawler = async () => {
   try {
@@ -61,8 +63,9 @@ passport.use(new GitHubStrategy({
   proxy: true
 }, async function (accessToken, refreshToken, profile, done) {
   try {
+    const userData = await supabaseService.createOrUpdateUser(profile);
     const user = {
-      id: profile.id,
+      id: userData.id,
       username: profile.username,
       accessToken: accessToken,
       avatar_url: profile._json.avatar_url,
@@ -1029,6 +1032,7 @@ app.post('/api/code-buddy/chat', authenticateToken, express.json(), async (req, 
     });
   }
 });
+app.use('/api/chats', chatRoutes);
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
