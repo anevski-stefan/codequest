@@ -265,10 +265,35 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
 };
 
 export const getAssignedIssues = async (state?: string): Promise<IssueResponse> => {
-  const { data } = await api.get('/api/assigned-issues', {
-    params: { state }
-  });
-  return data;
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const { data } = await api.get('/api/assigned-issues', {
+      params: { state },
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    // Check if data exists and has the expected structure
+    if (!data || (!data.issues && !Array.isArray(data))) {
+      throw new Error('Invalid response format from server');
+    }
+
+    // Transform the response to match IssueResponse type
+    return {
+      issues: Array.isArray(data) ? data : data.issues || [],
+      totalCount: Array.isArray(data) ? data.length : (data.issues?.length || 0),
+      currentPage: 1,
+      hasMore: false
+    };
+  } catch (error) {
+    console.error('Error in getAssignedIssues:', error);
+    throw error;
+  }
 };
 
 export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResponse> => {

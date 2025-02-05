@@ -47,7 +47,10 @@ const CodeBuddy = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [context] = useState<ChatContext>({});
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(() => {
+    const saved = localStorage.getItem('codeBuddyExpanded');
+    return saved ? JSON.parse(saved) : true;
+  });
   const [isTyping, setIsTyping] = useState(false);
   const [currentTypingMessage, setCurrentTypingMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -135,7 +138,11 @@ const CodeBuddy = () => {
     });
   }, [input, context, chatMutation]);
 
-  const toggleExpanded = () => setIsExpanded(!isExpanded);
+  const toggleExpanded = () => {
+    const newState = !isExpanded;
+    setIsExpanded(newState);
+    localStorage.setItem('codeBuddyExpanded', JSON.stringify(newState));
+  };
 
   const renderMessage = (msg: Message, idx: number) => {
     const isLastMessage = idx === messages.length - 1;
@@ -147,7 +154,7 @@ const CodeBuddy = () => {
         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
       >
         <div
-          className={`max-w-[80%] p-3 rounded-lg ${
+          className={`w-full p-3 rounded-lg ${
             msg.role === 'user'
               ? 'bg-blue-500 text-white'
               : 'bg-gray-100 dark:bg-gray-700'
