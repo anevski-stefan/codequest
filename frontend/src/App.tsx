@@ -5,6 +5,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { store } from './store';
 import AppRoutes from './routes';
 import CodeBuddy from './components/CodeBuddy';
+import { Toaster } from 'react-hot-toast';
 const queryClient = new QueryClient();
 const App = () => {
   return <QueryClientProvider client={queryClient}>
@@ -19,6 +20,7 @@ const App = () => {
             </div>
           </BrowserRouter>
         </ThemeProvider>
+        <Toaster />
       </Provider>
     </QueryClientProvider>;
 };
