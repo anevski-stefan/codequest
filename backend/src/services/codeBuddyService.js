@@ -40,12 +40,8 @@ class CodeBuddyService {
         order: 'desc',
         per_page: 100
       };
-      console.log('Fetching GitHub issues with query:', query);
       const data = await GitHubService.searchIssues(token, query, options);
-      console.log('Total issues found:', data?.total_count);
-      console.log('Items returned:', data?.items?.length);
       if (!data?.items || data.items.length === 0) {
-        console.log('No items found in response');
         return [];
       }
       const formattedIssues = data.items.filter(item => item.body).map(item => ({
@@ -57,7 +53,6 @@ class CodeBuddyService {
         created_at: item.created_at,
         comments: item.comments
       }));
-      console.log('Formatted issues count:', formattedIssues.length);
       return formattedIssues;
     } catch (error) {
       console.error('GitHub API Error:', {

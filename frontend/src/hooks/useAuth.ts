@@ -8,7 +8,6 @@ export const useAuth = () => {
   const navigate = useNavigate();
   const auth = useSelector((state: RootState) => state.auth);
   const login = (userData: LoginResponse) => {
-    console.log('Login called with:', userData);
     localStorage.setItem('token', userData.token);
     dispatch(setCredentials(userData));
   };

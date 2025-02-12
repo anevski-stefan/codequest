@@ -18,12 +18,9 @@ class HackathonService {
   }
   async initialize() {
     try {
-      console.log('Starting initial hackathon crawl...');
       await this.crawlAll();
       this.isInitialCrawlComplete = true;
-      console.log('Initial crawl complete');
     } catch (error) {
-      console.error('Error during initial crawl:', error);
       this.isInitialCrawlComplete = true;
     }
   }
@@ -38,13 +35,11 @@ class HackathonService {
   }
   async crawlDevpost() {
     try {
-      console.log('Crawling Devpost...');
       let allHackathons = [];
       let page = 1;
       let hasMorePages = true;
       const baseApiUrl = 'https://devpost.com/api/hackathons';
       while (hasMorePages && page <= 10) {
-        console.log(`Fetching page ${page}...`);
         const params = {
           page: page,
           status: 'open',
@@ -85,7 +80,6 @@ class HackathonService {
             const endDateStr = h.submission_period_dates?.split(' - ')[1];
             const formatDate = dateStr => {
               if (!dateStr) return '';
-              console.log('Formatting date:', dateStr);
               const getYear = month => {
                 const now = new Date();
                 const currentYear = now.getFullYear();
@@ -136,7 +130,6 @@ class HackathonService {
           });
           if (hackathons.length > 0) {
             allHackathons = [...allHackathons, ...hackathons];
-            console.log(`Found ${hackathons.length} hackathons on page ${page}`);
           }
           hasMorePages = hackathons.length > 0;
           page++;
@@ -146,7 +139,6 @@ class HackathonService {
           break;
         }
       }
-      console.log(`Found ${allHackathons.length} active hackathons on Devpost`);
       return allHackathons;
     } catch (error) {
       console.error('Error crawling Devpost:', error.message);
@@ -165,9 +157,7 @@ class HackathonService {
   }
   async crawlAll() {
     try {
-      console.log('Starting crawl of all sources...');
       const hackathons = await this.retryOperation(() => this.crawlDevpost());
-      console.log(`Total hackathons found: ${hackathons.length}`);
       this.storeHackathons(hackathons);
       return this.getAllHackathons();
     } catch (error) {
@@ -186,7 +176,6 @@ class HackathonService {
         count++;
       }
     });
-    console.log(`Stored ${count} new hackathons`);
   }
   getAllHackathons() {
     return Array.from(this.hackathons.values());

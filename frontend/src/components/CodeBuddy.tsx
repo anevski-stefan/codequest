@@ -89,7 +89,6 @@ const CodeBuddy = () => {
     const token = localStorage.getItem('token');
     if (!token || !user?.id) throw new Error('Not authenticated');
     try {
-      console.log('Fetching chats for user:', user.id);
       const response = await api.get(`/api/chats/${user.id}`, {
         headers: {
           'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`
