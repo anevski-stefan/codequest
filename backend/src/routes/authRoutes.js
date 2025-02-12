@@ -1,22 +1,9 @@
 const express = require('express');
-const passport = require('passport');
 const router = express.Router();
+const { githubAuth, githubCallback } = require('../controllers/authController');
 
 // Auth routes
-router.get('/github',
-  passport.authenticate('github', { scope: ['read:user', 'user:email'] })
-);
-
-router.get('/github/callback', 
-  passport.authenticate('github', { 
-    failureRedirect: 'http://localhost:5173/login',
-    session: true
-  }),
-  function(req, res) {
-    // Successful authentication
-    const token = req.user.accessToken;
-    res.redirect(`http://localhost:5173/auth/callback?token=${token}`);
-  }
-);
+router.get('/github', githubAuth);
+router.get('/github/callback', ...githubCallback);
 
 module.exports = router;

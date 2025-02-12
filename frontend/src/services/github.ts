@@ -271,7 +271,7 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
       throw new Error('Authentication required');
     }
 
-    const { data } = await api.get('/api/assigned-issues', {
+    const { data } = await api.get('/api/issues/assigned', {
       params: { state },
       headers: {
         'Authorization': `Bearer ${token}`
@@ -279,14 +279,14 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
     });
     
     // Check if data exists and has the expected structure
-    if (!data || (!data.issues && !Array.isArray(data))) {
+    if (!data || (!Array.isArray(data) && !Array.isArray(data.issues))) {
       throw new Error('Invalid response format from server');
     }
 
     // Transform the response to match IssueResponse type
     return {
-      issues: Array.isArray(data) ? data : data.issues || [],
-      totalCount: Array.isArray(data) ? data.length : (data.issues?.length || 0),
+      issues: Array.isArray(data) ? data : data.issues,
+      totalCount: Array.isArray(data) ? data.length : data.issues.length,
       currentPage: 1,
       hasMore: false
     };
