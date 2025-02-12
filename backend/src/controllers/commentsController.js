@@ -9,8 +9,6 @@ exports.getIssueComments = async (req, res) => {
       return res.status(400).json({ error: 'Owner and repo are required' });
     }
 
-    console.log('Fetching comments:', { owner, repo, issueNumber });
-
     const response = await axios.get(
       `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
       {
@@ -32,7 +30,6 @@ exports.getIssueComments = async (req, res) => {
       updatedAt: new Date(comment.updated_at).toISOString()
     }));
 
-    console.log('Returning comments:', { count: comments.length });
 
     res.json({
       comments,

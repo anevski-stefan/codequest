@@ -18,8 +18,6 @@ exports.getHackathons = async (req, res) => {
     let hackathons = hackathonService.getAllHackathons();
     
     hackathons = hackathons || [];
-    
-    console.log(`Fetching hackathons - Total available: ${hackathons.length}`);
 
     if (search) {
       const searchLower = search.toLowerCase();
