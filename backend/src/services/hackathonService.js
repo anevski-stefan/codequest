@@ -1,8 +1,10 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-class HackathonCrawler {
+const cron = require('node-cron');
+class HackathonService {
   constructor() {
     this.hackathons = new Map();
+    this.isInitialCrawlComplete = false;
     this.axiosConfig = {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -11,6 +13,28 @@ class HackathonCrawler {
       },
       timeout: 10000
     };
+    this.initialize();
+    this.setupCronJob();
+  }
+  async initialize() {
+    try {
+      console.log('Starting initial hackathon crawl...');
+      await this.crawlAll();
+      this.isInitialCrawlComplete = true;
+      console.log('Initial crawl complete');
+    } catch (error) {
+      console.error('Error during initial crawl:', error);
+      this.isInitialCrawlComplete = true;
+    }
+  }
+  setupCronJob() {
+    cron.schedule('0 */6 * * *', async () => {
+      try {
+        await this.crawlAll();
+      } catch (error) {
+        console.error('Scheduled crawl failed:', error);
+      }
+    });
   }
   async crawlDevpost() {
     try {
@@ -167,5 +191,8 @@ class HackathonCrawler {
   getAllHackathons() {
     return Array.from(this.hackathons.values());
   }
+  getInitialCrawlStatus() {
+    return this.isInitialCrawlComplete;
+  }
 }
-module.exports = HackathonCrawler;
+module.exports = HackathonService;

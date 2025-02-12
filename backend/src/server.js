@@ -1,16 +1,14 @@
 const express = require('express');
-const passport = require('passport');
-const GitHubStrategy = require('passport-github2').Strategy;
 const session = require('express-session');
 const cors = require('cors');
-const axios = require('axios');
 require('dotenv').config();
+const passport = require('passport');
+require('./config/passport');
+const axios = require('axios');
 const rateLimit = require('express-rate-limit');
 const cache = require('memory-cache');
 const etag = require('etag');
 const cron = require('node-cron');
-const HackathonCrawler = require('./services/hackathonCrawler');
-const crawler = new HackathonCrawler();
 const nodemailer = require('nodemailer');
 const {
   CodeBuddyService
@@ -18,27 +16,13 @@ const {
 const GitHubService = require('./services/githubService');
 const supabaseService = require('./services/supabaseService');
 const chatRoutes = require('./routes/chatRoutes');
-let isInitialCrawlComplete = false;
-const initializeCrawler = async () => {
-  try {
-    console.log('Starting initial hackathon crawl...');
-    await crawler.crawlAll();
-    isInitialCrawlComplete = true;
-    console.log('Initial crawl complete');
-  } catch (error) {
-    console.error('Error during initial crawl:', error);
-    isInitialCrawlComplete = true;
-  }
-};
-initializeCrawler();
-cron.schedule('0 */6 * * *', async () => {
-  try {
-    await crawler.crawlAll();
-  } catch (error) {
-    console.error('Scheduled crawl failed:', error);
-  }
-});
+const hackathonRoutes = require('./routes/hackathonRoutes');
+const authRoutes = require('./routes/authRoutes');
 const app = express();
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
@@ -49,49 +33,8 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000
   }
 }));
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
 app.use(passport.initialize());
 app.use(passport.session());
-passport.use(new GitHubStrategy({
-  clientID: process.env.GITHUB_CLIENT_ID,
-  clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: "http://localhost:3000/auth/github/callback",
-  scope: ['read:user', 'user:email'],
-  proxy: true
-}, async function (accessToken, refreshToken, profile, done) {
-  try {
-    const userData = await supabaseService.createOrUpdateUser(profile);
-    const user = {
-      id: userData.id,
-      username: profile.username,
-      accessToken: accessToken,
-      avatar_url: profile._json.avatar_url,
-      email: profile.emails?.[0]?.value
-    };
-    return done(null, user);
-  } catch (error) {
-    return done(error, null);
-  }
-}));
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
-app.get('/auth/github', passport.authenticate('github', {
-  scope: ['read:user', 'user:email']
-}));
-app.get('/auth/github/callback', passport.authenticate('github', {
-  failureRedirect: 'http://localhost:5173/login',
-  session: true
-}), function (req, res) {
-  const token = req.user.accessToken;
-  res.redirect(`http://localhost:5173/auth/callback?token=${token}`);
-});
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -624,51 +567,6 @@ app.post('/api/feedback', express.json(), async (req, res) => {
     });
   }
 });
-app.get('/api/hackathons', limiter, async (req, res) => {
-  try {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      source
-    } = req.query;
-    if (!isInitialCrawlComplete) {
-      return res.status(202).json({
-        status: 'initializing',
-        message: 'Data is being loaded, please try again in a moment'
-      });
-    }
-    let hackathons = crawler.getAllHackathons();
-    console.log(`Fetching hackathons - Total available: ${hackathons?.length || 0}`);
-    if (!Array.isArray(hackathons)) {
-      console.log('No hackathons available, returning empty array');
-      hackathons = [];
-    }
-    if (search) {
-      const searchLower = search.toLowerCase();
-      hackathons = hackathons.filter(h => h.title.toLowerCase().includes(searchLower) || h.description.toLowerCase().includes(searchLower));
-    }
-    if (source) {
-      hackathons = hackathons.filter(h => h.source === source);
-    }
-    hackathons.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-    const start = (parseInt(page) - 1) * parseInt(limit);
-    const paginatedHackathons = hackathons.slice(start, start + parseInt(limit));
-    console.log(`Returning ${paginatedHackathons.length} hackathons for page ${page}`);
-    return res.json({
-      hackathons: paginatedHackathons,
-      totalPages: Math.ceil(hackathons.length / parseInt(limit)),
-      currentPage: parseInt(page),
-      totalHackathons: hackathons.length
-    });
-  } catch (error) {
-    console.error('Error in /api/hackathons:', error);
-    return res.status(500).json({
-      error: 'Failed to fetch hackathons',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
 app.get('/api/repos/:owner/:repo', authenticateToken, async (req, res) => {
   try {
     const {
@@ -1032,7 +930,9 @@ app.post('/api/code-buddy/chat', authenticateToken, express.json(), async (req, 
     });
   }
 });
-app.use('/api/chats', chatRoutes);
+app.use('/auth', authRoutes);
+app.use('/api/hackathons', hackathonRoutes);
+app.use('/api/chat', chatRoutes);
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
