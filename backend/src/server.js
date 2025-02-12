@@ -26,6 +26,7 @@ const commentsRoutes = require('./routes/commentsRoutes');
 const codeBuddyRoutes = require('./routes/codeBuddyRoutes');
 const authenticateToken = require('./middleware/authenticateToken');
 const limiter = require('./middleware/rateLimiter');
+const newsletterRoutes = require('./routes/newsletterRoutes');
 
 const app = express();
 
@@ -68,6 +69,8 @@ app.use('/api/chats', authenticateToken, chatRoutes);
 
 app.use('/auth', authRoutes);
 app.use('/api/hackathons', hackathonRoutes);
+
+app.use('/api/newsletter', newsletterRoutes);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
