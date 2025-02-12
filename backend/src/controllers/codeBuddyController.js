@@ -14,6 +14,11 @@ exports.chat = async (req, res) => {
       return res.status(400).json({ error: 'AI service and API key are required' });
     }
 
+    // Validate service type
+    if (!['CHATGPT', 'GEMINI'].includes(service.toUpperCase())) {
+      return res.status(400).json({ error: 'Invalid AI service specified' });
+    }
+
     try {
       const response = await codeBuddyService.getResponse(
         message,
@@ -24,22 +29,28 @@ exports.chat = async (req, res) => {
         apiKey
       );
 
+      if (!response) {
+        throw new Error(`No response from ${service} service`);
+      }
+
       res.json({
         message: response,
         timestamp: new Date()
       });
     } catch (serviceError) {
-      console.error('Service error:', serviceError);
-      res.status(500).json({ 
-        error: 'AI service error',
-        details: serviceError.message
+      console.error(`${service} service error:`, serviceError);
+      res.status(503).json({ 
+        error: `${service} service error`,
+        message: 'Please try again or switch services',
+        details: process.env.NODE_ENV === 'development' ? serviceError.message : undefined
       });
     }
   } catch (error) {
     console.error('Chat error:', error);
     res.status(500).json({ 
       error: 'Failed to process chat message',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }; 

@@ -6,9 +6,41 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'No token provided' });
   }
 
-  // Store token in request for use in routes
-  req.user = { accessToken: token };
-  next();
+  try {
+    // For GET requests, get userId from params
+    if (req.method === 'GET' && req.params.userId) {
+      req.user = {
+        id: req.params.userId,
+        accessToken: token
+      };
+    } 
+    // For POST requests, get userId from body
+    else if (req.method === 'POST' && req.body.userId) {
+      req.user = {
+        id: req.body.userId,
+        accessToken: token
+      };
+    }
+    // For DELETE requests, get userId from query params or headers
+    else if (req.method === 'DELETE') {
+      const userId = req.query.userId || req.headers['user-id'];
+      req.user = {
+        id: userId,
+        accessToken: token
+      };
+    }
+    // For other requests or when userId is not provided
+    else {
+      req.user = {
+        accessToken: token
+      };
+    }
+
+    next();
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return res.status(403).json({ error: 'Invalid token' });
+  }
 };
 
 module.exports = authenticateToken; 

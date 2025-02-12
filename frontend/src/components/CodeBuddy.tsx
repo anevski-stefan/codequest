@@ -1,7 +1,7 @@
 import { AxiosError } from 'axios';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send, Bot, Minimize2, Maximize2, User, StopCircle, History, X } from 'lucide-react';
-import { useMutation, useQuery } from 'react-query';
+import { Send, Bot, Minimize2, Maximize2, User, StopCircle, History, X, TrashIcon } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { api } from '../services/github';
 import ReactMarkdown from 'react-markdown';
 import { useAIService } from '../hooks/useAIService';
@@ -89,6 +89,7 @@ const CodeBuddy = () => {
   const selectedService = useAIService();
   const abortControllerRef = useRef<AbortController | null>(null);
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const queryClient = useQueryClient();
 
   const { data: chatHistory } = useQuery<ChatHistory[]>(
     ['chatHistory', user?.id],
@@ -199,29 +200,6 @@ const CodeBuddy = () => {
           throw new Error('Invalid response from server');
         }
         
-        // After getting the AI response, save the chat
-        if (response.data?.message && isAuthenticated && user?.id) {
-          const updatedMessages = [...messages, 
-            { role: 'user', content: message, timestamp: new Date() },
-            { role: 'assistant', content: response.data.message, timestamp: new Date() }
-          ];
-
-          try {
-            await api.post('/api/chats', {
-              messages: updatedMessages,
-              userId: user.id,
-              title: messages.length === 0 ? message.substring(0, 50) + '...' : undefined
-            }, {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            });
-          } catch (error) {
-            console.error('Failed to save chat:', error);
-            toast.error('Failed to save chat history');
-          }
-        }
-        
         return response.data;
       } catch (error: unknown) {
         if (error && typeof error === 'object' && (
@@ -313,29 +291,44 @@ const CodeBuddy = () => {
         context
       });
 
+      // Create the complete messages array with both user message and AI response
+      const updatedMessages = [
+        ...messages,
+        userMessage,
+        {
+          role: 'assistant',
+          content: chatResponse.message,
+          timestamp: new Date()
+        }
+      ];
+
       // Then save the chat history
       const token = localStorage.getItem('token');
-      if (token) {
-        await api.post('/api/chats', {
-          messages: [...messages, userMessage, {
-            role: 'assistant',
-            content: chatResponse.message,
-            timestamp: new Date()
-          }],
-          userId: user?.id,
-          title: messages.length === 0 ? userMessage.content.substring(0, 50) + '...' : undefined
-        }, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+      if (token && user?.id) {
+        try {
+          await api.post('/api/chats', {
+            messages: updatedMessages,
+            userId: user.id,
+            title: messages.length === 0 ? input.substring(0, 50) + '...' : undefined
+          }, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+
+          // Invalidate the chat history query to trigger a refresh
+          queryClient.invalidateQueries(['chatHistory', user.id]);
+        } catch (error) {
+          console.error('Failed to save chat:', error);
+          toast.error('Failed to save chat history');
+        }
       }
     } catch (error) {
       if (error instanceof Error && error.message !== 'Request cancelled') {
         console.error('Chat error:', error);
       }
     }
-  }, [input, context, chatMutation, isTyping, messages, user?.id]);
+  }, [input, context, chatMutation, isTyping, messages, user?.id, queryClient]);
 
   const handleStop = useCallback(() => {
     if (abortControllerRef.current) {
@@ -351,6 +344,38 @@ const CodeBuddy = () => {
     const newState = !isExpanded;
     setIsExpanded(newState);
     localStorage.setItem('codeBuddyExpanded', JSON.stringify(newState));
+  };
+
+  const deleteChat = async (chatId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token || !user?.id) {
+        toast.error('You must be logged in to delete chats');
+        return;
+      }
+
+      await api.delete(`/api/chats/${chatId}`, {
+        headers: {
+          'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+          'user-id': user.id
+        }
+      });
+
+      // Optimistically update UI
+      queryClient.setQueryData(['chatHistory', user.id], (oldData: ChatHistory[] | undefined) => {
+        if (!oldData) return [];
+        return oldData.filter(chat => chat.id !== chatId);
+      });
+
+      toast.success('Chat deleted successfully');
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      toast.error('Failed to delete chat');
+      // Refetch to ensure UI is in sync with server
+      if (user?.id) {
+        queryClient.invalidateQueries(['chatHistory', user.id]);
+      }
+    }
   };
 
   const renderMessage = (msg: Message, idx: number) => {
@@ -462,16 +487,29 @@ const CodeBuddy = () => {
             {chatHistory?.length ? (
               <div className="space-y-2">
                 {chatHistory.map((chat) => (
-                  <button
-                    key={chat.id}
-                    onClick={() => loadChat(chat)}
-                    className="w-full text-left p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <p className="text-sm font-medium truncate">{chat.title}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(chat.created_at).toLocaleDateString()}
-                    </p>
-                  </button>
+                  <div key={chat.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group">
+                    <button
+                      onClick={() => loadChat(chat)}
+                      className="flex-1 text-left"
+                    >
+                      <p className="text-sm font-medium truncate">{chat.title}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(chat.created_at).toLocaleDateString()}
+                      </p>
+                    </button>
+                    {user?.id && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteChat(chat.id);
+                        }}
+                        className="p-2 text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label="Delete chat"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             ) : (

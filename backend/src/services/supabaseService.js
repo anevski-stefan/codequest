@@ -90,6 +90,24 @@ class SupabaseService {
       throw error;
     }
   }
+
+  async deleteChat(chatId, userId) {
+    try {
+      const { data, error } = await supabase
+        .from('chat_histories')
+        .delete()
+        .match({ 
+          id: chatId,
+          user_id: userId 
+        });
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new SupabaseService(); 

@@ -64,9 +64,10 @@ app.use('/api/repos', authenticateToken, reposRoutes);
 
 app.use('/api/code-buddy', authenticateToken, codeBuddyRoutes);
 
+app.use('/api/chats', authenticateToken, chatRoutes);
+
 app.use('/auth', authRoutes);
 app.use('/api/hackathons', hackathonRoutes);
-app.use('/api/chat', chatRoutes);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);

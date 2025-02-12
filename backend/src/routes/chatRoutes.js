@@ -1,23 +1,22 @@
 const express = require('express');
-const { authenticateToken } = require('../middleware/auth');
-const supabaseService = require('../services/supabaseService');
-
 const router = express.Router();
+const supabaseService = require('../services/supabaseService');
 
 // Add this line to enable JSON body parsing
 router.use(express.json());
 
 // Get all chats for a user
-router.get('/:userId', authenticateToken, async (req, res) => {
+router.get('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Verify the requesting user matches the userId
-    if (req.user?.id !== userId) {
-      return res.status(403).json({ error: 'Unauthorized access' });
+    // Get chats from Supabase
+    const data = await supabaseService.getUserChats(userId);
+    
+    if (!data) {
+      return res.status(404).json({ error: 'No chats found' });
     }
 
-    const data = await supabaseService.getUserChats(userId);
     res.json(data);
   } catch (error) {
     console.error('Error fetching chats:', error);
@@ -25,18 +24,45 @@ router.get('/:userId', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete a chat
+router.delete('/:chatId', async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    // Get userId from auth token or request
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const result = await supabaseService.deleteChat(chatId, userId);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    res.status(200).json({ message: 'Chat deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting chat:', error);
+    res.status(500).json({ error: 'Failed to delete chat' });
+  }
+});
+
 // Save new chat
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { messages, userId, title } = req.body;
 
-    // Verify the requesting user matches the userId
-    if (req.user?.id !== userId) {
-      return res.status(403).json({ error: 'Unauthorized access' });
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: 'Invalid messages format' });
+    }
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
     }
 
     const data = await supabaseService.saveChat(userId, messages, title);
-    res.json(data);
+    res.status(201).json(data);
   } catch (error) {
     console.error('Error saving chat:', error);
     res.status(500).json({ error: 'Failed to save chat' });
