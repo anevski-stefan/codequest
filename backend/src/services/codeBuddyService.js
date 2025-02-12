@@ -105,6 +105,8 @@ class CodeBuddyService {
           'Content-Type': 'application/json'
         }
       });
+      const truncatedIssuesContext = issuesContext.split('\n\n').slice(0, 5).join('\n\n');
+      const limitedPreviousMessages = previousMessages.slice(-5);
       const response = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [{
@@ -112,13 +114,13 @@ class CodeBuddyService {
           content: SYSTEM_PROMPT
         }, {
           role: 'system',
-          content: `Here are the current available beginner issues:\n\n${issuesContext}`
-        }, ...previousMessages, {
+          content: `Here are some recent beginner issues:\n\n${truncatedIssuesContext}`
+        }, ...limitedPreviousMessages, {
           role: 'user',
           content: userMessage
         }],
-        temperature: 1,
-        max_tokens: 4096,
+        temperature: 0.7,
+        max_tokens: 2048,
         top_p: 1
       });
       return response.choices[0].message.content;
@@ -126,6 +128,9 @@ class CodeBuddyService {
       console.error('Azure OpenAI error:', error);
       if (error.response?.status === 401) {
         throw new Error('Invalid Azure OpenAI API key');
+      }
+      if (error.response?.status === 413 || error.error?.code === 'tokens_limit_reached') {
+        throw new Error('Message too long. Please try a shorter message or fewer previous messages.');
       }
       throw new Error(`Azure OpenAI error: ${error.response?.data?.error?.message || error.message}`);
     }
