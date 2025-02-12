@@ -1,9 +1,11 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const cron = require('node-cron');
 
-class HackathonCrawler {
+class HackathonService {
   constructor() {
     this.hackathons = new Map();
+    this.isInitialCrawlComplete = false;
     this.axiosConfig = {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -12,6 +14,33 @@ class HackathonCrawler {
       },
       timeout: 10000
     };
+    
+    this.initialize();
+    this.setupCronJob();
+  }
+
+  async initialize() {
+    try {
+      console.log('Starting initial hackathon crawl...');
+      await this.crawlAll();
+      this.isInitialCrawlComplete = true;
+      console.log('Initial crawl complete');
+    } catch (error) {
+      console.error('Error during initial crawl:', error);
+      // Set to true anyway to prevent permanent loading state
+      this.isInitialCrawlComplete = true;
+    }
+  }
+
+  setupCronJob() {
+    // Schedule crawler to run every 6 hours
+    cron.schedule('0 */6 * * *', async () => {
+      try {
+        await this.crawlAll();
+      } catch (error) {
+        console.error('Scheduled crawl failed:', error);
+      }
+    });
   }
 
   async crawlDevpost() {
@@ -22,15 +51,14 @@ class HackathonCrawler {
       let page = 1;
       let hasMorePages = true;
 
-      // Base URL for the API
       const baseApiUrl = 'https://devpost.com/api/hackathons';
 
-      while (hasMorePages && page <= 10) { // Limit to 10 pages for testing
+      while (hasMorePages && page <= 10) {
         console.log(`Fetching page ${page}...`);
         
         const params = {
           page: page,
-          status: 'open',  // First try just open hackathons
+          status: 'open',
           order_by: 'deadline',
           sort_by: 'deadline'
         };
@@ -52,18 +80,14 @@ class HackathonCrawler {
 
           const hackathons = apiResponse.data.hackathons
             .filter(h => {
-              // Parse the end date string properly
               const dateStr = h.submission_period_ends_at || h.submission_period_dates?.split(' - ')[1];
               if (!dateStr) return false;
               
-              // Convert date string to Date object
               const endDate = new Date(dateStr);
               const now = new Date();
               
-              // Validate the year is current or future
               if (endDate.getFullYear() < now.getFullYear()) return false;
               
-              // Check if the hackathon hasn't ended yet
               return endDate > now;
             })
             .map(h => {
@@ -80,7 +104,6 @@ class HackathonCrawler {
               const prizeAmount = h.prize_amount ? 
                 h.prize_amount.replace(/<[^>]*>/g, '') : 'See website for details';
               
-              // Parse and format dates
               const startDateStr = h.submission_period_dates?.split(' - ')[0];
               const endDateStr = h.submission_period_dates?.split(' - ')[1];
               
@@ -89,24 +112,19 @@ class HackathonCrawler {
                 
                 console.log('Formatting date:', dateStr);
                 
-                // Helper to get the appropriate year
                 const getYear = (month) => {
                   const now = new Date();
                   const currentYear = now.getFullYear();
-                  const currentMonth = now.getMonth(); // 0-11
+                  const currentMonth = now.getMonth();
                   
-                  // Convert month name to number (0-11)
                   const monthNum = new Date(Date.parse(month + " 1")).getMonth();
                   
-                  // If the month is earlier than current month, use next year
-                  // This handles cases like if it's December and we see "Jan 15"
                   if (monthNum < currentMonth) {
                     return currentYear + 1;
                   }
                   return currentYear;
                 };
 
-                // Handle "MMM DD, YYYY" format
                 let fullDateMatch = dateStr.match(/([A-Za-z]+)\s+(\d+),\s+(\d{4})/);
                 if (fullDateMatch) {
                   const [_, month, day, year] = fullDateMatch;
@@ -118,7 +136,6 @@ class HackathonCrawler {
                   });
                 }
 
-                // Handle "MMM DD" format (no year)
                 let shortDateMatch = dateStr.match(/([A-Za-z]+)\s+(\d+)/);
                 if (shortDateMatch) {
                   const [_, month, day] = shortDateMatch;
@@ -131,7 +148,6 @@ class HackathonCrawler {
                   });
                 }
 
-                // If we can't parse the date, return the original string
                 console.warn('Failed to parse date:', dateStr);
                 return dateStr;
               };
@@ -146,7 +162,6 @@ class HackathonCrawler {
                 location: h.displayed_location?.location || 'Online',
                 prize: prizeAmount,
                 tags: [...themeTags, ...techTags, ...platformTags],
-                // Add raw dates for debugging
                 rawStartDate: h.submission_period_dates?.split(' - ')[0] || '',
                 rawEndDate: h.submission_period_dates?.split(' - ')[1] || ''
               };
@@ -157,11 +172,9 @@ class HackathonCrawler {
             console.log(`Found ${hackathons.length} hackathons on page ${page}`);
           }
           
-          // Check if there are more pages
           hasMorePages = hackathons.length > 0;
           page++;
 
-          // Add a small delay between requests
           await new Promise(resolve => setTimeout(resolve, 1000));
 
         } catch (error) {
@@ -196,7 +209,6 @@ class HackathonCrawler {
       const hackathons = await this.retryOperation(() => this.crawlDevpost());
       console.log(`Total hackathons found: ${hackathons.length}`);
       
-      // Store the hackathons
       this.storeHackathons(hackathons);
       
       return this.getAllHackathons();
@@ -223,6 +235,10 @@ class HackathonCrawler {
   getAllHackathons() {
     return Array.from(this.hackathons.values());
   }
+
+  getInitialCrawlStatus() {
+    return this.isInitialCrawlComplete;
+  }
 }
 
-module.exports = HackathonCrawler; 
+module.exports = HackathonService; 

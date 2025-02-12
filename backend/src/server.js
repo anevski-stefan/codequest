@@ -1,53 +1,35 @@
 const express = require('express');
-const passport = require('passport');
-const GitHubStrategy = require('passport-github2').Strategy;
 const session = require('express-session');
 const cors = require('cors');
-const axios = require('axios');
 require('dotenv').config();
+
+// Import passport after session
+const passport = require('passport');
+// Import the configured passport instance
+require('./config/passport');
+
+const axios = require('axios');
 const rateLimit = require('express-rate-limit');
 const cache = require('memory-cache');
 const etag = require('etag');
 const cron = require('node-cron');
-const HackathonCrawler = require('./services/hackathonCrawler');
-const crawler = new HackathonCrawler();
 const nodemailer = require('nodemailer');
 const { CodeBuddyService } = require('./services/codeBuddyService.js');
 const GitHubService = require('./services/githubService');
 const supabaseService = require('./services/supabaseService');
 const chatRoutes = require('./routes/chatRoutes');
+const hackathonRoutes = require('./routes/hackathonRoutes');
+const authRoutes = require('./routes/authRoutes');
 
-// Add after line 12
-let isInitialCrawlComplete = false;
-
-// Initialize with the existing crawler instance
-const initializeCrawler = async () => {
-  try {
-    console.log('Starting initial hackathon crawl...');
-    await crawler.crawlAll();
-    isInitialCrawlComplete = true;
-    console.log('Initial crawl complete');
-  } catch (error) {
-    console.error('Error during initial crawl:', error);
-    // Set to true anyway to prevent permanent loading state
-    isInitialCrawlComplete = true;
-  }
-};
-
-// Call initialization
-initializeCrawler();
-
-// Schedule crawler to run every 6 hours
-cron.schedule('0 */6 * * *', async () => {
-  try {
-    await crawler.crawlAll();
-  } catch (error) {
-    console.error('Scheduled crawl failed:', error);
-  }
-});
-
-// Session configuration
 const app = express();
+
+// CORS configuration
+app.use(cors({
+  origin: 'http://localhost:5173', // Your frontend URL
+  credentials: true
+}));
+
+// Session configuration - must be before passport
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
@@ -59,69 +41,9 @@ app.use(session({
   }
 }));
 
-// CORS configuration
-app.use(cors({
-  origin: 'http://localhost:5173', // Your frontend URL
-  credentials: true
-}));
-
-// Initialize Passport
+// Initialize Passport and restore authentication state from session
 app.use(passport.initialize());
 app.use(passport.session());
-
-// Passport GitHub strategy configuration
-passport.use(new GitHubStrategy({
-    clientID: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: "http://localhost:3000/auth/github/callback",
-    scope: ['read:user', 'user:email'],
-    proxy: true
-  },
-  async function(accessToken, refreshToken, profile, done) {
-    try {
-      const userData = await supabaseService.createOrUpdateUser(profile);
-      
-      const user = {
-        id: userData.id,
-        username: profile.username,
-        accessToken: accessToken,
-        avatar_url: profile._json.avatar_url,
-        email: profile.emails?.[0]?.value
-      };
-
-      return done(null, user);
-    } catch (error) {
-      return done(error, null);
-    }
-  }
-));
-
-// Serialize user for the session
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-
-// Deserialize user from the session
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
-
-// Auth routes
-app.get('/auth/github',
-  passport.authenticate('github', { scope: ['read:user', 'user:email'] })
-);
-
-app.get('/auth/github/callback', 
-  passport.authenticate('github', { 
-    failureRedirect: 'http://localhost:5173/login',
-    session: true
-  }),
-  function(req, res) {
-    // Successful authentication
-    const token = req.user.accessToken;
-    res.redirect(`http://localhost:5173/auth/callback?token=${token}`);
-  }
-);
 
 // Middleware to check authentication
 const authenticateToken = (req, res, next) => {
@@ -718,65 +640,6 @@ app.post('/api/feedback', express.json(), async (req, res) => {
   }
 });
 
-// Modify the hackathons endpoint
-app.get('/api/hackathons', limiter, async (req, res) => {
-  try {
-    const { page = 1, limit = 10, search, source } = req.query;
-    
-    // If initial crawl isn't complete, return a specific status
-    if (!isInitialCrawlComplete) {
-      return res.status(202).json({
-        status: 'initializing',
-        message: 'Data is being loaded, please try again in a moment'
-      });
-    }
-
-    let hackathons = crawler.getAllHackathons();
-    
-    console.log(`Fetching hackathons - Total available: ${hackathons?.length || 0}`);
-
-    // Ensure hackathons is always an array
-    if (!Array.isArray(hackathons)) {
-      console.log('No hackathons available, returning empty array');
-      hackathons = [];
-    }
-
-    if (search) {
-      const searchLower = search.toLowerCase();
-      hackathons = hackathons.filter(h => 
-        h.title.toLowerCase().includes(searchLower) ||
-        h.description.toLowerCase().includes(searchLower)
-      );
-    }
-
-    if (source) {
-      hackathons = hackathons.filter(h => h.source === source);
-    }
-
-    // Sort by start date
-    hackathons.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-
-    // Manual pagination
-    const start = (parseInt(page) - 1) * parseInt(limit);
-    const paginatedHackathons = hackathons.slice(start, start + parseInt(limit));
-
-    console.log(`Returning ${paginatedHackathons.length} hackathons for page ${page}`);
-
-    return res.json({
-      hackathons: paginatedHackathons,
-      totalPages: Math.ceil(hackathons.length / parseInt(limit)),
-      currentPage: parseInt(page),
-      totalHackathons: hackathons.length
-    });
-  } catch (error) {
-    console.error('Error in /api/hackathons:', error);
-    return res.status(500).json({ 
-      error: 'Failed to fetch hackathons',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
 // Add repository details endpoint
 app.get('/api/repos/:owner/:repo', authenticateToken, async (req, res) => {
   try {
@@ -1204,8 +1067,10 @@ app.post('/api/code-buddy/chat', authenticateToken, express.json(), async (req, 
   }
 });
 
-// Add this line after your other app.use statements
-app.use('/api/chats', chatRoutes);
+// Use routes
+app.use('/auth', authRoutes);
+app.use('/api/hackathons', hackathonRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
