@@ -40,20 +40,8 @@ const Dashboard = () => {
   } = useInfiniteQuery(['comments', selectedIssueId, selectedRepo], async ({
     pageParam = 1
   }) => {
-    console.log('Fetching comments with params:', {
-      issueNumber: selectedIssueId,
-      repo: selectedRepo,
-      page: pageParam
-    });
     if (selectedIssueId && selectedRepo) {
       const result = await getIssueComments(selectedIssueId, selectedRepo, pageParam);
-      console.log('Comments API result:', {
-        commentsCount: result.comments.length,
-        totalCount: result.totalCount,
-        hasMore: result.hasMore,
-        nextPage: result.nextPage,
-        firstComment: result.comments[0]
-      });
       return result;
     }
     return null;
@@ -65,7 +53,6 @@ const Dashboard = () => {
     }
   });
   const allComments = commentsData?.pages?.flatMap(page => page?.comments ?? []) ?? [];
-  console.log('Flattened comments:', allComments);
   const queryClient = useQueryClient();
   const addCommentMutation = useMutation({
     mutationFn: ({
@@ -81,7 +68,6 @@ const Dashboard = () => {
       return addIssueComment(issueId, selectedRepo, comment);
     },
     onSuccess: () => {
-      console.log('Comment added successfully, invalidating queries');
       queryClient.invalidateQueries(['comments', selectedIssueId, selectedRepo]);
     },
     onError: error => {
@@ -89,7 +75,6 @@ const Dashboard = () => {
     }
   });
   const debouncedSetFilter = useMemo(() => debounce((newFilter: IssueParams) => {
-    console.log('Debounced setFilter executing with:', newFilter);
     setFilter(newFilter);
     setInitialFetchComplete(false);
   }, 500), []);
@@ -98,7 +83,6 @@ const Dashboard = () => {
     isLoading,
     error
   } = useQuery<IssueResponse, Error>(['issues', filter], () => {
-    console.log('Executing query with filter:', filter);
     return getIssues(filter);
   }, {
     keepPreviousData: true,
@@ -107,11 +91,6 @@ const Dashboard = () => {
     refetchOnWindowFocus: false,
     enabled: true,
     onSuccess: newData => {
-      console.log('Query success:', {
-        totalIssues: newData.issues.length,
-        hasMore: newData.hasMore,
-        filter
-      });
       if (filter.page === 1) {
         setAllIssues(newData.issues);
       } else {
@@ -174,12 +153,6 @@ const Dashboard = () => {
     }));
   };
   const handleViewComments = (issue: Issue) => {
-    console.log('Opening comments for issue:', {
-      issueNumber: issue.number,
-      repoFullName: issue.repository.fullName,
-      totalComments: issue.commentsCount,
-      issueTitle: issue.title
-    });
     setSelectedIssueId(issue.number);
     setSelectedRepo(issue.repository.fullName);
     setIsCommentsModalOpen(true);

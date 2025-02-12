@@ -9,16 +9,6 @@ exports.createComment = async (req, res) => {
     const {
       body
     } = req.body;
-    console.log('Creating comment:', {
-      owner,
-      repo,
-      issueNumber: number,
-      body,
-      token: req.user.accessToken ? 'present' : 'missing',
-      requestBody: req.body,
-      headers: req.headers,
-      params: req.params
-    });
     if (!body) {
       return res.status(422).json({
         message: 'Validation Failed',
@@ -37,11 +27,6 @@ exports.createComment = async (req, res) => {
         Accept: 'application/vnd.github.v3+json',
         'Content-Type': 'application/json'
       }
-    });
-    console.log('GitHub API Response:', {
-      status: response.status,
-      data: response.data,
-      headers: response.headers
     });
     res.status(201).json(response.data);
   } catch (error) {
