@@ -221,7 +221,7 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
     }
     const {
       data
-    } = await api.get('/api/assigned-issues', {
+    } = await api.get('/api/issues/assigned', {
       params: {
         state
       },
@@ -229,12 +229,12 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
         'Authorization': `Bearer ${token}`
       }
     });
-    if (!data || !data.issues && !Array.isArray(data)) {
+    if (!data || !Array.isArray(data) && !Array.isArray(data.issues)) {
       throw new Error('Invalid response format from server');
     }
     return {
-      issues: Array.isArray(data) ? data : data.issues || [],
-      totalCount: Array.isArray(data) ? data.length : data.issues?.length || 0,
+      issues: Array.isArray(data) ? data : data.issues,
+      totalCount: Array.isArray(data) ? data.length : data.issues.length,
       currentPage: 1,
       hasMore: false
     };
