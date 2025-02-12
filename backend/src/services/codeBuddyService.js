@@ -34,24 +34,55 @@ class CodeBuddyService {
     }, 60 * 60 * 1000);
   }
 
-  async getGitHubIssues(token) {
+  async getGitHubIssues(token, language = 'javascript', difficulty = 'all') {
     if (!token) {
       throw new Error('GitHub token is required');
     }
 
     try {
-      // Simpler query to get more results
-      const query = 'is:open is:issue language:javascript label:"good first issue"';
-      const options = {
-        sort: 'created',
-        order: 'desc',
-        per_page: 100
-      };
+      // Most basic query structure with proper URL encoding for each term
+      const labels = [
+        'good-first-issue',
+        '"good first issue"',  // Quotes for multi-word labels
+        'help-wanted',
+        'beginner'
+      ];
+
+      const baseQuery = [
+        'is:open',
+        'is:issue',
+        `language:${language.toLowerCase()}`,
+        labels.map(label => `label:${label}`).join(' OR ')  // Using explicit OR operator
+      ].filter(Boolean).join(' ');
+
+      console.log('Attempting query:', baseQuery);
+      const query = encodeURIComponent(baseQuery);
       
+      const options = {
+        sort: 'updated',
+        order: 'desc',
+        per_page: 100,
+        state: 'open'
+      };
+
       const data = await GitHubService.searchIssues(token, query, options);
+      console.log('GitHub Response:', {
+        total_count: data?.total_count,
+        items_count: data?.items?.length,
+        query_url: `https://api.github.com/search/issues?q=${query}`,
+        rate_limit: data?.headers?.['x-ratelimit-remaining']
+      });
 
       if (!data?.items || data.items.length === 0) {
-        return [];
+        console.log('No results found. Trying basic query...');
+        // Try the most basic possible query with just one label
+        const basicQuery = encodeURIComponent('is:open is:issue label:"good first issue"');
+        const basicData = await GitHubService.searchIssues(token, basicQuery, options);
+        console.log('Basic Query Results:', {
+          total_count: basicData?.total_count,
+          items_count: basicData?.items?.length
+        });
+        return basicData?.items || [];
       }
 
       const formattedIssues = data.items
@@ -81,10 +112,13 @@ class CodeBuddyService {
 
   async getResponse(userMessage, context, previousMessages, token, service, apiKey) {
     try {
-      const issues = await this.getGitHubIssues(token);
+      // Extract language and difficulty from context
+      const language = context?.language || 'javascript';
+      const difficulty = context?.difficulty || 'all';
+      const issues = await this.getGitHubIssues(token, language, difficulty);
       
       if (!issues || issues.length === 0) {
-        return "I apologize, but I couldn't find any beginner-friendly issues at the moment. Please try again later.";
+        return "I apologize, but I couldn't find any matching issues at the moment. Please try again with different criteria.";
       }
 
       const issuesContext = issues.map((issue, i) => 
