@@ -65,6 +65,11 @@ interface ActivityEvent {
   };
 }
 
+const formatUrl = (url: string) => {
+  if (!url) return '';
+  return url.startsWith('http') ? url : `https://${url}`;
+};
+
 const ContributorProfile = () => {
   const { username } = useParams<{ username: string }>();
   const [activeTab, setActiveTab] = useState<'overview' | 'repositories'>('overview');
@@ -180,61 +185,60 @@ const ContributorProfile = () => {
     }
   );
 
-  const { 
-    data: repos, 
-    isLoading: reposLoading, 
-    isFetchingNextPage: isLoadingMoreRepos, 
-    fetchNextPage: fetchMoreRepos, 
-    hasNextPage: hasMoreRepos 
-  } = useInfiniteQuery<Repository[]>(
-    ['contributor-repos', username],
-    async ({ pageParam = 1 }) => {
+  const { data: repos, isLoading: reposLoading } = useQuery<Repository[]>(
+    ['contributor-repos', username, page],
+    async () => {
       const response = await fetch(
-        `https://api.github.com/users/${username}/repos?sort=stars&per_page=${PER_PAGE}&page=${pageParam}`,
+        `https://api.github.com/users/${username}/repos?sort=updated&per_page=${PER_PAGE}&page=${page}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Accept: 'application/vnd.github.v3+json'
           },
         }
       );
       return response.json();
     },
     {
-      getNextPageParam: (lastPage) => 
-        lastPage.length >= PER_PAGE ? lastPage.length / PER_PAGE + 1 : undefined,
-      enabled: activeModal === 'repos',
+      enabled: !!username,
+      staleTime: 5 * 60 * 1000,
+      keepPreviousData: true,
     }
   );
 
-  const Pagination = () => (
-    <div className="mt-6 flex items-center justify-center gap-4">
-      <button
-        onClick={() => setPage(p => Math.max(1, p - 1))}
-        disabled={page === 1}
-        className={`p-2 rounded-lg ${
-          page === 1
-            ? 'text-gray-400 cursor-not-allowed'
-            : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-        }`}
-      >
-        <ChevronLeft className="w-5 h-5" />
-      </button>
-      <span className="text-sm text-gray-600 dark:text-gray-300">
-        Page {page}
-      </span>
-      <button
-        onClick={() => setPage(p => p + 1)}
-        disabled={!repos?.pages[0] || repos.pages[0].length < PER_PAGE}
-        className={`p-2 rounded-lg ${
-          !repos?.pages[0] || repos.pages[0].length < PER_PAGE
-            ? 'text-gray-400 cursor-not-allowed'
-            : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-        }`}
-      >
-        <ChevronRight className="w-5 h-5" />
-      </button>
-    </div>
-  );
+  const Pagination = () => {
+    const hasMorePages = repos && Array.isArray(repos) && repos.length >= PER_PAGE;
+
+    return (
+      <div className="mt-6 flex items-center justify-center gap-4">
+        <button
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className={`p-2 rounded-lg ${
+            page === 1
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <span className="text-sm text-gray-600 dark:text-gray-300">
+          Page {page}
+        </span>
+        <button
+          onClick={() => setPage(p => p + 1)}
+          disabled={!hasMorePages}
+          className={`p-2 rounded-lg ${
+            !hasMorePages
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    );
+  };
 
   const formatActivityMessage = (event: ActivityEvent) => {
     switch (event.type) {
@@ -325,7 +329,11 @@ const ContributorProfile = () => {
                 {user.blog && (
                   <div className="flex items-center text-blue-600 dark:text-blue-400">
                     <LinkIcon className="w-5 h-5 mr-2" />
-                    <a href={user.blog} target="_blank" rel="noopener noreferrer">
+                    <a 
+                      href={formatUrl(user.blog)} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
                       {user.blog}
                     </a>
                   </div>
@@ -503,7 +511,7 @@ const ContributorProfile = () => {
                     <LoadingSpinner />
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {repos?.pages[0]?.slice(0, 6).map((repo: Repository) => (
+                      {repos?.slice(0, 6).map((repo) => (
                         <motion.a
                           key={repo.id}
                           href={repo.html_url}
@@ -545,39 +553,47 @@ const ContributorProfile = () => {
                     <LoadingSpinner />
                   ) : (
                     <>
-                      {repos?.pages.flatMap((page: Repository[]) => page).map((repo: Repository) => (
-                        <motion.div
-                          key={repo.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
-                        >
-                          <h4 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                            <a href={repo.html_url} target="_blank" rel="noopener noreferrer">
-                              {repo.name}
-                            </a>
-                          </h4>
-                          <p className="mt-2 text-gray-600 dark:text-gray-300">
-                            {repo.description || 'No description available'}
-                          </p>
-                          <div className="mt-3 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                            {repo.language && (
-                              <span className="flex items-center">
-                                <span className="w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
-                                {repo.language}
-                              </span>
-                            )}
-                            <span className="flex items-center">
-                              <Star className="w-4 h-4 mr-1" />
-                              {repo.stargazers_count}
-                            </span>
-                            <span className="flex items-center">
-                              <GitFork className="w-4 h-4 mr-1" />
-                              {repo.forks_count}
-                            </span>
+                      <div className="mt-8">
+                        <h3 className="text-xl font-semibold mb-4">Repositories</h3>
+                        {reposLoading ? (
+                          <LoadingSpinner />
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {repos?.map((repo) => (
+                              <a
+                                key={repo.id}
+                                href={repo.html_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                              >
+                                <h4 className="text-lg font-medium text-blue-600 dark:text-blue-400 mb-2">
+                                  {repo.name}
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                                  {repo.description || 'No description available'}
+                                </p>
+                                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                                  {repo.language && (
+                                    <span className="flex items-center gap-1">
+                                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                      {repo.language}
+                                    </span>
+                                  )}
+                                  <span className="flex items-center gap-1">
+                                    <Star className="w-4 h-4" />
+                                    {repo.stargazers_count}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <GitFork className="w-4 h-4" />
+                                    {repo.forks_count}
+                                  </span>
+                                </div>
+                              </a>
+                            ))}
                           </div>
-                        </motion.div>
-                      ))}
+                        )}
+                      </div>
                       <Pagination />
                     </>
                   )}
@@ -614,11 +630,11 @@ const ContributorProfile = () => {
         isOpen={activeModal === 'repos'}
         onClose={() => setActiveModal(null)}
         title="Repositories"
-        data={repos?.pages.flat()}
+        data={repos}
         isLoading={reposLoading}
-        hasMore={hasMoreRepos}
-        onLoadMore={() => fetchMoreRepos()}
-        isLoadingMore={isLoadingMoreRepos}
+        hasMore={repos && Array.isArray(repos) && repos.length > 0}
+        onLoadMore={() => {}}
+        isLoadingMore={false}
       />
     </div>
   );

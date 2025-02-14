@@ -78,7 +78,7 @@ const CodeBuddy = () => {
   const [context] = useState<ChatContext>({});
   const [isExpanded, setIsExpanded] = useState(() => {
     const saved = localStorage.getItem('codeBuddyExpanded');
-    return saved ? JSON.parse(saved) : true;
+    return saved ? JSON.parse(saved) : false;
   });
   const [isTyping, setIsTyping] = useState(false);
   const [currentTypingMessage, setCurrentTypingMessage] = useState('');
