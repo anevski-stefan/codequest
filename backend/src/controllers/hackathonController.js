@@ -1,5 +1,4 @@
 const HackathonService = require('../services/hackathonService');
-const supabaseService = require('../services/supabaseService');
 const hackathonService = new HackathonService();
 exports.getHackathons = async (req, res) => {
   try {
@@ -7,32 +6,71 @@ exports.getHackathons = async (req, res) => {
       page = 1,
       limit = 10,
       search,
-      source
+      source,
+      filter = 'all'
     } = req.query;
-    if (!hackathonService.getInitialCrawlStatus()) {
-      return res.status(202).json({
-        status: 'initializing',
-        message: 'Data is being loaded, please try again in a moment',
-        hackathons: []
-      });
-    }
-    let hackathons = hackathonService.getAllHackathons();
-    hackathons = hackathons || [];
+    console.log('Request params:', {
+      page,
+      limit,
+      search,
+      source,
+      filter
+    });
+    let hackathons = await hackathonService.getAllHackathons();
+    console.log('Initial hackathons count:', hackathons.length);
+    const now = new Date();
+    console.log('Current date:', now.toISOString());
     if (search) {
       const searchLower = search.toLowerCase();
-      hackathons = hackathons.filter(h => h.title.toLowerCase().includes(searchLower) || h.description.toLowerCase().includes(searchLower));
+      hackathons = hackathons.filter(h => h.title?.toLowerCase().includes(searchLower) || h.description?.toLowerCase().includes(searchLower));
     }
     if (source) {
       hackathons = hackathons.filter(h => h.source === source);
     }
-    hackathons.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+    switch (filter) {
+      case 'active':
+        hackathons = hackathons.filter(h => {
+          const startDate = new Date(h.startDate);
+          const endDate = new Date(h.endDate);
+          return startDate <= now && endDate >= now;
+        });
+        break;
+      case 'upcoming':
+        console.log('Before upcoming filter:', hackathons.length);
+        hackathons = hackathons.filter(h => {
+          const startDate = new Date(h.startDate);
+          const isUpcoming = startDate > now;
+          console.log({
+            title: h.title,
+            startDate: h.startDate,
+            parsedStartDate: startDate,
+            currentDate: now,
+            isUpcoming
+          });
+          return isUpcoming;
+        });
+        console.log('After upcoming filter:', hackathons.length);
+        break;
+      case 'past':
+        hackathons = hackathons.filter(h => {
+          const endDate = new Date(h.endDate);
+          return endDate < now;
+        });
+        break;
+    }
+    hackathons.sort((a, b) => {
+      const dateA = new Date(a.startDate);
+      const dateB = new Date(b.startDate);
+      return dateA - dateB;
+    });
     const start = (parseInt(page) - 1) * parseInt(limit);
     const paginatedHackathons = hackathons.slice(start, start + parseInt(limit));
     return res.json({
       hackathons: paginatedHackathons,
       totalPages: Math.ceil(hackathons.length / parseInt(limit)),
       currentPage: parseInt(page),
-      totalHackathons: hackathons.length
+      totalHackathons: hackathons.length,
+      isLoading: !hackathonService.getInitialCrawlStatus()
     });
   } catch (error) {
     console.error('Error in /api/hackathons:', error);
@@ -48,7 +86,7 @@ exports.getAllHackathons = async (req, res) => {
     const {
       data,
       error
-    } = await supabaseService.from('hackathons').select('*');
+    } = await supabase.from('hackathons').select('*');
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -63,17 +101,13 @@ exports.getHackathonById = async (req, res) => {
     const {
       id
     } = req.params;
-    const {
-      data,
-      error
-    } = await supabaseService.from('hackathons').select('*').eq('id', id).single();
-    if (error) throw error;
-    if (!data) {
+    const hackathon = await hackathonService.getHackathonById(id);
+    if (!hackathon) {
       return res.status(404).json({
         error: 'Hackathon not found'
       });
     }
-    res.json(data);
+    res.json(hackathon);
   } catch (error) {
     console.error('Error fetching hackathon:', error);
     res.status(500).json({
@@ -83,23 +117,13 @@ exports.getHackathonById = async (req, res) => {
 };
 exports.createHackathon = async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      startDate,
-      endDate
-    } = req.body;
-    const {
-      data,
-      error
-    } = await supabaseService.from('hackathons').insert([{
-      title,
-      description,
-      start_date: startDate,
-      end_date: endDate
-    }]).select().single();
-    if (error) throw error;
-    res.status(201).json(data);
+    const hackathonData = {
+      ...req.body,
+      source: 'manual',
+      created_at: new Date().toISOString()
+    };
+    const newHackathon = await hackathonService.createHackathon(hackathonData);
+    res.status(201).json(newHackathon);
   } catch (error) {
     console.error('Error creating hackathon:', error);
     res.status(500).json({
@@ -112,28 +136,16 @@ exports.updateHackathon = async (req, res) => {
     const {
       id
     } = req.params;
-    const {
-      title,
-      description,
-      startDate,
-      endDate
-    } = req.body;
-    const {
-      data,
-      error
-    } = await supabaseService.from('hackathons').update({
-      title,
-      description,
-      start_date: startDate,
-      end_date: endDate
-    }).eq('id', id).select().single();
-    if (error) throw error;
-    if (!data) {
+    const updatedHackathon = await hackathonService.updateHackathon(id, {
+      ...req.body,
+      updated_at: new Date().toISOString()
+    });
+    if (!updatedHackathon) {
       return res.status(404).json({
         error: 'Hackathon not found'
       });
     }
-    res.json(data);
+    res.json(updatedHackathon);
   } catch (error) {
     console.error('Error updating hackathon:', error);
     res.status(500).json({
@@ -146,10 +158,12 @@ exports.deleteHackathon = async (req, res) => {
     const {
       id
     } = req.params;
-    const {
-      error
-    } = await supabaseService.from('hackathons').delete().eq('id', id);
-    if (error) throw error;
+    const success = await hackathonService.deleteHackathon(id);
+    if (!success) {
+      return res.status(404).json({
+        error: 'Hackathon not found'
+      });
+    }
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting hackathon:', error);
