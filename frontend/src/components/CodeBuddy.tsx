@@ -1,6 +1,6 @@
 import { AxiosError } from 'axios';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send, Bot, Minimize2, Maximize2, User, StopCircle, History, X, TrashIcon } from 'lucide-react';
+import { Send, Bot, Minimize2, User, StopCircle, History, X, TrashIcon } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { api } from '../services/github';
 import ReactMarkdown from 'react-markdown';
@@ -520,44 +520,52 @@ const CodeBuddy = () => {
       )}
 
       <div 
-        className={`fixed bottom-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg flex flex-col transition-all duration-300 ${
-          isExpanded ? 'w-[450px] h-[600px]' : 'w-72 h-16'
+        className={`fixed bottom-4 right-4 shadow-lg flex flex-col transition-all duration-300 ${
+          isExpanded 
+            ? 'w-[450px] h-[600px] rounded-lg bg-white dark:bg-gray-800' 
+            : 'w-16 h-16 rounded-full border-2 border-blue-500 bg-gray-50 dark:bg-gray-700'
         }`}
       >
         <div 
           onClick={toggleExpanded}
-          className="p-4 border-b dark:border-gray-700 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          className={`flex items-center justify-between cursor-pointer transition-colors ${
+            isExpanded 
+              ? 'p-4 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+              : 'w-full h-full rounded-full hover:bg-gray-100 dark:hover:bg-gray-600'
+          }`}
         >
-          <div className="flex items-center gap-2">
-            <Bot className="w-6 h-6 text-blue-500" />
-            <div>
-              <h3 className="text-lg font-semibold">Code Buddy</h3>
-              {isExpanded && (
-                <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                  Powered by {selectedService}
-                </span>
-              )}
+          {isExpanded ? (
+            <>
+              <div className="flex items-center gap-2">
+                <Bot className="w-6 h-6 text-blue-500" />
+                <div>
+                  <h3 className="text-lg font-semibold">Code Buddy</h3>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                    Powered by {selectedService}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowSidebar(!showSidebar);
+                  }}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                  title="Chat History"
+                >
+                  <History className="w-5 h-5" />
+                </button>
+                <div className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                  <Minimize2 className="w-5 h-5" />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Bot className="w-8 h-8 text-blue-500" />
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSidebar(!showSidebar);
-              }}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
-              title="Chat History"
-            >
-              <History className="w-5 h-5" />
-            </button>
-            <div className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-              {isExpanded ? (
-                <Minimize2 className="w-5 h-5" />
-              ) : (
-                <Maximize2 className="w-5 h-5" />
-              )}
-            </div>
-          </div>
+          )}
         </div>
 
         {isExpanded && (
