@@ -1,6 +1,6 @@
 import { AxiosError } from 'axios';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send, Bot, Minimize2, User, StopCircle, History, X, TrashIcon } from 'lucide-react';
+import { Send, Bot, Minimize2, User, StopCircle, History, X, TrashIcon, Eraser } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { api } from '../services/github';
 import ReactMarkdown from 'react-markdown';
@@ -36,25 +36,34 @@ const markdownComponents: Components = {
 };
 const TypingMarkdown = ({
   text,
-  onComplete
+  onComplete,
+  onTextChange
 }: {
   text: string;
   onComplete: () => void;
+  onTextChange: (text: string) => void;
 }) => {
   const [currentText, setCurrentText] = useState('');
+  const intervalRef = useRef<NodeJS.Timeout>();
   useEffect(() => {
     let index = 0;
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       if (index <= text.length) {
-        setCurrentText(text.slice(0, index));
+        const newText = text.slice(0, index);
+        setCurrentText(newText);
+        onTextChange(newText);
         index++;
       } else {
-        clearInterval(interval);
+        clearInterval(intervalRef.current);
         onComplete();
       }
     }, 15);
-    return () => clearInterval(interval);
-  }, [text, onComplete]);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [text, onComplete, onTextChange]);
   return <ReactMarkdown className="prose prose-xs dark:prose-invert max-w-none prose-headings:text-base prose-p:text-sm" components={markdownComponents}>
       {currentText}
     </ReactMarkdown>;
@@ -83,6 +92,7 @@ const CodeBuddy = () => {
     user
   } = useSelector((state: RootState) => state.auth);
   const queryClient = useQueryClient();
+  const [currentPartialText, setCurrentPartialText] = useState('');
   const {
     data: chatHistory
   } = useQuery<ChatHistory[]>(['chatHistory', user?.id], async () => {
@@ -202,10 +212,7 @@ const CodeBuddy = () => {
       setIsThinking(false);
       setIsTyping(true);
       setCurrentTypingMessage(data.message);
-      setMessages(prev => prev.map((msg, i) => i === prev.length - 1 ? {
-        ...msg,
-        content: ''
-      } : msg));
+      setMessages(prev => [...prev]);
     },
     onError: (error: Error) => {
       setIsThinking(false);
@@ -243,6 +250,7 @@ const CodeBuddy = () => {
       timestamp: new Date()
     }]);
     setIsThinking(true);
+    setCurrentPartialText('');
     setInput('');
     cursorPositionRef.current = 0;
     try {
@@ -286,8 +294,11 @@ const CodeBuddy = () => {
     }
     setIsThinking(false);
     setIsTyping(false);
-    setMessages(prev => prev.filter((_, i) => i !== prev.length - 1));
-  }, []);
+    setMessages(prev => prev.map((msg, i) => i === prev.length - 1 ? {
+      ...msg,
+      content: currentPartialText
+    } : msg));
+  }, [currentPartialText]);
   const toggleExpanded = () => {
     const newState = !isExpanded;
     setIsExpanded(newState);
@@ -319,6 +330,9 @@ const CodeBuddy = () => {
       }
     }
   };
+  const clearChat = useCallback(() => {
+    setMessages([]);
+  }, []);
   const renderMessage = (msg: Message, idx: number) => {
     const isLastMessage = idx === messages.length - 1;
     const showTypingAnimation = isLastMessage && isTyping && msg.role === 'assistant';
@@ -349,7 +363,7 @@ const CodeBuddy = () => {
                 ...m,
                 content: currentTypingMessage
               } : m));
-            }} /> : msg.role === 'assistant' ? <ReactMarkdown className="prose prose-xs dark:prose-invert max-w-none prose-headings:text-base prose-p:text-sm" components={markdownComponents}>
+            }} onTextChange={setCurrentPartialText} /> : msg.role === 'assistant' ? <ReactMarkdown className="prose prose-xs dark:prose-invert max-w-none prose-headings:text-base prose-p:text-sm" components={markdownComponents}>
                     {msg.content}
                   </ReactMarkdown> : msg.content}
             </div>
@@ -411,6 +425,12 @@ const CodeBuddy = () => {
               <div className="flex items-center gap-2">
                 <button onClick={e => {
               e.stopPropagation();
+              clearChat();
+            }} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" title="Clear Chat">
+                  <Eraser className="w-5 h-5" />
+                </button>
+                <button onClick={e => {
+              e.stopPropagation();
               setShowSidebar(!showSidebar);
             }} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" title="Chat History">
                   <History className="w-5 h-5" />
@@ -443,10 +463,10 @@ const CodeBuddy = () => {
               }
             }} disabled={isTyping} placeholder="Ask me anything about coding..." className="flex-1 max-h-32 p-2 pr-10 bg-gray-100 dark:bg-gray-700 rounded-lg resize-none overflow-y-auto" rows={1} />
                 <div className="absolute right-2 bottom-2 flex gap-1">
-                  {isThinking && <button onClick={handleStop} className="p-1 text-red-500 hover:text-red-600" title="Stop generating">
+                  {(isThinking || isTyping) && <button onClick={handleStop} className="p-1 text-red-500 hover:text-red-600 transition-colors" title="Stop generating">
                       <StopCircle className="w-5 h-5" />
                     </button>}
-                  <button onClick={handleSend} disabled={!input.trim() || isTyping} className="p-1 text-blue-500 hover:text-blue-600 disabled:text-gray-400" title="Send message">
+                  <button onClick={handleSend} disabled={!input.trim() || isTyping} className="p-1 text-blue-500 hover:text-blue-600 disabled:text-gray-400 transition-colors" title="Send message">
                     <Send className="w-5 h-5" />
                   </button>
                 </div>
