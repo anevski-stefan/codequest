@@ -1,6 +1,6 @@
 import { AxiosError } from 'axios';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send, Bot, Minimize2, User, StopCircle, History, X, TrashIcon } from 'lucide-react';
+import { Send, Bot, Minimize2, User, StopCircle, History, X, TrashIcon, Eraser } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { api } from '../services/github';
 import ReactMarkdown from 'react-markdown';
@@ -38,23 +38,34 @@ const markdownComponents: Components = {
   )
 };
 
-const TypingMarkdown = ({ text, onComplete }: { text: string; onComplete: () => void }) => {
+const TypingMarkdown = ({ text, onComplete, onTextChange }: { 
+  text: string; 
+  onComplete: () => void;
+  onTextChange: (text: string) => void;
+}) => {
   const [currentText, setCurrentText] = useState('');
+  const intervalRef = useRef<NodeJS.Timeout>();
   
   useEffect(() => {
     let index = 0;
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       if (index <= text.length) {
-        setCurrentText(text.slice(0, index));
+        const newText = text.slice(0, index);
+        setCurrentText(newText);
+        onTextChange(newText);
         index++;
       } else {
-        clearInterval(interval);
+        clearInterval(intervalRef.current);
         onComplete();
       }
     }, 15);
 
-    return () => clearInterval(interval);
-  }, [text, onComplete]);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [text, onComplete, onTextChange]);
 
   return (
     <ReactMarkdown 
@@ -90,6 +101,7 @@ const CodeBuddy = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const queryClient = useQueryClient();
+  const [currentPartialText, setCurrentPartialText] = useState('');
 
   const { data: chatHistory } = useQuery<ChatHistory[]>(
     ['chatHistory', user?.id],
@@ -224,13 +236,7 @@ const CodeBuddy = () => {
       setIsTyping(true);
       setCurrentTypingMessage(data.message);
       
-      setMessages(prev => 
-        prev.map((msg, i) => 
-          i === prev.length - 1
-            ? { ...msg, content: '' }
-            : msg
-        )
-      );
+      setMessages(prev => [...prev]);
     },
     onError: (error: Error) => {
       setIsThinking(false);
@@ -278,6 +284,7 @@ const CodeBuddy = () => {
       timestamp: new Date()
     }]);
     setIsThinking(true);
+    setCurrentPartialText('');
     
     setInput('');
     cursorPositionRef.current = 0;
@@ -335,8 +342,16 @@ const CodeBuddy = () => {
     }
     setIsThinking(false);
     setIsTyping(false);
-    setMessages(prev => prev.filter((_, i) => i !== prev.length - 1));
-  }, []);
+    
+    // Update the last message with the current partial text
+    setMessages(prev => 
+      prev.map((msg, i) => 
+        i === prev.length - 1
+          ? { ...msg, content: currentPartialText }
+          : msg
+      )
+    );
+  }, [currentPartialText]);
 
   const toggleExpanded = () => {
     const newState = !isExpanded;
@@ -375,6 +390,10 @@ const CodeBuddy = () => {
       }
     }
   };
+
+  const clearChat = useCallback(() => {
+    setMessages([]);
+  }, []);
 
   const renderMessage = (msg: Message, idx: number) => {
     const isLastMessage = idx === messages.length - 1;
@@ -429,6 +448,7 @@ const CodeBuddy = () => {
                       )
                     );
                   }}
+                  onTextChange={setCurrentPartialText}
                 />
               ) : (
                 msg.role === 'assistant' ? (
@@ -549,6 +569,16 @@ const CodeBuddy = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    clearChat();
+                  }}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                  title="Clear Chat"
+                >
+                  <Eraser className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setShowSidebar(!showSidebar);
                   }}
                   className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
@@ -597,10 +627,10 @@ const CodeBuddy = () => {
                   rows={1}
                 />
                 <div className="absolute right-2 bottom-2 flex gap-1">
-                  {isThinking && (
+                  {(isThinking || isTyping) && (
                     <button
                       onClick={handleStop}
-                      className="p-1 text-red-500 hover:text-red-600"
+                      className="p-1 text-red-500 hover:text-red-600 transition-colors"
                       title="Stop generating"
                     >
                       <StopCircle className="w-5 h-5" />
@@ -609,7 +639,7 @@ const CodeBuddy = () => {
                   <button
                     onClick={handleSend}
                     disabled={!input.trim() || isTyping}
-                    className="p-1 text-blue-500 hover:text-blue-600 disabled:text-gray-400"
+                    className="p-1 text-blue-500 hover:text-blue-600 disabled:text-gray-400 transition-colors"
                     title="Send message"
                   >
                     <Send className="w-5 h-5" />
