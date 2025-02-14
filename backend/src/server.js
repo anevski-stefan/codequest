@@ -3,19 +3,10 @@ const session = require('express-session');
 const cors = require('cors');
 require('dotenv').config();
 
-// Import passport after session
 const passport = require('passport');
-// Import the configured passport instance
 require('./config/passport');
 
-const axios = require('axios');
-const rateLimit = require('express-rate-limit');
 const etagMiddleware = require('./middleware/etagMiddleware');
-const cron = require('node-cron');
-const nodemailer = require('nodemailer');
-const { CodeBuddyService } = require('./services/codeBuddyService.js');
-const GitHubService = require('./services/githubService');
-const supabaseService = require('./services/supabaseService');
 const chatRoutes = require('./routes/chatRoutes');
 const hackathonRoutes = require('./routes/hackathonRoutes');
 const authRoutes = require('./routes/authRoutes');
@@ -27,8 +18,13 @@ const codeBuddyRoutes = require('./routes/codeBuddyRoutes');
 const authenticateToken = require('./middleware/authenticateToken');
 const limiter = require('./middleware/rateLimiter');
 const newsletterRoutes = require('./routes/newsletterRoutes');
+const HackathonService = require('./services/hackathonService');
 
 const app = express();
+
+const hackathonService = new HackathonService();
+
+app.set('hackathonService', hackathonService);
 
 app.use(cors({
   origin: 'http://localhost:5173', 
@@ -42,7 +38,7 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000 
   }
 }));
 

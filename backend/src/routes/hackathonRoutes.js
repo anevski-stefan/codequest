@@ -3,7 +3,7 @@ const router = express.Router();
 const hackathonController = require('../controllers/hackathonController');
 
 // GET all hackathons
-router.get('/', hackathonController.getAllHackathons);
+router.get('/', hackathonController.getHackathons);
 
 // GET single hackathon by ID
 router.get('/:id', hackathonController.getHackathonById);
