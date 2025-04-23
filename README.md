@@ -2,6 +2,11 @@
 
 A modern web application that helps developers discover, track, and contribute to GitHub projects. Built with React, TypeScript, and Node.js.
 
+> **Note**: Active development is being done on the `develop` branch. Please make sure to check out the develop branch for the latest changes:
+> ```bash
+> git checkout develop
+> ```
+
 ## 🌟 Features
 
 - **GitHub Authentication**: Secure OAuth2 integration with GitHub
@@ -109,8 +114,3 @@ npm run dev
     │   └── models/
     └── config/
 ```
-
-
-
-
-
