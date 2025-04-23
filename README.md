@@ -35,11 +35,10 @@ A modern web application that helps developers discover, track, and contribute t
 
 ## 🛠️ Installation
 
-1. Clone the repository and switch to develop branch:
+1. Clone the repository:
 ```bash
 git clone https://github.com/anevski-stefan/codequest.git
 cd codequest
-git checkout develop
 ```
 
 2. Install dependencies:
