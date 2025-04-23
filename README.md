@@ -22,16 +22,22 @@ A modern web application that helps developers discover, track, and contribute t
 - React.js with TypeScript
 - Redux Toolkit for state management
 - React Query for data fetching
+- Vite as build tool
+- React Router for routing
 - Tailwind CSS for styling
 - Framer Motion for animations
 - Chart.js for data visualization
+- Custom hooks and contexts for state management
+- TypeScript for type safety
 
 ### Backend
 - Node.js with Express
 - Passport.js for GitHub OAuth
+- Express middleware for security and performance
 - Memory Cache for performance optimization
 - Express Rate Limiting
 - ETag support for caching
+- Environment-based configuration
 
 ## 🛠️ Installation
 
@@ -52,24 +58,30 @@ cd ../backend
 npm install
 ```
 
-3. Create environment variables:
+3. Configure environment variables:
 
 Frontend (.env):
 ```env
 VITE_API_URL=http://localhost:3000
-VITE_OPENAI_API_KEY=your_openai_api_key
 ```
 
 Backend (.env):
 ```env
+# Server Configuration
+NODE_ENV=your_env
+PORT=your_port
+
+# Database Configuration
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_KEY=your_supabase_service_key
+
 # GitHub OAuth Configuration
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
 GITHUB_CALLBACK_URL=http://localhost:3000/auth/github/callback
 
-# Server Configuration
-NODE_ENV=development
-PORT=3000
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
@@ -90,27 +102,11 @@ MAILCHIMP_SERVER=your_mailchimp_server
 cd backend
 npm run dev
 
-# Start frontend development server
+# In a new terminal, start frontend development server
 cd frontend
 npm run dev
 ```
 
-## 🏗️ Project Structure
+## 📝 License
 
-```
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── features/
-│   │   ├── services/
-│   │   ├── store/
-│   │   ├── types/
-│   │   └── utils/
-│   └── public/
-└── backend/
-    ├── src/
-    │   ├── routes/
-    │   ├── services/
-    │   └── models/
-    └── config/
-```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
