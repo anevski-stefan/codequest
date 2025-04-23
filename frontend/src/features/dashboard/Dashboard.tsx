@@ -1,224 +1,413 @@
-import { useState, useCallback } from 'react';
-import { useQuery } from 'react-query';
-import { getIssues } from '../../services/github';
-import { formatDistanceToNow } from 'date-fns';
-import { Search, ChevronDown, MessageCircle, GitPullRequest } from 'lucide-react';
-import type { Issue, IssueParams, Language } from '../../types/github';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
+import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
+import type { 
+  Issue, 
+  IssueParams, 
+  Language,
+  IssueResponse 
+} from '../../types/github';
 import debounce from 'lodash/debounce';
-
-const getStateColor = (state: string) => {
-  switch (state.toLowerCase()) {
-    case 'open':
-      return 'bg-green-100 text-green-800';
-    case 'closed':
-      return 'bg-red-100 text-red-800';
-    case 'completed':
-      return 'bg-blue-100 text-blue-800';
-    case 'not planned':
-      return 'bg-gray-100 text-gray-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
+import { SlidersHorizontal, X } from 'lucide-react';
+import CommentsModal from '../../components/CommentsModal';
+import LabelsFilter from '../../components/LabelsFilter';
+import { FilterDropdown } from './components/FilterDropdown';
+import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from './constants/filterOptions';
+import { usePageTitle } from '../../hooks/usePageTitle';
+import IssueTable from './components/IssueTable';
+import { CardSkeleton } from '../../components/skeletons';
 
 const Dashboard = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  usePageTitle('Dashboard');
   const [filter, setFilter] = useState<IssueParams>({
     language: '',
     sort: 'created',
+    direction: 'desc',
     state: 'open',
-    page: 1
+    page: 1,
+    timeFrame: 'all',
+    unassigned: false,
+    commentsRange: '',
+    labels: []
   });
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
+  const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
+  const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
+  const [initialFetchComplete, setInitialFetchComplete] = useState(false);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  // Debounced filter updates
-  const debouncedSetFilter = useCallback(
-    debounce((newFilter: IssueParams) => {
-      setFilter(newFilter);
-      // Reset accumulated issues when filters change
-      if (newFilter.page === 1) {
-        setAllIssues([]);
+  // Comments query
+  const { 
+    data: commentsData, 
+    isLoading: isLoadingComments, 
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage
+  } = useInfiniteQuery(
+    ['comments', selectedIssueId, selectedRepo],
+    async ({ pageParam = 1 }) => {
+      if (selectedIssueId && selectedRepo) {
+        const result = await getIssueComments(selectedIssueId, selectedRepo, pageParam);
+        return result;
       }
+      return null;
+    },
+    {
+      enabled: !!selectedIssueId && !!selectedRepo,
+      getNextPageParam: (lastPage) => {
+        if (!lastPage) return undefined;
+        return lastPage.hasMore ? lastPage.nextPage : undefined;
+      },
+    }
+  );
+
+  // Update how we flatten comments to maintain order
+  const allComments = commentsData?.pages?.flatMap(page => page?.comments ?? []) ?? [];
+
+  // Add comment mutation
+  const queryClient = useQueryClient();
+  const addCommentMutation = useMutation({
+    mutationFn: ({ issueId, comment }: { issueId: number; comment: string }) => {
+      if (!selectedRepo) {
+        throw new Error('No repository selected');
+      }
+      return addIssueComment(issueId, selectedRepo, comment);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch comments
+      queryClient.invalidateQueries(['comments', selectedIssueId, selectedRepo]);
+    },
+    onError: (error) => {
+      console.error('Error in mutation:', error);
+    }
+  });
+
+  // Move debounce outside of component or use useMemo
+  const debouncedSetFilter = useMemo(
+    () => debounce((newFilter: IssueParams) => {
+      setFilter(newFilter);
+      setInitialFetchComplete(false);
     }, 500),
     []
   );
 
-  const { data, isLoading, error } = useQuery<any, Error>(
+  const { data, isLoading, error } = useQuery<IssueResponse, Error>(
     ['issues', filter],
-    () => getIssues(filter),
+    () => {
+      return getIssues(filter);
+    },
     {
       keepPreviousData: true,
-      staleTime: 60000,
+      staleTime: 0,
       cacheTime: 300000,
       refetchOnWindowFocus: false,
+      enabled: true,
       onSuccess: (newData) => {
         if (filter.page === 1) {
           setAllIssues(newData.issues);
         } else {
-          setAllIssues(prev => [...prev, ...newData.issues]);
+          setAllIssues(prev => {
+            const existingIds = new Set(prev.map(issue => `${issue.repository?.fullName}-${issue.number}`));
+            
+            const newUniqueIssues = newData.issues.filter(
+              (issue: Issue) => !existingIds.has(`${issue.repository?.fullName}-${issue.number}`)
+            );
+            
+            return [...prev, ...newUniqueIssues];
+          });
         }
+        setIsFilterLoading(false);
+        setInitialFetchComplete(true);
+      },
+      onError: (error) => {
+        console.error('Query error:', error);
+        setIsFilterLoading(false);
+        setInitialFetchComplete(true);
       }
     }
   );
 
-  // Handle filter changes with debounce
-  const handleFilterChange = (key: keyof IssueParams, value: string) => {
-    debouncedSetFilter({ 
-      ...filter, 
-      [key]: value,
-      page: 1 // Reset page when filter changes
+  // Update handleFilterChange to reset initialFetchComplete
+  const handleFilterChange = useCallback((newFilter: Partial<IssueParams>) => {
+    setFilter(prev => ({
+      ...prev,
+      ...Object.fromEntries(
+        Object.entries(newFilter).filter(([, value]) => value != null)
+      )
+    }));
+  }, []);
+
+  // Update filter change handlers
+  const handleTimeFrameChange = useCallback((value: string) => {
+    handleFilterChange({ timeFrame: value });
+  }, [handleFilterChange]);
+
+  const handleSortChange = useCallback((value: string) => {
+    handleFilterChange({ 
+      sort: value as Language, 
+      direction: value === 'created-asc' ? 'asc' : 'desc' 
     });
-  };
+  }, [handleFilterChange]);
+
+  const handleCommentsRangeChange = useCallback((value: string) => {
+    handleFilterChange({ commentsRange: value });
+  }, [handleFilterChange]);
+
+  const handleLanguageChange = useCallback((value: string) => {
+    handleFilterChange({ language: value as Language });
+  }, [handleFilterChange]);
+
+  const handleLabelsChange = useCallback((labels: string[]) => {
+    handleFilterChange({ labels });
+  }, [handleFilterChange]);
+
+  const handleUnassignedChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFilterChange({ unassigned: e.target.checked });
+  }, [handleFilterChange]);
 
   const handleLoadMore = () => {
     setFilter(prev => ({ ...prev, page: prev.page + 1 }));
   };
 
-  return (
-    <>
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0 sm:space-x-4">
-        <div className="w-full sm:w-auto relative">
-          <input
-            type="text"
-            placeholder="Search issues..."
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
-        </div>
-        
-        <div className="flex space-x-4">
-          <FilterDropdown
-            label="Language"
-            options={['', 'javascript', 'typescript', 'python', 'java', 'go', 'rust']}
-            value={filter.language}
-            onChange={(value) => handleFilterChange('language', value as Language)}
-          />
-          <FilterDropdown
-            label="Sort"
-            options={['created', 'updated', 'comments']}
-            value={filter.sort}
-            onChange={(value) => handleFilterChange('sort', value as 'created' | 'updated' | 'comments')}
-          />
-          <FilterDropdown
-            label="State"
-            options={['open', 'closed']}
-            value={filter.state}
-            onChange={(value) => handleFilterChange('state', value as 'open' | 'closed')}
-          />
-        </div>
+  const handleViewComments = (issue: Issue) => {
+    setSelectedIssueId(issue.number);
+    setSelectedRepo(issue.repository.fullName);
+    setIsCommentsModalOpen(true);
+  };
+
+  const handleAddComment = async (comment: string) => {
+    if (!selectedIssueId) return;
+    try {
+      await addCommentMutation.mutateAsync({
+        issueId: selectedIssueId,
+        comment
+      });
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
+  const showLoadingSpinner = isLoading || !initialFetchComplete;
+
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      debouncedSetFilter.cancel();
+    };
+  }, [debouncedSetFilter]);
+
+  if (showLoadingSpinner) {
+    return (
+      <div className="mt-[64px] p-4 grid gap-6">
+        {[1, 2, 3].map((i) => (
+          <CardSkeleton key={i} />
+        ))}
       </div>
+    );
+  }
 
-      {error instanceof Error && (
-        <div className="text-center text-red-600 p-4 mb-4 bg-red-50 rounded-lg">
-          {error.message || 'Failed to load issues'}
-        </div>
-      )}
+  return (
+    <div className="flex min-h-screen w-full relative mt-[64px]">
+      {/* Mobile Filter Toggle Button */}
+      <button
+        onClick={() => setIsMobileFiltersOpen(true)}
+        className="lg:hidden fixed bottom-4 right-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+      >
+        <SlidersHorizontal className="w-6 h-6" />
+      </button>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {allIssues.map((issue: Issue) => (
-            <li key={issue.id}>
-              <a href={issue.url} target="_blank" rel="noopener noreferrer" className="block hover:bg-gray-50">
-                <div className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-blue-600 truncate">{issue.title}</p>
-                    <div className="ml-2 flex-shrink-0 flex gap-2">
-                      {issue.labels.map((label) => (
-                        <span
-                          key={label.name}
-                          className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                          style={{ 
-                            backgroundColor: `#${label.color}`,
-                            color: parseInt(label.color, 16) > 0xffffff / 2 ? '#000' : '#fff'
-                          }}
-                        >
-                          {label.name}
-                        </span>
-                      ))}
-                    </div>
+      {/* Mobile Filter Overlay */}
+      <div
+        className={`lg:hidden fixed inset-0 mt-[64px] bg-gray-900/50 backdrop-blur-sm z-50 transition-opacity duration-300 ${
+          isMobileFiltersOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMobileFiltersOpen(false)}
+      />
+
+      {/* Left Sidebar with Filters - Modified for mobile */}
+      <aside
+        className={`
+          fixed lg:sticky lg:top-[64px] inset-y-0 top-[64px] left-0 z-50 w-full lg:w-80 shrink-0 transform transition-transform duration-300 ease-in-out
+          lg:translate-x-0 ${isMobileFiltersOpen ? 'translate-x-0' : '-translate-x-full'}
+          h-[calc(100vh-64px)] overflow-y-auto
+        `}
+      >
+        <div className="h-full w-full lg:w-80 bg-white dark:bg-[#0B1222] lg:bg-transparent">
+          <div className="p-4 sticky top-0 bg-white dark:bg-[#0B1222] z-10">
+            {/* Mobile Close Button */}
+            <div className="flex items-center justify-between lg:hidden mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h2>
+              <button
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Existing filter content */}
+            <div className="border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0B1222] rounded-lg">
+              <div className="p-4 border-b border-gray-200 dark:border-white/10">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Filters
+                </h2>
+              </div>
+              <div className="p-4 pb-6">
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Time Frame
+                    </label>
+                    <FilterDropdown
+                      label="Time Frame"
+                      options={timeFrameOptions}
+                      value={filter.timeFrame}
+                      onChange={handleTimeFrameChange}
+                    />
                   </div>
-                  <div className="mt-2 sm:flex sm:justify-between">
-                    <div className="sm:flex">
-                      <p className="flex items-center text-sm">
-                        <GitPullRequest className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStateColor(issue.state)}`}>
-                          {issue.state}
-                        </span>
-                      </p>
-                      <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                        <MessageCircle className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                        {issue.commentsCount} comments
-                      </p>
-                    </div>
-                    <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                      <p>
-                        Opened by <span className="font-medium text-gray-900">{issue.user.login}</span>
-                        {' '}{formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}
-                      </p>
-                    </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Sort By
+                    </label>
+                    <FilterDropdown
+                      label="Sort By"
+                      options={sortOptions}
+                      value={filter.direction === 'asc' ? 'created-asc' : filter.sort}
+                      onChange={handleSortChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Comments
+                    </label>
+                    <FilterDropdown
+                      label="Comments"
+                      options={commentRanges}
+                      value={filter.commentsRange}
+                      onChange={handleCommentsRangeChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Language
+                    </label>
+                    <FilterDropdown
+                      label="Language"
+                      options={[
+                        { value: '', label: 'All Languages' },
+                        ...languageOptions.slice(1).map(lang => ({
+                          value: lang,
+                          label: lang.charAt(0).toUpperCase() + lang.slice(1)
+                        }))
+                      ]}
+                      value={filter.language}
+                      onChange={handleLanguageChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Labels
+                    </label>
+                    <LabelsFilter
+                      selectedLabels={filter.labels || []}
+                      onLabelsChange={handleLabelsChange}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filter.unassigned}
+                        onChange={handleUnassignedChange}
+                        className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
+                      />
+                      <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Unassigned only</span>
+                    </label>
                   </div>
                 </div>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {isLoading && (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </aside>
 
-      {!isLoading && data?.hasMore && (
-        <div className="flex justify-center mt-6">
-          <button
-            onClick={handleLoadMore}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-          >
-            Load More
-          </button>
+      {/* Main Content - Modified for mobile */}
+      <main className="flex-1 p-4 lg:p-4 w-full lg:ml-0">
+        <div className="w-full max-w-[1600px]">
+          {showLoadingSpinner ? (
+            <div className="grid gap-6">
+              {[1, 2, 3].map((i) => (
+                <CardSkeleton key={i} />
+              ))}
+            </div>
+          ) : (
+            <div className="w-full">
+              {error instanceof Error && (
+                <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 rounded-lg w-full">
+                  {error.message || 'Failed to load issues'}
+                </div>
+              )}
+              
+              {!isLoading && !isFilterLoading && !error && allIssues.length === 0 && initialFetchComplete && (
+                <div className="text-center p-8">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    No issues found
+                  </p>
+                </div>
+              )}
+
+              {!isLoading && !isFilterLoading && allIssues.length > 0 && (
+                <div className="bg-white dark:bg-gray-900 shadow rounded-lg">
+                  <IssueTable 
+                    issues={allIssues}
+                    onViewComments={handleViewComments}
+                  />
+                </div>
+              )}
+
+              {!isLoading && !isFilterLoading && data?.hasMore && allIssues.length > 0 && (
+                <div className="flex justify-center mt-4 md:mt-6">
+                  <button
+                    onClick={handleLoadMore}
+                    className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm"
+                  >
+                    Load More
+                  </button>
+                </div>
+              )}
+
+              {!isLoading && !isFilterLoading && !data?.hasMore && allIssues.length > 0 && (
+                <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8">
+                  No more issues to load
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
+      </main>
 
-      {!isLoading && !data?.hasMore && allIssues.length > 0 && (
-        <div className="text-center text-gray-600 py-8">
-          No more issues to load
-        </div>
-      )}
-    </>
-  );
-};
-
-interface FilterDropdownProps {
-  label: string;
-  options: string[];
-  value: string;
-  onChange: (value: string) => void;
-}
-
-function FilterDropdown({ label, options, value, onChange }: FilterDropdownProps) {
-  return (
-    <div className="relative">
-      <select
-        className="appearance-none bg-white border rounded-lg pl-3 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="" disabled>
-          {label}
-        </option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option ? option.charAt(0).toUpperCase() + option.slice(1) : 'All Languages'}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+      <CommentsModal
+        isOpen={isCommentsModalOpen}
+        onClose={() => {
+          setIsCommentsModalOpen(false);
+          setSelectedIssueId(null);
+        }}
+        comments={allComments}
+        isLoading={isLoadingComments}
+        onAddComment={handleAddComment}
+        onLoadMore={() => fetchNextPage()}
+        hasMoreComments={!!hasNextPage}
+        isLoadingMore={isFetchingNextPage}
+      />
     </div>
   );
-}
+};
 
 export default Dashboard; 

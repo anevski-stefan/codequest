@@ -36,23 +36,92 @@ export interface IssueResponse {
   hasMore: boolean;
 }
 
-export type Language = 
+export type Language =
   | ''
   | 'javascript'
   | 'typescript'
   | 'python'
   | 'java'
+  | 'php'
+  | 'ruby'
   | 'go'
   | 'rust'
+  | 'c'
   | 'cpp'
-  | 'ruby'
-  | 'php';
+  | 'csharp'
+  | 'swift'
+  | 'kotlin'
+  | 'dart'
+  | 'scala'
+  | 'r'
+  | 'elixir'
+  | 'haskell'
+  | 'clojure'
+  | 'erlang'
+  | 'julia'
+  | 'matlab'
+  | 'shell'
+  | 'powershell'
+  | 'html'
+  | 'css'
+  | 'vue'
+  | 'svelte'
+  | 'angular'
+  | 'react'
+  | 'elm'
+  | 'ocaml'
+  | 'fsharp'
+  | 'fortran'
+  | 'cobol'
+  | 'pascal'
+  | 'prolog'
+  | 'scheme'
+  | 'groovy'
+  | 'objective-c'
+  | 'verilog'
+  | 'vhdl'
+  | 'solidity'
+  | 'crystal'
+  | 'nim'
+  | 'zig'
+  | 'lua'
+  | 'perl'
+  | 'assembly';
 
 export interface IssueParams {
-  language: Language;
-  sort: 'created' | 'updated' | 'comments';
+  language: string;
+  sort: string;
+  direction?: 'asc' | 'desc';
   state: 'open' | 'closed';
   page: number;
+  timeFrame: string;
+  unassigned: boolean;
+  commentsRange: string;
+  labels: string[];
+}
+
+export interface ActivityPayload {
+  action?: string;
+  ref?: string;
+  ref_type?: string;
+  master_branch?: string;
+  description?: string;
+  pusher_type?: string;
+  push_id?: number;
+  size?: number;
+  distinct_size?: number;
+  head?: string;
+  before?: string;
+  commits?: Array<{
+    sha: string;
+    message: string;
+    author: {
+      name: string;
+      email: string;
+    };
+    url: string;
+    distinct: boolean;
+  }>;
 }
 
 export interface Activity {
@@ -60,5 +129,34 @@ export interface Activity {
   type: string;
   repo: string;
   date: string;
-  payload: any;
-} 
+  payload: ActivityPayload;
+}
+
+export interface Comment {
+  id: number;
+  body: string;
+  user: {
+    login: string;
+    avatarUrl: string;
+  };
+  createdAt: string;
+}
+
+export interface GithubUser {
+  id: number;
+  login: string;
+  avatar_url: string;
+  name: string | null;
+  bio: string | null;
+  public_repos: number;
+  public_gists: number;
+  followers: number;
+  following: number;
+  contributions?: number;
+  company: string | null;
+  location: string | null;
+  blog: string | null;
+  twitter_username: string | null;
+  created_at: string;
+  hireable: boolean | null;
+}
