@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig, type AxiosResponse } from 'axios';
 import type { IssueParams, IssueResponse, Issue, Label, GithubUser } from '../types/github';
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
@@ -6,19 +6,32 @@ export const api = axios.create({
     'Content-Type': 'application/json'
   }
 });
-const etagStore = new Map<string, string>();
-api.interceptors.request.use(config => {
+const attachAuthToken = (config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  const etag = etagStore.get(config.url || '');
-  if (etag) {
-    config.headers['If-None-Match'] = etag;
-  }
   return config;
+};
+export const githubApi = axios.create({
+  baseURL: 'https://api.github.com',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/vnd.github.v3+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  }
 });
-api.interceptors.response.use(response => {
+githubApi.interceptors.request.use(attachAuthToken);
+const etagStore = new Map<string, string>();
+api.interceptors.request.use(config => {
+  const withToken = attachAuthToken(config);
+  const etag = etagStore.get(withToken.url || '');
+  if (etag) {
+    withToken.headers['If-None-Match'] = etag;
+  }
+  return withToken;
+});
+api.interceptors.response.use((response: AxiosResponse) => {
   const etag = response.headers['etag'];
   if (etag) {
     etagStore.set(response.config.url || '', etag);
@@ -158,17 +171,11 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     per_page: '100',
     page: params.page?.toString() || '1'
   });
-  const response = await fetch(`https://api.github.com/search/issues?${queryParams}`, {
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      'X-GitHub-Api-Version': '2022-11-28'
-    }
+  const {
+    data
+  } = await githubApi.get('/search/issues', {
+    params: queryParams
   });
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
-  }
-  const data = await response.json();
   const transformedIssues = data.items.map(transformIssue);
   return {
     issues: transformedIssues,
@@ -199,17 +206,11 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
   if (!owner || !repo) {
     throw new Error(`Invalid repository name: ${repoFullName}`);
   }
-  const token = localStorage.getItem('token');
-  if (!token) {
+  if (!localStorage.getItem('token')) {
     throw new Error('No authentication token found');
   }
   const response = await api.post(`/api/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
     body: comment
-  }, {
-    headers: {
-      Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
   });
   return response.data;
 };
@@ -224,9 +225,6 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
     } = await api.get('/api/issues/assigned', {
       params: {
         state
-      },
-      headers: {
-        'Authorization': `Bearer ${token}`
       }
     });
     if (!data || !Array.isArray(data) && !Array.isArray(data.issues)) {
@@ -282,19 +280,18 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
     per_page: '100',
     page: params.page?.toString() || '1'
   });
-  const response = await api.get(`https://api.github.com/search/issues?${queryParams}`, {
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'X-GitHub-Api-Version': '2022-11-28'
-    }
+  const {
+    data
+  } = await githubApi.get('/search/issues', {
+    params: queryParams
   });
-  if (!response.data) {
+  if (!data) {
     throw new Error('No data received from API');
   }
   const result = {
-    issues: response.data.items.map(transformIssue),
-    totalCount: response.data.total_count,
-    hasMore: response.data.total_count > (params.page || 1) * 100,
+    issues: data.items.map(transformIssue),
+    totalCount: data.total_count,
+    hasMore: data.total_count > (params.page || 1) * 100,
     currentPage: parseInt(params.page?.toString() || '1')
   };
   localStorage.setItem(cacheKey, JSON.stringify({
@@ -349,47 +346,47 @@ export const searchTopContributors = async (query: string, page: number = 1): Pr
   hasMore: boolean;
 }> => {
   const perPage = 10;
-  const response = await fetch(`https://api.github.com/search/users?q=${query}+type:user&sort=followers&order=desc&page=${page}&per_page=${perPage}`, {
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
+  const {
+    data
+  } = await githubApi.get('/search/users', {
+    params: {
+      q: `${query} type:user`,
+      sort: 'followers',
+      order: 'desc',
+      page,
+      per_page: perPage
     }
   });
-  if (!response.ok) {
-    throw new Error('Failed to fetch contributors');
-  }
-  const data = await response.json();
   return {
     users: data.items,
     hasMore: data.total_count > page * perPage
   };
 };
 export const getUserRepositories = async (page: number, perPage: number) => {
-  const response = await fetch(`https://api.github.com/user/repos?sort=updated&per_page=${perPage}&page=${page}`, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-      Accept: 'application/vnd.github.v3+json'
+  const {
+    data
+  } = await githubApi.get('/user/repos', {
+    params: {
+      sort: 'updated',
+      per_page: perPage,
+      page
     }
   });
-  return response.json();
+  return data;
 };
 export const getUserActivities = async (username: string) => {
-  const response = await fetch(`https://api.github.com/users/${username}/events/public`, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-      Accept: 'application/vnd.github.v3+json'
-    }
-  });
-  return response.json();
+  const {
+    data
+  } = await githubApi.get(`/users/${username}/events/public`);
+  return data;
 };
 export const getUserStarredCount = async () => {
-  const response = await fetch(`https://api.github.com/user/starred?per_page=1`, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-      Accept: 'application/vnd.github.v3+json'
+  const response = await githubApi.get('/user/starred', {
+    params: {
+      per_page: 1
     }
   });
-  const links = response.headers.get('link');
+  const links = response.headers['link'];
   const match = links?.match(/page=(\d+)>; rel="last"/);
   return match ? parseInt(match[1]) : 0;
 };
