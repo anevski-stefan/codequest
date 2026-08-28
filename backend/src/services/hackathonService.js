@@ -5,8 +5,11 @@ const hackathonCache = {
   data: [],
   lastUpdated: null
 };
+let instance = null;
 class HackathonService {
   constructor() {
+    if (instance) return instance;
+    instance = this;
     this.hackathons = new Map();
     this.isInitialCrawlComplete = false;
     this.axiosConfig = {
