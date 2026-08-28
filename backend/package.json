@@ -21,6 +21,7 @@
     "eventsource-parser": "^3.0.0",
     "express": "^4.21.1",
     "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
     "express-session": "^1.18.1",
     "jsonwebtoken": "^9.0.2",
     "memory-cache": "^0.2.0",

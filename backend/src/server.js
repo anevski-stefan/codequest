@@ -1,6 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
+const helmet = require('helmet');
 require('dotenv').config();
 const passport = require('passport');
 require('./config/passport');
@@ -22,12 +23,26 @@ const HackathonService = require('./services/hackathonService');
 const app = express();
 const hackathonService = new HackathonService();
 app.set('hackathonService', hackathonService);
+
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET environment variable is required in production');
+  }
+  console.warn('[server] SESSION_SECRET not set; using an insecure development default. Set SESSION_SECRET for production.');
+}
+
+const corsOrigin = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : (process.env.CLIENT_URL || 'http://localhost:5173');
+
+app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: corsOrigin,
   credentials: true
 }));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  secret: sessionSecret || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   cookie: {
