@@ -228,12 +228,13 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
         state
       }
     });
-    if (!data || !Array.isArray(data) && !Array.isArray(data.issues)) {
+    const raw = Array.isArray(data) ? data : data?.issues;
+    if (!raw || !Array.isArray(raw)) {
       throw new Error('Invalid response format from server');
     }
     return {
-      issues: Array.isArray(data) ? data : data.issues,
-      totalCount: Array.isArray(data) ? data.length : data.issues.length,
+      issues: raw.map(transformIssue),
+      totalCount: raw.length,
       currentPage: 1,
       hasMore: false
     };
