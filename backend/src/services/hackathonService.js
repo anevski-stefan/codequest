@@ -174,7 +174,10 @@ class HackathonService {
     try {
       const hackathons = await this.crawlDevpost();
       this.hackathons.clear();
-      hackathons.forEach(h => this.hackathons.set(h.url, h));
+      hackathons.forEach(h => {
+        h.id = this.generateId(h);
+        this.hackathons.set(h.id, h);
+      });
       this.isInitialCrawlComplete = true;
       return hackathons;
     } catch (error) {
@@ -189,8 +192,9 @@ class HackathonService {
     }
     this.hackathons.clear();
     hackathons.forEach(hackathon => {
-      if (hackathon && hackathon.url) {
-        this.hackathons.set(hackathon.url, hackathon);
+      if (hackathon && (hackathon.url || hackathon.title)) {
+        hackathon.id = this.generateId(hackathon);
+        this.hackathons.set(hackathon.id, hackathon);
       }
     });
   }
@@ -209,6 +213,35 @@ class HackathonService {
   }
   getInitialCrawlStatus() {
     return this.isInitialCrawlComplete;
+  }
+  generateId(hackathon) {
+    if (hackathon.url) {
+      try {
+        const slug = new URL(hackathon.url).pathname.split('/').filter(Boolean).pop();
+        if (slug) return slug;
+      } catch (e) {}
+    }
+    const base = (hackathon.title || 'hackathon').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return `${base || 'hackathon'}-${Date.now().toString(36)}`;
+  }
+  getHackathonById(id) {
+    return this.hackathons.get(id) || null;
+  }
+  createHackathon(data) {
+    const hackathon = { ...data };
+    hackathon.id = this.generateId(hackathon);
+    this.hackathons.set(hackathon.id, hackathon);
+    return hackathon;
+  }
+  updateHackathon(id, data) {
+    const existing = this.hackathons.get(id);
+    if (!existing) return null;
+    const updated = { ...existing, ...data, id };
+    this.hackathons.set(id, updated);
+    return updated;
+  }
+  deleteHackathon(id) {
+    return this.hackathons.delete(id);
   }
 }
 module.exports = HackathonService;

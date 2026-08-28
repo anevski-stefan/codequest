@@ -81,21 +81,6 @@ exports.getHackathons = async (req, res) => {
     });
   }
 };
-exports.getAllHackathons = async (req, res) => {
-  try {
-    const {
-      data,
-      error
-    } = await supabase.from('hackathons').select('*');
-    if (error) throw error;
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching hackathons:', error);
-    res.status(500).json({
-      error: 'Failed to fetch hackathons'
-    });
-  }
-};
 exports.getHackathonById = async (req, res) => {
   try {
     const {
