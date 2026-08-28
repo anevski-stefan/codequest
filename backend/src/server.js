@@ -65,6 +65,17 @@ app.use('/api/hackathons', hackathonRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/ai-keys', requireAuth, aiKeysRoutes);
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not found'
+  });
+});
+app.use((err, req, res, next) => {
+  console.error('[server] Unhandled error:', err);
+  res.status(err.status || 500).json({
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+  });
+});
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
