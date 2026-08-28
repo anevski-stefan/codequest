@@ -1,59 +1,13 @@
-import axios, { type InternalAxiosRequestConfig, type AxiosResponse } from 'axios';
+import axios from 'axios';
 import { store } from '../store';
 import type { IssueParams, IssueResponse, Issue, Label, GithubUser } from '../types/github';
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 });
-const attachAuthToken = (config: InternalAxiosRequestConfig) => {
-  const token = store.getState().auth.token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-};
-export const githubApi = axios.create({
-  baseURL: 'https://api.github.com',
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/vnd.github.v3+json',
-    'X-GitHub-Api-Version': '2022-11-28'
-  }
-});
-githubApi.interceptors.request.use(attachAuthToken);
-const etagStore = new Map<string, string>();
-api.interceptors.request.use(config => {
-  const withToken = attachAuthToken(config);
-  const etag = etagStore.get(withToken.url || '');
-  if (etag) {
-    withToken.headers['If-None-Match'] = etag;
-  }
-  return withToken;
-});
-api.interceptors.response.use((response: AxiosResponse) => {
-  const etag = response.headers['etag'];
-  if (etag) {
-    etagStore.set(response.config.url || '', etag);
-  }
-  return response;
-}, error => {
-  if (error.response?.status === 304) {
-    return Promise.resolve(error.response);
-  }
-  return Promise.reject(error);
-});
-const THROTTLE_WINDOW = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 10;
-const requestTimestamps: number[] = [];
-const isThrottled = () => {
-  const now = Date.now();
-  while (requestTimestamps.length > 0 && requestTimestamps[0] < now - THROTTLE_WINDOW) {
-    requestTimestamps.shift();
-  }
-  return requestTimestamps.length >= MAX_REQUESTS_PER_WINDOW;
-};
 interface GitHubIssue {
   id: number;
   number: number;
@@ -95,6 +49,7 @@ const transformIssue = (item: GitHubIssue): Issue => ({
   },
   url: item.html_url
 });
+const isAuthenticated = () => store.getState().auth.isAuthenticated;
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   let searchQuery = 'is:issue is:unlocked ';
   let startDate: string | undefined;
@@ -174,7 +129,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   });
   const {
     data
-  } = await githubApi.get('/search/issues', {
+  } = await api.get('/api/github/search/issues', {
     params: queryParams
   });
   const transformedIssues = data.items.map(transformIssue);
@@ -207,7 +162,7 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
   if (!owner || !repo) {
     throw new Error(`Invalid repository name: ${repoFullName}`);
   }
-  if (!store.getState().auth.token) {
+  if (!isAuthenticated()) {
     throw new Error('No authentication token found');
   }
   const response = await api.post(`/api/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
@@ -217,8 +172,7 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
 };
 export const getAssignedIssues = async (state?: string): Promise<IssueResponse> => {
   try {
-    const token = store.getState().auth.token;
-    if (!token) {
+    if (!isAuthenticated()) {
       throw new Error('Authentication required');
     }
     const {
@@ -244,10 +198,6 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
   }
 };
 export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResponse> => {
-  if (isThrottled()) {
-    throw new Error('Rate limit exceeded. Please wait before trying again.');
-  }
-  requestTimestamps.push(Date.now());
   let searchQuery = 'is:issue is:open no:assignee ';
   if (params.labels && params.labels.length > 0) {
     searchQuery += 'label:"good first issue" label:"help wanted" ';
@@ -267,7 +217,7 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
   });
   const {
     data
-  } = await githubApi.get('/search/issues', {
+  } = await api.get('/api/github/search/issues', {
     params: queryParams
   });
   if (!data) {
@@ -329,7 +279,7 @@ export const searchTopContributors = async (query: string, page: number = 1): Pr
   const perPage = 10;
   const {
     data
-  } = await githubApi.get('/search/users', {
+  } = await api.get('/api/github/search/users', {
     params: {
       q: `${query} type:user`,
       sort: 'followers',
@@ -346,7 +296,7 @@ export const searchTopContributors = async (query: string, page: number = 1): Pr
 export const getUserRepositories = async (page: number, perPage: number) => {
   const {
     data
-  } = await githubApi.get('/user/repos', {
+  } = await api.get('/api/github/user/repos', {
     params: {
       sort: 'updated',
       per_page: perPage,
@@ -358,11 +308,11 @@ export const getUserRepositories = async (page: number, perPage: number) => {
 export const getUserActivities = async (username: string) => {
   const {
     data
-  } = await githubApi.get(`/users/${username}/events/public`);
+  } = await api.get(`/api/github/users/${username}/events/public`);
   return data;
 };
 export const getUserStarredCount = async () => {
-  const response = await githubApi.get('/user/starred', {
+  const response = await api.get('/api/github/user/starred', {
     params: {
       per_page: 1
     }

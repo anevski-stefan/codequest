@@ -7,12 +7,9 @@ export interface User {
 }
 export interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
-  expiresAt: string | null;
+  restored: boolean;
 }
 export interface LoginResponse {
   user: User;
-  token: string;
-  expiresAt: string;
 }

@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import { api, githubApi } from '../../services/github';
+import { api } from '../../services/github';
 const AuthCallback = () => {
   usePageTitle('Authenticating');
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const {
     login
@@ -13,31 +12,14 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const code = searchParams.get('code');
-        if (!code) {
-          throw new Error('No code received');
-        }
-        const {
-          data: exchange
-        } = await api.post('/auth/exchange', {
-          code
-        });
-        const token = exchange.token;
-        if (!token) {
-          throw new Error('No token received');
-        }
         const {
           data
-        } = await githubApi.get('/user', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+        } = await api.get('/auth/me');
+        if (!data?.user) {
+          throw new Error('No user received');
+        }
         login({
-          token,
-          user: data,
-          expiresAt
+          user: data.user
         });
         navigate('/dashboard');
       } catch (error) {
@@ -46,7 +28,7 @@ const AuthCallback = () => {
       }
     };
     handleCallback();
-  }, [searchParams, login, navigate]);
+  }, [login, navigate]);
   return null;
 };
 export default AuthCallback;

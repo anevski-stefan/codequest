@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery } from 'react-query';
-import { githubApi } from '../../services/github';
+import { api } from '../../services/github';
 import { Star, GitFork, Calendar, MapPin, Link as LinkIcon, Building, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { motion } from 'framer-motion';
@@ -72,7 +72,7 @@ const ContributorProfile = () => {
   } = useQuery<ContributorDetails>(['contributor', username], async () => {
     const {
       data
-    } = await githubApi.get(`/users/${username}`);
+    } = await api.get(`/api/github/users/${username}`);
     return data;
   });
   const {
@@ -80,13 +80,13 @@ const ContributorProfile = () => {
   } = useQuery(['contributor-orgs', username], async () => {
     const {
       data
-    } = await githubApi.get(`/users/${username}/orgs`);
+    } = await api.get(`/api/github/users/${username}/orgs`);
     return data;
   });
   const {
     data: starredRepos
   } = useQuery(['contributor-starred', username], async () => {
-    const response = await githubApi.get(`/users/${username}/starred`, {
+    const response = await api.get(`/api/github/users/${username}/starred`, {
       params: {
         per_page: 1
       }
@@ -101,7 +101,7 @@ const ContributorProfile = () => {
   } = useQuery<ActivityEvent[]>(['contributor-activity', username], async () => {
     const {
       data
-    } = await githubApi.get(`/users/${username}/events/public`);
+    } = await api.get(`/api/github/users/${username}/events/public`);
     return data;
   });
   const {
@@ -115,7 +115,7 @@ const ContributorProfile = () => {
   }) => {
     const {
       data
-    } = await githubApi.get(`/users/${username}/followers`, {
+    } = await api.get(`/api/github/users/${username}/followers`, {
       params: {
         per_page: PER_PAGE,
         page: pageParam
@@ -140,7 +140,7 @@ const ContributorProfile = () => {
   }) => {
     const {
       data
-    } = await githubApi.get(`/users/${username}/following`, {
+    } = await api.get(`/api/github/users/${username}/following`, {
       params: {
         per_page: PER_PAGE,
         page: pageParam
@@ -160,7 +160,7 @@ const ContributorProfile = () => {
   } = useQuery<Repository[]>(['contributor-repos', username, page], async () => {
     const {
       data
-    } = await githubApi.get(`/users/${username}/repos`, {
+    } = await api.get(`/api/github/users/${username}/repos`, {
       params: {
         sort: 'updated',
         per_page: PER_PAGE,

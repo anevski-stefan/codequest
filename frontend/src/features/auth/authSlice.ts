@@ -2,9 +2,8 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { AuthState, LoginResponse } from '../../types/auth';
 const getInitialState = (): AuthState => ({
   isAuthenticated: false,
-  token: null,
   user: null,
-  expiresAt: null
+  restored: false
 });
 const authSlice = createSlice({
   name: 'auth',
@@ -12,20 +11,22 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (state, action: PayloadAction<LoginResponse>) => {
       state.isAuthenticated = true;
-      state.token = action.payload.token;
       state.user = action.payload.user;
-      state.expiresAt = action.payload.expiresAt;
+      state.restored = true;
     },
     logout: state => {
       state.isAuthenticated = false;
-      state.token = null;
       state.user = null;
-      state.expiresAt = null;
+      state.restored = true;
+    },
+    finishRestore: state => {
+      state.restored = true;
     }
   }
 });
 export const {
   setCredentials,
-  logout
+  logout,
+  finishRestore
 } = authSlice.actions;
 export default authSlice.reducer;

@@ -1,6 +1,7 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { setCredentials, logout } from '../features/auth/authSlice';
+import { api } from '../services/github';
 import type { RootState } from '../store';
 import type { LoginResponse } from '../types/auth';
 export const useAuth = () => {
@@ -10,7 +11,10 @@ export const useAuth = () => {
   const login = (userData: LoginResponse) => {
     dispatch(setCredentials(userData));
   };
-  const logoutUser = () => {
+  const logoutUser = async () => {
+    try {
+      await api.get('/auth/logout');
+    } catch {}
     dispatch(logout());
     navigate('/');
   };
