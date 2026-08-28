@@ -36,7 +36,7 @@ export default function StatsModal({
   onLoadMore,
   isLoadingMore = false
 }: StatsModalProps) {
-  const isUserData = (item: any): item is User => 'login' in item;
+  const isUserData = (item: User | Repository): item is User => 'login' in item;
   return <Dialog open={isOpen} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
       

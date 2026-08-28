@@ -83,6 +83,11 @@ interface PullRequest {
   comments: number;
   review_comments: number;
 }
+type PullRequestsResult = {
+  pullRequests: PullRequest[];
+  hasMore: boolean;
+  totalCount: number;
+};
 interface PullRequestCounts {
   open: number;
   closed: number;
@@ -157,8 +162,8 @@ const RepositoryDetails = () => {
   const {
     data: prCounts
   } = useQuery<PullRequestCounts>(['pull-request-counts', owner, repo], async () => {
-    const openData = queryClient.getQueryData(['pull-requests', owner, repo, 'open', 1]) as any;
-    const closedData = queryClient.getQueryData(['pull-requests', owner, repo, 'closed', 1]) as any;
+    const openData = queryClient.getQueryData(['pull-requests', owner, repo, 'open', 1]) as PullRequestsResult | undefined;
+    const closedData = queryClient.getQueryData(['pull-requests', owner, repo, 'closed', 1]) as PullRequestsResult | undefined;
     if (openData && closedData) {
       return {
         open: openData.totalCount,

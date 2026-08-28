@@ -5,7 +5,7 @@ import { Star, GitFork, Calendar, MapPin, Link as LinkIcon, Building, X, Chevron
 import { motion } from 'framer-motion';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import type { RootState } from '../../store';
-import type { GithubUser } from '../../types/github';
+import type { GithubUser, GitHubRepo, GitHubActivityEvent } from '../../types/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getUserRepositories, getUserActivities, getUserStarredCount } from '../../services/github';
 import { ProfileSkeleton } from '../../components/skeletons/ProfileSkeleton';
@@ -45,7 +45,7 @@ const Profile = () => {
         <ChevronRight className="w-5 h-5" />
       </button>
     </div>;
-  const formatActivityMessage = (event: any) => {
+  const formatActivityMessage = (event: GitHubActivityEvent) => {
     switch (event.type) {
       case 'PushEvent':
         return 'pushed to';
@@ -178,7 +178,7 @@ const Profile = () => {
               Recent Activity
             </h2>
             {activitiesLoading ? <LoadingSpinner /> : <div className="space-y-4">
-                {activities?.slice(0, 10).map((event: any) => <motion.div key={event.id} initial={{
+                {activities?.slice(0, 10).map((event: GitHubActivityEvent) => <motion.div key={event.id} initial={{
               opacity: 0
             }} animate={{
               opacity: 1
@@ -227,7 +227,7 @@ const Profile = () => {
                     Popular Repositories
                   </h3>
                   {reposLoading ? <LoadingSpinner /> : <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {repos?.slice(0, 6).map((repo: any) => <motion.a key={repo.id} href={repo.html_url} target="_blank" rel="noopener noreferrer" className="block p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" whileHover={{
+                      {repos?.slice(0, 6).map((repo: GitHubRepo) => <motion.a key={repo.id} href={repo.html_url} target="_blank" rel="noopener noreferrer" className="block p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" whileHover={{
                   scale: 1.02
                 }}>
                           <h4 className="text-base font-semibold text-blue-600 dark:text-blue-400">
@@ -254,7 +254,7 @@ const Profile = () => {
                     </div>}
                 </div> : <div className="space-y-4">
                   {reposLoading ? <LoadingSpinner /> : <>
-                      {repos?.map((repo: any) => <motion.div key={repo.id} initial={{
+                      {repos?.map((repo: GitHubRepo) => <motion.div key={repo.id} initial={{
                   opacity: 0
                 }} animate={{
                   opacity: 1

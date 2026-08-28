@@ -100,3 +100,26 @@ export interface GithubUser {
   created_at: string;
   hireable: boolean | null;
 }
+export interface GitHubRepo {
+  id: number;
+  name: string;
+  html_url: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+}
+export interface GitHubActivityActor {
+  login: string;
+  avatar_url: string;
+}
+export interface GitHubActivityEvent {
+  id: string;
+  type: string;
+  actor: GitHubActivityActor;
+  repo: {
+    name: string;
+  };
+  created_at: string;
+  payload: ActivityPayload;
+}
