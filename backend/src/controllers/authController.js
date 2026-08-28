@@ -10,7 +10,7 @@ const githubCallback = [passport.authenticate('github', {
   session: true,
   state: true
 }), (req, res) => {
-  res.redirect(`${clientUrl()}/dashboard`);
+  res.redirect(`${clientUrl()}/auth/callback`);
 }];
 const getMe = async (req, res) => {
   if (!req.user || !req.user.accessToken) {
