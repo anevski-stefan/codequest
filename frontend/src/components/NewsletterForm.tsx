@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Send } from 'lucide-react';
+import type { AxiosError } from 'axios';
 import { api } from '../services/github';
 const NewsletterForm = () => {
   const [email, setEmail] = useState('');
@@ -17,9 +18,12 @@ const NewsletterForm = () => {
       setMessage(response.data.message);
       setEmail('');
       document.title = document.title;
-    } catch (error: any) {
+    } catch (error) {
+      const axiosError = error as AxiosError<{
+        error?: string;
+      }>;
       setStatus('error');
-      setMessage(error.response?.data?.error || 'Something went wrong. Please try again later.');
+      setMessage(axiosError.response?.data?.error || 'Something went wrong. Please try again later.');
     }
   };
   return <div className="mt-8 max-w-md mx-auto">
