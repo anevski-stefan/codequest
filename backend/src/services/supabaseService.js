@@ -1,19 +1,13 @@
 const {
-  createClient
-} = require('@supabase/supabase-js');
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  getSupabase
+} = require('../config/supabase');
 class SupabaseService {
   async createOrUpdateUser(profile) {
     try {
       const {
         data: existingUser,
         error: fetchError
-      } = await supabase.from('users').select('*').eq('github_id', profile.id).single();
+      } = await getSupabase().from('users').select('*').eq('github_id', profile.id).single();
       if (fetchError && fetchError.code !== 'PGRST116') {
         throw fetchError;
       }
@@ -21,7 +15,7 @@ class SupabaseService {
         const {
           data: newUser,
           error: insertError
-        } = await supabase.from('users').insert({
+        } = await getSupabase().from('users').insert({
           id: profile.id,
           github_id: profile.id,
           username: profile.username,
@@ -34,7 +28,7 @@ class SupabaseService {
       const {
         data: updatedUser,
         error: updateError
-      } = await supabase.from('users').update({
+      } = await getSupabase().from('users').update({
         last_login: new Date().toISOString()
       }).eq('github_id', profile.id).select().single();
       if (updateError) throw updateError;
@@ -49,7 +43,7 @@ class SupabaseService {
       const {
         data,
         error
-      } = await supabase.from('chat_histories').insert({
+      } = await getSupabase().from('chat_histories').insert({
         user_id: userId,
         messages,
         title,
@@ -67,7 +61,7 @@ class SupabaseService {
       const {
         data,
         error
-      } = await supabase.from('chat_histories').select('*').eq('user_id', userId).order('created_at', {
+      } = await getSupabase().from('chat_histories').select('*').eq('user_id', userId).order('created_at', {
         ascending: false
       });
       if (error) throw error;
@@ -82,7 +76,7 @@ class SupabaseService {
       const {
         data,
         error
-      } = await supabase.from('chat_histories').delete().match({
+      } = await getSupabase().from('chat_histories').delete().match({
         id: chatId,
         user_id: userId
       });
