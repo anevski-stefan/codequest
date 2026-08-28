@@ -1,6 +1,7 @@
 const {
   CodeBuddyService
 } = require('../services/codeBuddyService.js');
+const aiKeyStore = require('../utils/aiKeyStore');
 const codeBuddyService = new CodeBuddyService();
 exports.chat = async (req, res) => {
   try {
@@ -8,26 +9,32 @@ exports.chat = async (req, res) => {
       message,
       context,
       messages,
-      service,
-      apiKey
+      service
     } = req.body;
     if (!message) {
       return res.status(400).json({
         error: 'Message is required'
       });
     }
-    if (!service || !apiKey) {
+    if (!service) {
       return res.status(400).json({
-        error: 'AI service and API key are required'
+        error: 'AI service is required'
       });
     }
-    if (!['CHATGPT', 'GEMINI'].includes(service.toUpperCase())) {
+    const normalizedService = service.toLowerCase();
+    if (!['chatgpt', 'gemini'].includes(normalizedService)) {
       return res.status(400).json({
         error: 'Invalid AI service specified'
       });
     }
+    const apiKey = aiKeyStore.getAiKey(req.user.id, normalizedService);
+    if (!apiKey) {
+      return res.status(400).json({
+        error: 'No API key configured. Add your key in Settings.'
+      });
+    }
     try {
-      const response = await codeBuddyService.getResponse(message, context, messages, req.user.accessToken, service, apiKey);
+      const response = await codeBuddyService.getResponse(message, context, messages, req.user.accessToken, normalizedService, apiKey);
       if (!response) {
         throw new Error(`No response from ${service} service`);
       }

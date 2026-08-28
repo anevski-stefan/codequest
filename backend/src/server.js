@@ -17,6 +17,7 @@ const requireAuth = require('./middleware/requireAuth');
 const limiter = require('./middleware/rateLimiter');
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
+const aiKeysRoutes = require('./routes/aiKeysRoutes');
 const HackathonService = require('./services/hackathonService');
 const app = express();
 const hackathonService = new HackathonService();
@@ -51,6 +52,7 @@ app.use('/auth', authRoutes);
 app.use('/api/hackathons', hackathonRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/ai-keys', requireAuth, aiKeysRoutes);
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });

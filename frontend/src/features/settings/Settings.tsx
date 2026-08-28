@@ -3,7 +3,7 @@ import { Settings, Key, X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import toast from 'react-hot-toast';
-import { encryptData, decryptData } from '../../utils/encryption';
+import { api } from '../../services/github';
 type AIService = 'chatgpt' | 'gemini';
 const SettingsPage = () => {
   usePageTitle('Settings');
@@ -16,13 +16,12 @@ const SettingsPage = () => {
   const [geminiKey, setGeminiKey] = useState('');
   const [selectedService, setSelectedService] = useState<AIService>('chatgpt');
   const [isSaving, setIsSaving] = useState(false);
+  const [configured, setConfigured] = useState<{ chatgpt: boolean; gemini: boolean }>({ chatgpt: false, gemini: false });
+  const [toDelete, setToDelete] = useState<Set<AIService>>(new Set());
   useEffect(() => {
-    const savedChatgptKey = decryptData(localStorage.getItem('chatgpt_api_key') || '');
-    const savedGeminiKey = decryptData(localStorage.getItem('gemini_api_key') || '');
     const savedService = localStorage.getItem('ai_service') as AIService || 'chatgpt';
-    setChatgptKey(savedChatgptKey);
-    setGeminiKey(savedGeminiKey);
     setSelectedService(savedService);
+    api.get('/api/ai-keys').then(r => setConfigured(r.data)).catch(() => {});
   }, []);
   const handleServiceChange = (service: AIService) => {
     setSelectedService(service);
@@ -39,6 +38,7 @@ const SettingsPage = () => {
     } else {
       setGeminiKey('');
     }
+    setToDelete(prev => new Set(prev).add(service));
   };
   const validateApiKey = (service: AIService, key: string): boolean => {
     if (!key) return true;
@@ -59,25 +59,30 @@ const SettingsPage = () => {
       return;
     }
     setIsSaving(true);
-    const savePromise = new Promise(resolve => {
-      setTimeout(() => {
-        setTheme(selectedTheme);
-        if (chatgptKey) localStorage.setItem('chatgpt_api_key', encryptData(chatgptKey));
-        if (geminiKey) localStorage.setItem('gemini_api_key', encryptData(geminiKey));
-        localStorage.setItem('ai_service', selectedService);
-        resolve(true);
-      }, 500);
-    });
-    toast.promise(savePromise, {
-      loading: 'Saving settings...',
-      success: 'Settings saved successfully!',
-      error: 'Failed to save settings'
-    }, {
-      position: 'top-center',
-      duration: 2000
-    });
-    await savePromise;
-    setIsSaving(false);
+    try {
+      setTheme(selectedTheme);
+      localStorage.setItem('ai_service', selectedService);
+      const ops: Promise<unknown>[] = [];
+      if (chatgptKey) {
+        ops.push(api.put('/api/ai-keys/chatgpt', { key: chatgptKey }));
+      } else if (toDelete.has('chatgpt')) {
+        ops.push(api.delete('/api/ai-keys/chatgpt'));
+      }
+      if (geminiKey) {
+        ops.push(api.put('/api/ai-keys/gemini', { key: geminiKey }));
+      } else if (toDelete.has('gemini')) {
+        ops.push(api.delete('/api/ai-keys/gemini'));
+      }
+      await Promise.all(ops);
+      setToDelete(new Set());
+      const status = await api.get('/api/ai-keys').then(r => r.data);
+      setConfigured(status);
+      toast.success('Settings saved successfully!');
+    } catch (e) {
+      toast.error('Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
   return <div className="flex flex-col flex-1 dark:bg-[#0B1222] mt-8 p-4 md:p-6">
       <div className="bg-white dark:bg-[#0B1222] rounded-xl p-6 shadow-sm border border-gray-200 dark:border-white/10">
@@ -108,7 +113,7 @@ const SettingsPage = () => {
               <div className="mt-2">
                 <div className="relative">
                   <Key className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <input id="chatgpt-input" type="password" value={chatgptKey} onChange={e => setChatgptKey(e.target.value)} placeholder="Enter ChatGPT API Key" disabled={selectedService !== 'chatgpt'} className={`pl-9 pr-9 w-full border border-gray-300 dark:border-gray-700 rounded-lg py-2 px-3 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#0B1222] text-gray-900 dark:text-white ${selectedService !== 'chatgpt' ? 'opacity-50 cursor-not-allowed' : ''}`} />
+                  <input id="chatgpt-input" type="password" value={chatgptKey} onChange={e => setChatgptKey(e.target.value)} placeholder={configured.chatgpt ? 'Saved — enter a new key to replace' : 'Enter ChatGPT API Key'} disabled={selectedService !== 'chatgpt'} className={`pl-9 pr-9 w-full border border-gray-300 dark:border-gray-700 rounded-lg py-2 px-3 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#0B1222] text-gray-900 dark:text-white ${selectedService !== 'chatgpt' ? 'opacity-50 cursor-not-allowed' : ''}`} />
                   {chatgptKey && <button onClick={() => clearKey('chatgpt')} disabled={selectedService !== 'chatgpt'} className={`absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ${selectedService !== 'chatgpt' ? 'cursor-not-allowed' : ''}`}>
                       <X className="h-4 w-4" />
                     </button>}
@@ -124,7 +129,7 @@ const SettingsPage = () => {
               <div className="mt-2">
                 <div className="relative">
                   <Key className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <input id="gemini-input" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder="Enter Gemini API Key" disabled={selectedService !== 'gemini'} className={`pl-9 pr-9 w-full border border-gray-300 dark:border-gray-700 rounded-lg py-2 px-3 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#0B1222] text-gray-900 dark:text-white ${selectedService !== 'gemini' ? 'opacity-50 cursor-not-allowed' : ''}`} />
+                  <input id="gemini-input" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder={configured.gemini ? 'Saved — enter a new key to replace' : 'Enter Gemini API Key'} disabled={selectedService !== 'gemini'} className={`pl-9 pr-9 w-full border border-gray-300 dark:border-gray-700 rounded-lg py-2 px-3 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#0B1222] text-gray-900 dark:text-white ${selectedService !== 'gemini' ? 'opacity-50 cursor-not-allowed' : ''}`} />
                   {geminiKey && <button onClick={() => clearKey('gemini')} disabled={selectedService !== 'gemini'} className={`absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ${selectedService !== 'gemini' ? 'cursor-not-allowed' : ''}`}>
                       <X className="h-4 w-4" />
                     </button>}

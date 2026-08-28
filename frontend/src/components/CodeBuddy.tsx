@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { api } from '../services/github';
 import ReactMarkdown from 'react-markdown';
 import { useAIService } from '../hooks/useAIService';
-import { decryptData } from '../utils/encryption';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import type { Components } from 'react-markdown';
@@ -86,6 +85,11 @@ const CodeBuddy = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursorPositionRef = useRef<number>(0);
   const selectedService = useAIService();
+  const { data: aiKeyStatus } = useQuery({
+    queryKey: ['aiKeys'],
+    queryFn: () => api.get('/api/ai-keys').then(r => r.data as { chatgpt: boolean; gemini: boolean }),
+    retry: false
+  });
   const abortControllerRef = useRef<AbortController | null>(null);
   const {
     isAuthenticated,
@@ -148,21 +152,18 @@ const CodeBuddy = () => {
         throw new Error('Authentication required');
       }
       let currentService = selectedService;
-      const chatgptKey = decryptData(localStorage.getItem('chatgpt_api_key') || '');
-      const geminiKey = decryptData(localStorage.getItem('gemini_api_key') || '');
-      if (!chatgptKey && !geminiKey) {
-        throw new Error('Please set up either ChatGPT or Gemini API key in settings');
+      const status = aiKeyStatus || { chatgpt: false, gemini: false };
+      if (!status[currentService]) {
+        if (currentService === 'chatgpt' && status.gemini) {
+          currentService = 'gemini';
+          localStorage.setItem('ai_service', 'gemini');
+        } else if (currentService === 'gemini' && status.chatgpt) {
+          currentService = 'chatgpt';
+          localStorage.setItem('ai_service', 'chatgpt');
+        }
       }
-      if (currentService === 'chatgpt' && !chatgptKey && geminiKey) {
-        currentService = 'gemini';
-        localStorage.setItem('ai_service', 'gemini');
-      } else if (currentService === 'gemini' && !geminiKey && chatgptKey) {
-        currentService = 'chatgpt';
-        localStorage.setItem('ai_service', 'chatgpt');
-      }
-      const apiKey = currentService === 'chatgpt' ? chatgptKey : geminiKey;
-      if (!apiKey) {
-        throw new Error(`Please set up your ${currentService.toUpperCase()} API key in settings`);
+      if (!status[currentService]) {
+        throw new Error('Please set up your API key in Settings to use CodeBuddy');
       }
       const formattedMessages = messages.slice(-5).map(msg => ({
         role: msg.role,
@@ -174,8 +175,7 @@ const CodeBuddy = () => {
           message,
           context,
           messages: formattedMessages,
-          service: currentService,
-          apiKey
+          service: currentService
         }, {
           signal: abortControllerRef.current.signal
         });
