@@ -1,57 +1,63 @@
 const passport = require('passport');
-const crypto = require('crypto');
-const exchangeCodes = new Map();
-const CODE_TTL_MS = 60 * 1000;
+const axios = require('axios');
+const clientUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
 const githubAuth = passport.authenticate('github', {
   scope: ['read:user', 'user:email'],
   state: true
 });
 const githubCallback = [passport.authenticate('github', {
-  failureRedirect: `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`,
+  failureRedirect: `${clientUrl()}/login`,
   session: true,
   state: true
 }), (req, res) => {
-  const token = req.user?.accessToken;
-  if (!token) {
-    return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login`);
-  }
-  const code = crypto.randomBytes(24).toString('hex');
-  exchangeCodes.set(code, {
-    token,
-    expires: Date.now() + CODE_TTL_MS
-  });
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-  res.redirect(`${clientUrl}/auth/callback?code=${code}`);
+  res.redirect(`${clientUrl()}/dashboard`);
 }];
-const exchangeCode = (req, res) => {
+const getMe = async (req, res) => {
+  if (!req.user || !req.user.accessToken) {
+    return res.status(401).json({
+      error: 'Unauthorized'
+    });
+  }
   try {
     const {
-      code
-    } = req.body;
-    if (!code) {
-      return res.status(400).json({
-        error: 'Missing code'
-      });
-    }
-    const entry = exchangeCodes.get(code);
-    exchangeCodes.delete(code);
-    if (!entry || entry.expires <= Date.now()) {
-      return res.status(401).json({
-        error: 'Invalid or expired code'
-      });
-    }
+      data
+    } = await axios.get('https://api.github.com/user', {
+      headers: {
+        Authorization: `Bearer ${req.user.accessToken}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'CodeQuest'
+      }
+    });
     res.json({
-      token: entry.token
+      user: data
     });
   } catch (error) {
-    console.error('Code exchange error:', error);
+    if (error.response?.status === 401) {
+      return res.status(401).json({
+        error: 'Unauthorized'
+      });
+    }
+    console.error('getMe error:', error.response?.data || error.message);
     res.status(500).json({
-      error: 'Code exchange failed'
+      error: 'Failed to fetch user'
     });
   }
+};
+const logout = (req, res) => {
+  if (req.logout) {
+    req.logout(() => {});
+  }
+  if (req.session) {
+    req.session.destroy(() => {});
+  }
+  res.clearCookie('connect.sid');
+  res.json({
+    message: 'Logged out'
+  });
 };
 module.exports = {
   githubAuth,
   githubCallback,
-  exchangeCode
+  getMe,
+  logout
 };
