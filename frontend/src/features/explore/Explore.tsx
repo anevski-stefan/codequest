@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import { Search, Users } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import { githubApi, searchTopContributors } from '../../services/github';
+import { api, searchTopContributors } from '../../services/github';
 import type { GithubUser } from '../../types/github';
 import { CardSkeleton } from '../../components/skeletons/CardSkeleton';
 interface Repository {
@@ -67,7 +67,7 @@ const Explore = () => {
     if (!debouncedQuery) return null;
     const {
       data
-    } = await githubApi.get('/search/repositories', {
+    } = await api.get('/api/github/search/repositories', {
       params: {
         q: debouncedQuery
       }

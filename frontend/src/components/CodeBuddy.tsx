@@ -89,15 +89,14 @@ const CodeBuddy = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const {
     isAuthenticated,
-    user,
-    token
+    user
   } = useSelector((state: RootState) => state.auth);
   const queryClient = useQueryClient();
   const [currentPartialText, setCurrentPartialText] = useState('');
   const {
     data: chatHistory
   } = useQuery<ChatHistory[]>(['chatHistory', user?.id], async () => {
-    if (!token || !user?.id) throw new Error('Not authenticated');
+    if (!isAuthenticated || !user?.id) throw new Error('Not authenticated');
     try {
       const response = await api.get(`/api/chats/${user.id}`);
       return response.data;
@@ -145,7 +144,7 @@ const CodeBuddy = () => {
       context: ChatContext;
     }) => {
       abortControllerRef.current = new AbortController();
-      if (!token) {
+      if (!isAuthenticated) {
         throw new Error('Authentication required');
       }
       let currentService = selectedService;
@@ -255,7 +254,7 @@ const CodeBuddy = () => {
         content: chatResponse.message,
         timestamp: new Date()
       }];
-      if (token && user?.id) {
+      if (isAuthenticated && user?.id) {
         try {
           await api.post('/api/chats', {
             messages: updatedMessages,
@@ -293,7 +292,7 @@ const CodeBuddy = () => {
   };
   const deleteChat = async (chatId: string) => {
     try {
-      if (!token || !user?.id) {
+      if (!isAuthenticated || !user?.id) {
         toast.error('You must be logged in to delete chats');
         return;
       }

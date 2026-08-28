@@ -7,9 +7,15 @@ const PrivateRoute = ({
   children: React.ReactNode;
 }) => {
   const {
-    isAuthenticated
+    isAuthenticated,
+    restored
   } = useSelector((state: RootState) => state.auth);
   const location = useLocation();
+  if (!restored) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">
+        Loading…
+      </div>;
+  }
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{
       from: location
