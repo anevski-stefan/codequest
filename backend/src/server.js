@@ -19,10 +19,7 @@ const limiter = require('./middleware/rateLimiter');
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const aiKeysRoutes = require('./routes/aiKeysRoutes');
-const HackathonService = require('./services/hackathonService');
 const app = express();
-const hackathonService = new HackathonService();
-app.set('hackathonService', hackathonService);
 
 const sessionSecret = process.env.SESSION_SECRET;
 if (!sessionSecret) {
