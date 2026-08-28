@@ -4,9 +4,7 @@ const supabaseService = require('../services/supabaseService');
 router.use(express.json());
 router.get('/:userId', async (req, res) => {
   try {
-    const {
-      userId
-    } = req.params;
+    const userId = req.user.id;
     const data = await supabaseService.getUserChats(userId);
     if (!data) {
       return res.status(404).json({
@@ -52,17 +50,12 @@ router.post('/', async (req, res) => {
   try {
     const {
       messages,
-      userId,
       title
     } = req.body;
+    const userId = req.user.id;
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({
         error: 'Invalid messages format'
-      });
-    }
-    if (!userId) {
-      return res.status(400).json({
-        error: 'User ID is required'
       });
     }
     const data = await supabaseService.saveChat(userId, messages, title);
