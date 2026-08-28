@@ -1,7 +1,7 @@
 const axios = require('axios');
 exports.getActivity = async (req, res) => {
   try {
-    const response = await axios.get('https://api.github.com/users/me/events', {
+    const response = await axios.get('https://api.github.com/user/events', {
       headers: {
         Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json'
