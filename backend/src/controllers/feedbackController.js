@@ -10,8 +10,9 @@ exports.submit = async (req, res) => {
       });
     }
     const {
-      supabase
+      getSupabase
     } = require('../config/supabase');
+    const supabase = getSupabase();
     const {
       error: supabaseError
     } = await supabase.from('feedback').insert([{

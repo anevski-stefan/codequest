@@ -41,8 +41,9 @@ exports.subscribe = async (req, res) => {
       }
     } else {
       const {
-        supabase
+        getSupabase
       } = require('../config/supabase');
+      const supabase = getSupabase();
       const {
         error: supabaseError
       } = await supabase.from('newsletter_subscribers').insert([{
