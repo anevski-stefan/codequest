@@ -23,7 +23,7 @@ exports.createComment = async (req, res) => {
       body
     }, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`,
+        Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json',
         'Content-Type': 'application/json'
       }
@@ -73,7 +73,7 @@ exports.getRepoDetails = async (req, res) => {
     } = req.params;
     const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`,
+        Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
     });
@@ -93,7 +93,7 @@ exports.getRepoContributors = async (req, res) => {
     } = req.params;
     const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/stats/contributors`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`,
+        Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
     });
@@ -121,7 +121,7 @@ exports.getLotteryContributors = async (req, res) => {
     } = req.params;
     const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=100`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`,
+        Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
     });
@@ -161,15 +161,15 @@ exports.getContributorConfidence = async (req, res) => {
     } = req.params;
     const [contributorsResponse, commitsResponse, prResponse] = await Promise.all([axios.get(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=100`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`
+        Authorization: `Bearer ${req.user.accessToken}`
       }
     }), axios.get(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=100`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`
+        Authorization: `Bearer ${req.user.accessToken}`
       }
     }), axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=100`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`
+        Authorization: `Bearer ${req.user.accessToken}`
       }
     })]);
     const contributors = contributorsResponse.data;
@@ -228,7 +228,7 @@ exports.getPulls = async (req, res) => {
     const perPage = 30;
     const searchResponse = await axios.get(`https://api.github.com/search/issues?q=repo:${owner}/${repo}+is:pr+state:${state}`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`,
+        Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
     });
@@ -240,14 +240,14 @@ exports.getPulls = async (req, res) => {
         per_page: perPage
       },
       headers: {
-        Authorization: `token ${req.user.accessToken}`,
+        Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
     });
     const pullRequestsWithDetails = await Promise.all(pullRequestsResponse.data.map(async pr => {
       const detailsResponse = await axios.get(pr.url, {
         headers: {
-          Authorization: `token ${req.user.accessToken}`,
+          Authorization: `Bearer ${req.user.accessToken}`,
           Accept: 'application/vnd.github.v3+json'
         }
       });
@@ -304,26 +304,26 @@ exports.getPullDetails = async (req, res) => {
     } = req.params;
     const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`,
+        Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
     });
     const filesResponse = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/files`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`,
+        Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
     });
     const commitsResponse = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/commits`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`,
+        Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
     });
     const commitsWithFiles = await Promise.all(commitsResponse.data.map(async commit => {
       const commitFiles = await axios.get(`https://api.github.com/repos/${owner}/${repo}/commits/${commit.sha}`, {
         headers: {
-          Authorization: `token ${req.user.accessToken}`,
+          Authorization: `Bearer ${req.user.accessToken}`,
           Accept: 'application/vnd.github.v3+json'
         }
       });

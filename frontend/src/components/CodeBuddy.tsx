@@ -99,11 +99,7 @@ const CodeBuddy = () => {
   } = useQuery<ChatHistory[]>(['chatHistory', user?.id], async () => {
     if (!token || !user?.id) throw new Error('Not authenticated');
     try {
-      const response = await api.get(`/api/chats/${user.id}`, {
-        headers: {
-          'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`
-        }
-      });
+      const response = await api.get(`/api/chats/${user.id}`);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -182,9 +178,6 @@ const CodeBuddy = () => {
           service: currentService,
           apiKey
         }, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
           signal: abortControllerRef.current.signal
         });
         if (!response.data?.message) {
@@ -268,10 +261,6 @@ const CodeBuddy = () => {
             messages: updatedMessages,
             userId: user.id,
             title: messages.length === 0 ? input.substring(0, 50) + '...' : undefined
-          }, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
           });
           queryClient.invalidateQueries(['chatHistory', user.id]);
         } catch (error) {
@@ -310,7 +299,6 @@ const CodeBuddy = () => {
       }
       await api.delete(`/api/chats/${chatId}`, {
         headers: {
-          'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
           'user-id': user.id
         }
       });
