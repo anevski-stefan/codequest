@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from 'react-query';
 import { HackathonCard } from './hackathons/HackathonCard';
 import { Pagination } from './ui/Pagination';
 import { ErrorDisplay } from './ui/ErrorDisplay';
