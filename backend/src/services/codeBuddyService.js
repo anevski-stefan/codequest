@@ -23,12 +23,7 @@ Remember to:
 5. If fewer than 5 issues are available, explain that there are limited issues at the moment
 6. Do not skip any available issues`;
 class CodeBuddyService {
-  constructor() {
-    this.cache = new Map();
-    setInterval(() => {
-      this.cache.clear();
-    }, 60 * 60 * 1000);
-  }
+  constructor() {}
   async getGitHubIssues(token, language = 'javascript', difficulty = 'all') {
     if (!token) {
       throw new Error('GitHub token is required');
@@ -36,7 +31,6 @@ class CodeBuddyService {
     try {
       const labels = ['good-first-issue', '"good first issue"', 'help-wanted', 'beginner'];
       const baseQuery = ['is:open', 'is:issue', `language:${language.toLowerCase()}`, labels.map(label => `label:${label}`).join(' OR ')].filter(Boolean).join(' ');
-      console.log('Attempting query:', baseQuery);
       const query = encodeURIComponent(baseQuery);
       const options = {
         sort: 'updated',
