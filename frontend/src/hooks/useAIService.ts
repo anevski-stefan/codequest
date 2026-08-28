@@ -8,17 +8,10 @@ export const useAIService = () => {
         setSelectedService(e.newValue as AIService || 'chatgpt');
       }
     };
-    const interval = setInterval(() => {
-      const currentService = localStorage.getItem('ai_service') as AIService;
-      if (currentService !== selectedService) {
-        setSelectedService(currentService || 'chatgpt');
-      }
-    }, 1000);
     window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
     };
-  }, [selectedService]);
+  }, []);
   return selectedService;
 };
