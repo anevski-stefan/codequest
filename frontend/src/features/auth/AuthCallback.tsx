@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import { githubApi } from '../../services/github';
+import { api, githubApi } from '../../services/github';
 const AuthCallback = () => {
   usePageTitle('Authenticating');
   const [searchParams] = useSearchParams();
@@ -13,7 +13,16 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const token = searchParams.get('token');
+        const code = searchParams.get('code');
+        if (!code) {
+          throw new Error('No code received');
+        }
+        const {
+          data: exchange
+        } = await api.post('/auth/exchange', {
+          code
+        });
+        const token = exchange.token;
         if (!token) {
           throw new Error('No token received');
         }
