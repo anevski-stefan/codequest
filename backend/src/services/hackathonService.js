@@ -1,10 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const cron = require('node-cron');
-const hackathonCache = {
-  data: [],
-  lastUpdated: null
-};
 let instance = null;
 class HackathonService {
   constructor() {
@@ -17,14 +13,6 @@ class HackathonService {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       },
       timeout: 15000
-    };
-    this.sources = {
-      DEVPOST: 'devpost',
-      MLH: 'mlh',
-      HACKEREARTH: 'hackerearth',
-      UNSTOP: 'unstop',
-      DEVFOLIO: 'devfolio',
-      EVENTBRITE: 'eventbrite'
     };
     this.initialize();
     this.setupCronJob();
@@ -163,16 +151,6 @@ class HackathonService {
       return [];
     }
   }
-  async retryOperation(operation, maxRetries = 3) {
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        return await operation();
-      } catch (error) {
-        if (i === maxRetries - 1) throw error;
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-      }
-    }
-  }
   async crawlAll() {
     try {
       const hackathons = await this.crawlDevpost();
@@ -187,19 +165,6 @@ class HackathonService {
       console.error('Error in crawlAll:', error);
       throw error;
     }
-  }
-  storeHackathons(hackathons) {
-    if (!Array.isArray(hackathons)) {
-      console.error('Invalid hackathons data:', hackathons);
-      return;
-    }
-    this.hackathons.clear();
-    hackathons.forEach(hackathon => {
-      if (hackathon && (hackathon.url || hackathon.title)) {
-        hackathon.id = this.generateId(hackathon);
-        this.hackathons.set(hackathon.id, hackathon);
-      }
-    });
   }
   async getAllHackathons() {
     try {
