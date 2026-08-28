@@ -193,7 +193,7 @@ exports.getContributorConfidence = async (req, res) => {
     };
     const scores = {
       activeContributor: Math.min(activeContributors / totalContributors * 100, 100),
-      recentActivity: Math.min(recentCommits / 100 * 100, 100),
+      recentActivity: Math.min(commits.length ? recentCommits / commits.length * 100 : 0, 100),
       prSuccess: Math.min(mergedPRs / prs.length * 100 || 0, 100),
       contributorDiversity: Math.min(uniquePRAuthors / totalContributors * 100, 100)
     };
@@ -244,43 +244,35 @@ exports.getPulls = async (req, res) => {
         Accept: 'application/vnd.github.v3+json'
       }
     });
-    const pullRequestsWithDetails = await Promise.all(pullRequestsResponse.data.map(async pr => {
-      const detailsResponse = await axios.get(pr.url, {
-        headers: {
-          Authorization: `Bearer ${req.user.accessToken}`,
-          Accept: 'application/vnd.github.v3+json'
-        }
-      });
-      return {
-        id: pr.id,
-        number: pr.number,
-        title: pr.title,
-        state: pr.state,
-        created_at: pr.created_at,
-        updated_at: pr.updated_at,
-        closed_at: pr.closed_at,
-        merged_at: pr.merged_at,
-        draft: pr.draft,
-        user: {
-          login: pr.user.login,
-          avatar_url: pr.user.avatar_url
-        },
-        labels: pr.labels,
-        requested_reviewers: pr.requested_reviewers,
-        head: {
-          ref: pr.head.ref,
-          sha: pr.head.sha
-        },
-        base: {
-          ref: pr.base.ref
-        },
-        commits: detailsResponse.data.commits || 0,
-        additions: detailsResponse.data.additions || 0,
-        deletions: detailsResponse.data.deletions || 0,
-        changed_files: detailsResponse.data.changed_files || 0,
-        comments: pr.comments || 0,
-        review_comments: pr.review_comments || 0
-      };
+    const pullRequestsWithDetails = pullRequestsResponse.data.map(pr => ({
+      id: pr.id,
+      number: pr.number,
+      title: pr.title,
+      state: pr.state,
+      created_at: pr.created_at,
+      updated_at: pr.updated_at,
+      closed_at: pr.closed_at,
+      merged_at: pr.merged_at,
+      draft: pr.draft,
+      user: {
+        login: pr.user.login,
+        avatar_url: pr.user.avatar_url
+      },
+      labels: pr.labels,
+      requested_reviewers: pr.requested_reviewers,
+      head: {
+        ref: pr.head.ref,
+        sha: pr.head.sha
+      },
+      base: {
+        ref: pr.base.ref
+      },
+      commits: pr.commits || 0,
+      additions: pr.additions || 0,
+      deletions: pr.deletions || 0,
+      changed_files: pr.changed_files || 0,
+      comments: pr.comments || 0,
+      review_comments: pr.review_comments || 0
     }));
     const hasMore = page * perPage < totalCount;
     res.json({
@@ -320,22 +312,15 @@ exports.getPullDetails = async (req, res) => {
         Accept: 'application/vnd.github.v3+json'
       }
     });
-    const commitsWithFiles = await Promise.all(commitsResponse.data.map(async commit => {
-      const commitFiles = await axios.get(`https://api.github.com/repos/${owner}/${repo}/commits/${commit.sha}`, {
-        headers: {
-          Authorization: `Bearer ${req.user.accessToken}`,
-          Accept: 'application/vnd.github.v3+json'
-        }
-      });
-      return {
-        sha: commit.sha,
-        commit: {
-          message: commit.commit.message,
-          author: commit.commit.author
-        },
-        author: commit.author,
-        files: commitFiles.data.files.map(file => file.filename)
-      };
+    const prFileNames = filesResponse.data.map(file => file.filename);
+    const commitsWithFiles = commitsResponse.data.map(commit => ({
+      sha: commit.sha,
+      commit: {
+        message: commit.commit.message,
+        author: commit.commit.author
+      },
+      author: commit.author,
+      files: prFileNames
     }));
     const details = {
       number: response.data.number,
