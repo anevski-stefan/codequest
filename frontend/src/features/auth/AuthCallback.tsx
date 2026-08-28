@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
-import axios from 'axios';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import { githubApi } from '../../services/github';
 const AuthCallback = () => {
   usePageTitle('Authenticating');
   const [searchParams] = useSearchParams();
@@ -17,7 +17,9 @@ const AuthCallback = () => {
         if (!token) {
           throw new Error('No token received');
         }
-        const response = await axios.get('https://api.github.com/user', {
+        const {
+          data
+        } = await githubApi.get('/user', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -25,7 +27,7 @@ const AuthCallback = () => {
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
         login({
           token,
-          user: response.data,
+          user: data,
           expiresAt
         });
         navigate('/dashboard');

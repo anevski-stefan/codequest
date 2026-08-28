@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Send } from 'lucide-react';
-import axios from 'axios';
+import { api } from '../services/github';
 const NewsletterForm = () => {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -10,7 +10,7 @@ const NewsletterForm = () => {
     if (!email) return;
     try {
       setStatus('loading');
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/newsletter/subscribe`, {
+      const response = await api.post('/api/newsletter/subscribe', {
         email
       });
       setStatus('success');

@@ -1,5 +1,5 @@
-import axios from 'axios';
 import type { HackathonResponse } from '../types/hackathon';
+import { api } from './github';
 export async function fetchHackathons(page: number, limit: number, search?: string, filter: string = 'all'): Promise<HackathonResponse> {
   console.log('Fetching hackathons with params:', {
     page,
@@ -7,7 +7,7 @@ export async function fetchHackathons(page: number, limit: number, search?: stri
     search,
     filter
   });
-  const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/hackathons`, {
+  const response = await api.get('/api/hackathons', {
     params: {
       page,
       limit,
