@@ -243,24 +243,7 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
   }
 };
 export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResponse> => {
-  const cacheKey = `suggested-issues-${JSON.stringify(params)}`;
-  const cachedData = localStorage.getItem(cacheKey);
-  if (cachedData) {
-    const {
-      data,
-      timestamp
-    } = JSON.parse(cachedData);
-    if (Date.now() - timestamp < 10 * 60 * 1000) {
-      return data;
-    }
-  }
   if (isThrottled()) {
-    if (cachedData) {
-      const {
-        data
-      } = JSON.parse(cachedData);
-      return data;
-    }
     throw new Error('Rate limit exceeded. Please wait before trying again.');
   }
   requestTimestamps.push(Date.now());
@@ -295,10 +278,6 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
     hasMore: data.total_count > (params.page || 1) * 100,
     currentPage: parseInt(params.page?.toString() || '1')
   };
-  localStorage.setItem(cacheKey, JSON.stringify({
-    data: result,
-    timestamp: Date.now()
-  }));
   return result;
 };
 export const getRepositoryDetails = async (owner: string, repo: string) => {
