@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery } from 'react-query';
+import { githubApi } from '../../services/github';
 import { Star, GitFork, Calendar, MapPin, Link as LinkIcon, Building, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { motion } from 'framer-motion';
@@ -69,32 +70,28 @@ const ContributorProfile = () => {
     data: user,
     isLoading: userLoading
   } = useQuery<ContributorDetails>(['contributor', username], async () => {
-    const response = await fetch(`https://api.github.com/users/${username}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    return response.json();
+    const {
+      data
+    } = await githubApi.get(`/users/${username}`);
+    return data;
   });
   const {
     data: organizations
   } = useQuery(['contributor-orgs', username], async () => {
-    const response = await fetch(`https://api.github.com/users/${username}/orgs`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    return response.json();
+    const {
+      data
+    } = await githubApi.get(`/users/${username}/orgs`);
+    return data;
   });
   const {
     data: starredRepos
   } = useQuery(['contributor-starred', username], async () => {
-    const response = await fetch(`https://api.github.com/users/${username}/starred?per_page=1`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+    const response = await githubApi.get(`/users/${username}/starred`, {
+      params: {
+        per_page: 1
       }
     });
-    const links = response.headers.get('link');
+    const links = response.headers['link'];
     const match = links?.match(/page=(\d+)>; rel="last"/);
     return match ? parseInt(match[1]) : 0;
   });
@@ -102,12 +99,10 @@ const ContributorProfile = () => {
     data: activityEvents,
     isLoading: activitiesLoading
   } = useQuery<ActivityEvent[]>(['contributor-activity', username], async () => {
-    const response = await fetch(`https://api.github.com/users/${username}/events/public`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    return response.json();
+    const {
+      data
+    } = await githubApi.get(`/users/${username}/events/public`);
+    return data;
   });
   const {
     data: followers,
@@ -118,12 +113,14 @@ const ContributorProfile = () => {
   } = useInfiniteQuery(['contributor-followers', username], async ({
     pageParam = 1
   }) => {
-    const response = await fetch(`https://api.github.com/users/${username}/followers?per_page=${PER_PAGE}&page=${pageParam}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+    const {
+      data
+    } = await githubApi.get(`/users/${username}/followers`, {
+      params: {
+        per_page: PER_PAGE,
+        page: pageParam
       }
     });
-    const data = await response.json();
     return {
       data,
       nextPage: data.length === PER_PAGE ? pageParam + 1 : undefined
@@ -141,12 +138,14 @@ const ContributorProfile = () => {
   } = useInfiniteQuery(['contributor-following', username], async ({
     pageParam = 1
   }) => {
-    const response = await fetch(`https://api.github.com/users/${username}/following?per_page=${PER_PAGE}&page=${pageParam}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+    const {
+      data
+    } = await githubApi.get(`/users/${username}/following`, {
+      params: {
+        per_page: PER_PAGE,
+        page: pageParam
       }
     });
-    const data = await response.json();
     return {
       data,
       nextPage: data.length === PER_PAGE ? pageParam + 1 : undefined
@@ -159,13 +158,16 @@ const ContributorProfile = () => {
     data: repos,
     isLoading: reposLoading
   } = useQuery<Repository[]>(['contributor-repos', username, page], async () => {
-    const response = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=${PER_PAGE}&page=${page}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-        Accept: 'application/vnd.github.v3+json'
+    const {
+      data
+    } = await githubApi.get(`/users/${username}/repos`, {
+      params: {
+        sort: 'updated',
+        per_page: PER_PAGE,
+        page
       }
     });
-    return response.json();
+    return data;
   }, {
     enabled: !!username,
     staleTime: 5 * 60 * 1000,

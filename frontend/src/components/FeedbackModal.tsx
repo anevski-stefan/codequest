@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import axios from 'axios';
+import { api } from '../services/github';
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,7 +18,7 @@ export default function FeedbackModal({
     try {
       setStatus('loading');
       setErrorMessage('');
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/feedback`, {
+      await api.post('/api/feedback', {
         message,
         email: 'anevskistefan11@gmail.com'
       });

@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
-import axios from 'axios';
 import { Search, Users } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import { searchTopContributors } from '../../services/github';
+import { githubApi, searchTopContributors } from '../../services/github';
 import type { GithubUser } from '../../types/github';
 import { CardSkeleton } from '../../components/skeletons/CardSkeleton';
 interface Repository {
@@ -66,12 +65,14 @@ const Explore = () => {
     error
   } = useQuery(['repositories', debouncedQuery], async () => {
     if (!debouncedQuery) return null;
-    const response = await axios.get(`https://api.github.com/search/repositories?q=${debouncedQuery}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+    const {
+      data
+    } = await githubApi.get('/search/repositories', {
+      params: {
+        q: debouncedQuery
       }
     });
-    return response.data;
+    return data;
   }, {
     enabled: !!debouncedQuery
   });
