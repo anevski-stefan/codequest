@@ -14,31 +14,7 @@ exports.getAssignedIssues = async (req, res) => {
     if (!data) {
       throw new Error('No data received from GitHub API');
     }
-    const transformedIssues = data.items.map(item => ({
-      id: item.id,
-      number: item.number,
-      title: item.title,
-      body: item.body,
-      state: item.state,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at,
-      commentsCount: item.comments,
-      labels: item.labels.map(label => ({
-        name: label.name,
-        color: label.color
-      })),
-      repository: item.repository_url ? {
-        id: item.repository_url.split('/').pop(),
-        fullName: item.repository_url.split('/').slice(-2).join('/'),
-        url: item.html_url
-      } : null,
-      user: {
-        login: item.user.login,
-        avatarUrl: item.user.avatar_url
-      },
-      url: item.html_url
-    }));
-    res.json(transformedIssues);
+    res.json(data.items || []);
   } catch (error) {
     console.error('Error fetching assigned issues:', error);
     if (error.response) {
