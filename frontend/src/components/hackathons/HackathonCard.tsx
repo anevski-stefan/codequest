@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { Calendar, MapPin, Trophy, Users, Clock, ExternalLink } from 'lucide-react';
 import { InfoItem } from './InfoItem';
 import { Tag } from './Tag';
@@ -10,16 +10,6 @@ interface HackathonCardProps {
 export const HackathonCard = memo(function HackathonCard({
   hackathon
 }: HackathonCardProps) {
-  useEffect(() => {
-    console.log('Hackathon dates:', {
-      title: hackathon.title,
-      startDate: hackathon.startDate,
-      parsedStartDate: new Date(hackathon.startDate),
-      endDate: hackathon.endDate,
-      parsedEndDate: new Date(hackathon.endDate)
-    });
-  }, [hackathon]);
-  console.log('Hackathon data:', hackathon);
   const getDaysToDeadline = () => {
     const deadline = new Date(hackathon.endDate);
     const today = new Date();

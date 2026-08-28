@@ -39,20 +39,9 @@ class CodeBuddyService {
         state: 'open'
       };
       const data = await GitHubService.searchIssues(token, query, options);
-      console.log('GitHub Response:', {
-        total_count: data?.total_count,
-        items_count: data?.items?.length,
-        query_url: `https://api.github.com/search/issues?q=${query}`,
-        rate_limit: data?.headers?.['x-ratelimit-remaining']
-      });
       if (!data?.items || data.items.length === 0) {
-        console.log('No results found. Trying basic query...');
         const basicQuery = encodeURIComponent('is:open is:issue label:"good first issue"');
         const basicData = await GitHubService.searchIssues(token, basicQuery, options);
-        console.log('Basic Query Results:', {
-          total_count: basicData?.total_count,
-          items_count: basicData?.items?.length
-        });
         return basicData?.items || [];
       }
       const formattedIssues = data.items.filter(item => item.body).map(item => ({

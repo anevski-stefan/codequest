@@ -9,17 +9,8 @@ exports.getHackathons = async (req, res) => {
       source,
       filter = 'all'
     } = req.query;
-    console.log('Request params:', {
-      page,
-      limit,
-      search,
-      source,
-      filter
-    });
     let hackathons = await hackathonService.getAllHackathons();
-    console.log('Initial hackathons count:', hackathons.length);
     const now = new Date();
-    console.log('Current date:', now.toISOString());
     if (search) {
       const searchLower = search.toLowerCase();
       hackathons = hackathons.filter(h => h.title?.toLowerCase().includes(searchLower) || h.description?.toLowerCase().includes(searchLower));
@@ -36,21 +27,11 @@ exports.getHackathons = async (req, res) => {
         });
         break;
       case 'upcoming':
-        console.log('Before upcoming filter:', hackathons.length);
-        hackathons = hackathons.filter(h => {
-          const startDate = new Date(h.startDate);
-          const isUpcoming = startDate > now;
-          console.log({
-            title: h.title,
-            startDate: h.startDate,
-            parsedStartDate: startDate,
-            currentDate: now,
-            isUpcoming
+          hackathons = hackathons.filter(h => {
+            const startDate = new Date(h.startDate);
+            return startDate > now;
           });
-          return isUpcoming;
-        });
-        console.log('After upcoming filter:', hackathons.length);
-        break;
+          break;
       case 'past':
         hackathons = hackathons.filter(h => {
           const endDate = new Date(h.endDate);
