@@ -15,7 +15,7 @@ exports.getIssueComments = async (req, res) => {
     }
     const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
       headers: {
-        Authorization: `token ${req.user.accessToken}`,
+        Authorization: `Bearer ${req.user.accessToken}`,
         Accept: 'application/vnd.github.v3+json'
       }
     });

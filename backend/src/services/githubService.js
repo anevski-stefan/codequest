@@ -9,7 +9,7 @@ class GitHubService {
         per_page: options.per_page || 100
       },
       headers: {
-        Authorization: `token ${token}`,
+        Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github.v3+json',
         'X-GitHub-Api-Version': '2022-11-28'
       }
