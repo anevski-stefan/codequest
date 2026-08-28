@@ -1,4 +1,5 @@
 import axios, { type InternalAxiosRequestConfig, type AxiosResponse } from 'axios';
+import { store } from '../store';
 import type { IssueParams, IssueResponse, Issue, Label, GithubUser } from '../types/github';
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
@@ -7,7 +8,7 @@ export const api = axios.create({
   }
 });
 const attachAuthToken = (config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem('token');
+  const token = store.getState().auth.token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -206,7 +207,7 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
   if (!owner || !repo) {
     throw new Error(`Invalid repository name: ${repoFullName}`);
   }
-  if (!localStorage.getItem('token')) {
+  if (!store.getState().auth.token) {
     throw new Error('No authentication token found');
   }
   const response = await api.post(`/api/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
@@ -216,7 +217,7 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
 };
 export const getAssignedIssues = async (state?: string): Promise<IssueResponse> => {
   try {
-    const token = localStorage.getItem('token');
+    const token = store.getState().auth.token;
     if (!token) {
       throw new Error('Authentication required');
     }

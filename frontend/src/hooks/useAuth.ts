@@ -8,11 +8,9 @@ export const useAuth = () => {
   const navigate = useNavigate();
   const auth = useSelector((state: RootState) => state.auth);
   const login = (userData: LoginResponse) => {
-    localStorage.setItem('token', userData.token);
     dispatch(setCredentials(userData));
   };
   const logoutUser = () => {
-    localStorage.removeItem('token');
     dispatch(logout());
     navigate('/');
   };
