@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const session = require('express-session');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -21,12 +22,14 @@ const feedbackRoutes = require('./routes/feedbackRoutes');
 const aiKeysRoutes = require('./routes/aiKeysRoutes');
 const app = express();
 
-const sessionSecret = process.env.SESSION_SECRET;
+const envSessionSecret = process.env.SESSION_SECRET;
+let sessionSecret = envSessionSecret;
 if (!sessionSecret) {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('SESSION_SECRET environment variable is required in production');
   }
-  console.warn('[server] SESSION_SECRET not set; using an insecure development default. Set SESSION_SECRET for production.');
+  sessionSecret = crypto.randomBytes(32).toString('hex');
+  console.warn('[server] SESSION_SECRET not set; using a random ephemeral session secret. Sessions will not survive a restart. Set SESSION_SECRET for persistence.');
 }
 
 const corsOrigin = process.env.ALLOWED_ORIGINS
@@ -39,7 +42,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(session({
-  secret: sessionSecret || 'your-secret-key',
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: {
