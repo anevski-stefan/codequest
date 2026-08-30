@@ -13,10 +13,19 @@ const limiter = rateLimit({
   legacyHeaders: false,
   handler: errorHandler,
   skip: req => {
-    return req.path.startsWith('/auth') || req.path === '/health';
+    return req.path === '/health' || req.path.startsWith('/auth');
   },
   keyGenerator: req => {
     return req.user ? `${req.ip}-${req.user.id}` : req.ip;
   }
 });
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: errorHandler,
+  keyGenerator: req => req.ip
+});
 module.exports = limiter;
+module.exports.authLimiter = authLimiter;

@@ -13,7 +13,7 @@ export const useAuth = () => {
   };
   const logoutUser = async () => {
     try {
-      await api.get('/auth/logout');
+      await api.post('/auth/logout');
     } catch {}
     dispatch(logout());
     navigate('/');
