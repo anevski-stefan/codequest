@@ -22,14 +22,12 @@ export default function HackathonList() {
     isError,
     error,
     isFetching
-  } = useQuery<HackathonResponse>({
-    queryKey: ['hackathons', page, debouncedSearch, filter],
-    queryFn: async () => {
-      const response = await fetchHackathons(page, ITEMS_PER_PAGE, debouncedSearch, filter);
-      return response;
-    },
+  } = useQuery<HackathonResponse>(['hackathons', page, debouncedSearch, filter], async () => {
+    const response = await fetchHackathons(page, ITEMS_PER_PAGE, debouncedSearch, filter);
+    return response;
+  }, {
     staleTime: 1000 * 60 * 5,
-    placeholderData: previousData => previousData,
+    keepPreviousData: true,
     refetchInterval: 1000 * 60 * 5
   });
   React.useEffect(() => {
