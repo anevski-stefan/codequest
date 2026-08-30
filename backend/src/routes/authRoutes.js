@@ -6,8 +6,9 @@ const {
   getMe,
   logout
 } = require('../controllers/authController');
+const requireAuth = require('../middleware/requireAuth');
 router.get('/github', githubAuth);
 router.get('/github/callback', ...githubCallback);
-router.get('/me', getMe);
-router.get('/logout', logout);
+router.get('/me', requireAuth, getMe);
+router.post('/logout', logout);
 module.exports = router;
