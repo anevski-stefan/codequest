@@ -9,14 +9,9 @@ function ensureSecret() {
   if (secretReady) return;
   const secret = process.env.AI_KEY_SECRET;
   if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('AI_KEY_SECRET environment variable is required in production');
-    }
-    console.warn('[crypto] AI_KEY_SECRET not set; using an ephemeral in-memory key. Stored secrets will not survive a restart. Set AI_KEY_SECRET for persistence.');
-    key = crypto.randomBytes(32);
-  } else {
-    key = crypto.scryptSync(secret, SALT, 32);
+    throw new Error('AI_KEY_SECRET environment variable is required to encrypt/decrypt secrets');
   }
+  key = crypto.scryptSync(secret, SALT, 32);
   secretReady = true;
 }
 

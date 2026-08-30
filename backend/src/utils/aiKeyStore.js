@@ -1,58 +1,53 @@
-const fs = require('fs');
-const path = require('path');
+const {
+  getSupabase
+} = require('../config/supabase');
+
 const {
   encrypt,
   decrypt
 } = require('./crypto');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const STORE_FILE = path.join(DATA_DIR, 'aiKeys.json');
+async function setAiKey(userId, service, rawKey) {
+  await getSupabase().from('ai_keys').upsert({
+    user_id: String(userId),
+    service,
+    encrypted_key: JSON.stringify(encrypt(rawKey))
+  }, { onConflict: 'user_id,service' });
+}
 
-function readStore() {
-  try {
-    return JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'));
-  } catch (e) {
-    return {};
+async function getAiKey(userId, service) {
+  const { data, error } = await getSupabase().from('ai_keys')
+    .select('encrypted_key')
+    .eq('user_id', String(userId))
+    .eq('service', service)
+    .single();
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
   }
-}
-
-function writeStore(data) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2));
-}
-
-function setAiKey(userId, service, rawKey) {
-  const data = readStore();
-  if (!data[userId]) data[userId] = {};
-  data[userId][service] = encrypt(rawKey);
-  writeStore(data);
-}
-
-function getAiKey(userId, service) {
-  const data = readStore();
-  const record = data[userId] && data[userId][service];
-  if (!record) return null;
   try {
-    return decrypt(record);
+    return decrypt(JSON.parse(data.encrypted_key));
   } catch (e) {
     return null;
   }
 }
 
-function deleteAiKey(userId, service) {
-  const data = readStore();
-  if (data[userId] && data[userId][service]) {
-    delete data[userId][service];
-    writeStore(data);
-  }
+async function deleteAiKey(userId, service) {
+  await getSupabase().from('ai_keys')
+    .delete()
+    .eq('user_id', String(userId))
+    .eq('service', service);
 }
 
-function hasAiKeys(userId) {
-  const data = readStore();
-  const user = data[userId] || {};
+async function hasAiKeys(userId) {
+  const { data, error } = await getSupabase().from('ai_keys')
+    .select('service')
+    .eq('user_id', String(userId));
+  if (error) throw error;
+  const present = new Set(data.map(row => row.service));
   return {
-    chatgpt: Boolean(user.chatgpt),
-    gemini: Boolean(user.gemini)
+    chatgpt: present.has('chatgpt'),
+    gemini: present.has('gemini')
   };
 }
 
