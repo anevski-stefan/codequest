@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const hackathonController = require('../controllers/hackathonController');
+const requireAuth = require('../middleware/requireAuth');
 router.get('/', hackathonController.getHackathons);
 router.get('/:id', hackathonController.getHackathonById);
-router.post('/', hackathonController.createHackathon);
-router.put('/:id', hackathonController.updateHackathon);
-router.delete('/:id', hackathonController.deleteHackathon);
+router.post('/', requireAuth, hackathonController.createHackathon);
+router.put('/:id', requireAuth, hackathonController.updateHackathon);
+router.delete('/:id', requireAuth, hackathonController.deleteHackathon);
 module.exports = router;

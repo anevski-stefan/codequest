@@ -83,8 +83,14 @@ exports.getHackathonById = async (req, res) => {
 };
 exports.createHackathon = async (req, res) => {
   try {
+    const sanitized = sanitizeHackathonData(req.body);
+    if (sanitized === null) {
+      return res.status(400).json({
+        error: 'Invalid hackathon data'
+      });
+    }
     const hackathonData = {
-      ...req.body,
+      ...sanitized,
       source: 'manual',
       created_at: new Date().toISOString()
     };
@@ -102,8 +108,14 @@ exports.updateHackathon = async (req, res) => {
     const {
       id
     } = req.params;
+    const sanitized = sanitizeHackathonData(req.body);
+    if (sanitized === null) {
+      return res.status(400).json({
+        error: 'Invalid hackathon data'
+      });
+    }
     const updatedHackathon = await hackathonService.updateHackathon(id, {
-      ...req.body,
+      ...sanitized,
       updated_at: new Date().toISOString()
     });
     if (!updatedHackathon) {
@@ -138,3 +150,23 @@ exports.deleteHackathon = async (req, res) => {
     });
   }
 };
+const STRING_FIELDS = ['title', 'description', 'startDate', 'endDate', 'url', 'location', 'prize', 'submissionPeriod'];
+const TAGS_FIELD = 'tags';
+function sanitizeHackathonData(body) {
+  if (!body || typeof body !== 'object') return null;
+  const result = {};
+  for (const field of STRING_FIELDS) {
+    const value = body[field];
+    if (value !== undefined && value !== null) {
+      if (typeof value !== 'string') return null;
+      result[field] = value.trim();
+    }
+  }
+  if (body[TAGS_FIELD] !== undefined && body[TAGS_FIELD] !== null) {
+    if (!Array.isArray(body[TAGS_FIELD]) || body[TAGS_FIELD].some(tag => typeof tag !== 'string')) {
+      return null;
+    }
+    result[TAGS_FIELD] = body[TAGS_FIELD].map(tag => tag.trim()).filter(Boolean);
+  }
+  return result;
+}
