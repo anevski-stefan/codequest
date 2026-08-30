@@ -27,7 +27,7 @@ exports.chat = async (req, res) => {
         error: 'Invalid AI service specified'
       });
     }
-    const apiKey = aiKeyStore.getAiKey(req.user.id, normalizedService);
+    const apiKey = await aiKeyStore.getAiKey(req.user.id, normalizedService);
     if (!apiKey) {
       return res.status(400).json({
         error: 'No API key configured. Add your key in Settings.'
