@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { store } from '../store';
+import { logout } from '../features/auth/authSlice';
 import type { IssueParams, IssueResponse, Issue, Label, GithubUser } from '../types/github';
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
@@ -8,6 +9,15 @@ export const api = axios.create({
   },
   withCredentials: true
 });
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      store.dispatch(logout());
+    }
+    return Promise.reject(error);
+  }
+);
 interface GitHubIssue {
   id: number;
   number: number;
@@ -206,7 +216,8 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
     searchQuery += 'comments:0 ';
   }
   if (params.timeFrame === 'month') {
-    searchQuery += 'created:2024-01-01..* ';
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    searchQuery += `created:>=${since} `;
   }
   const queryParams = new URLSearchParams({
     q: searchQuery.trim(),
@@ -255,11 +266,10 @@ export const getContributorConfidence = async (owner: string, repo: string) => {
   } = await api.get(`/api/repos/${owner}/${repo}/contributor-confidence`);
   return data;
 };
-export const getRepositoryPullRequests = async (owner: string, repo: string, state: 'open' | 'closed', page: number = 1, includeDetails: boolean = true) => {
+export const getRepositoryPullRequests = async (owner: string, repo: string, state: 'open' | 'closed', page: number = 1) => {
   const params = new URLSearchParams({
     state,
-    page: page.toString(),
-    includeDetails: includeDetails.toString()
+    page: page.toString()
   });
   const {
     data
