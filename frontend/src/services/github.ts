@@ -59,6 +59,10 @@ const transformIssue = (item: GitHubIssue): Issue => ({
   },
   url: item.html_url
 });
+// Map UI sort values ('created' | 'created-asc' | 'updated' | 'comments') to a valid GitHub search sort param.
+const toApiSort = (sort: string): string => sort === 'created-asc' ? 'created' : sort;
+// Date field used for the time-frame recency qualifier (only 'created'/'updated' are valid date fields).
+const toDateField = (sort: string): string => sort === 'updated' ? 'updated' : 'created';
 const isAuthenticated = () => store.getState().auth.isAuthenticated;
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   let searchQuery = 'is:issue is:unlocked ';
@@ -109,7 +113,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
           break;
         }
     }
-    searchQuery += `${params.sort}:>=${startDate} `;
+    searchQuery += `${toDateField(params.sort)}:>=${startDate} `;
   }
   if (params.commentsRange) {
     switch (params.commentsRange) {
@@ -132,7 +136,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   }
   const queryParams = new URLSearchParams({
     q: searchQuery.trim(),
-    sort: params.sort,
+    sort: toApiSort(params.sort),
     order: params.direction || 'desc',
     per_page: '100',
     page: params.page?.toString() || '1'
@@ -221,7 +225,7 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
   }
   const queryParams = new URLSearchParams({
     q: searchQuery.trim(),
-    sort: params.sort,
+    sort: toApiSort(params.sort),
     order: params.direction || 'desc',
     per_page: '100',
     page: params.page?.toString() || '1'

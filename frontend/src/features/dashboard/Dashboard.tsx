@@ -122,7 +122,7 @@ const Dashboard = () => {
   }, [handleFilterChange]);
   const handleSortChange = useCallback((value: string) => {
     handleFilterChange({
-      sort: value as Language,
+      sort: value,
       direction: value === 'created-asc' ? 'asc' : 'desc'
     });
   }, [handleFilterChange]);
