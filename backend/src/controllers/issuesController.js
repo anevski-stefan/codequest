@@ -16,7 +16,7 @@ exports.getAssignedIssues = async (req, res) => {
     }
     res.json(data.items || []);
   } catch (error) {
-    console.error('Error fetching assigned issues:', error);
+    console.error('Error fetching assigned issues:', error.message, error.response?.data);
     if (error.response) {
       return res.status(error.response.status).json({
         error: error.response.data.message || 'GitHub API error'

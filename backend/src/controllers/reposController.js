@@ -29,13 +29,8 @@ exports.createComment = async (req, res) => {
       message: error.message,
       response: error.response?.data,
       status: error.response?.status,
-      headers: error.response?.headers,
-      requestConfig: {
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        data: error.config?.data
-      }
+      url: error.config?.url,
+      method: error.config?.method
     });
     if (error.response?.status === 404) {
       return res.status(404).json({
@@ -302,7 +297,7 @@ exports.getPullDetails = async (req, res) => {
     };
     res.json(details);
   } catch (error) {
-    console.error('Error fetching pull request details:', error);
+    console.error('Error fetching pull request details:', error.message, error.response?.data);
     res.status(500).json({
       error: 'Failed to fetch pull request details'
     });

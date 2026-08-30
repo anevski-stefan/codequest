@@ -43,7 +43,7 @@ exports.chat = async (req, res) => {
         timestamp: new Date()
       });
     } catch (serviceError) {
-      console.error(`${service} service error:`, serviceError);
+      console.error(`${service} service error:`, serviceError.message);
       res.status(503).json({
         error: `${service} service error`,
         message: 'Please try again or switch services',
@@ -51,7 +51,7 @@ exports.chat = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Chat error:', error);
+    console.error('Chat error:', error.message, error.response?.data);
     res.status(500).json({
       error: 'Failed to process chat message',
       message: process.env.NODE_ENV === 'development' ? error.message : undefined,
