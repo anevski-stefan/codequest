@@ -23,6 +23,7 @@ class GitHubService {
       data: options.data,
       headers
     });
+    if (options.fullResponse) return response;
     return response.data;
   }
 
