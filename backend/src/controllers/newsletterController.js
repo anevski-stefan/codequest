@@ -19,7 +19,7 @@ exports.subscribe = async (req, res) => {
     if (process.env.MAILCHIMP_API_KEY && process.env.MAILCHIMP_LIST_ID && process.env.MAILCHIMP_SERVER) {
       const data = {
         email_address: email,
-        status: 'subscribed'
+        status: 'pending'
       };
       try {
         await axios.post(`https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_LIST_ID}/members`, data, {
@@ -29,7 +29,7 @@ exports.subscribe = async (req, res) => {
           }
         });
         return res.status(200).json({
-          message: 'Successfully subscribed to newsletter!'
+          message: 'Please check your email to confirm your subscription.'
         });
       } catch (error) {
         if (error.response?.status === 400 && error.response?.data?.title === 'Member Exists') {
