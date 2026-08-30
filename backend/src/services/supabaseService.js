@@ -1,7 +1,54 @@
 const {
   getSupabase
 } = require('../config/supabase');
+const {
+  encrypt,
+  decrypt
+} = require('../utils/crypto');
 class SupabaseService {
+  async persistAccessToken(userId, accessToken, refreshToken) {
+    const tokenRecord = encrypt(accessToken);
+    const updates = {
+      github_token: JSON.stringify(tokenRecord),
+      updated_at: new Date().toISOString()
+    };
+    if (refreshToken) {
+      updates.github_refresh_token = JSON.stringify(encrypt(refreshToken));
+    }
+    const {
+      error
+    } = await getSupabase().from('users').update(updates).eq('github_id', userId).select().single();
+    if (error) throw error;
+  }
+  async getUserWithToken(userId) {
+    const {
+      data,
+      error
+    } = await getSupabase().from('users').select('*').eq('github_id', userId).single();
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    if (!data.github_token) return {
+      ...data,
+      accessToken: null
+    };
+    let accessToken;
+    try {
+      accessToken = decrypt(JSON.parse(data.github_token));
+    } catch (e) {
+      return {
+        ...data,
+        accessToken: null
+      };
+    }
+    return {
+      ...data,
+      github_token: undefined,
+      github_refresh_token: undefined,
+      accessToken
+    };
+  }
   async createOrUpdateUser(profile) {
     try {
       const {

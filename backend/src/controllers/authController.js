@@ -43,7 +43,15 @@ const getMe = async (req, res) => {
     });
   }
 };
-const logout = (req, res) => {
+const logout = async (req, res) => {
+  const accessToken = req.user?.accessToken;
+  if (accessToken) {
+    try {
+      await revokeGitHubToken(accessToken);
+    } catch (error) {
+      console.warn('Failed to revoke GitHub token on logout:', error.message);
+    }
+  }
   if (req.logout) {
     req.logout(() => {});
   }
@@ -55,6 +63,26 @@ const logout = (req, res) => {
     message: 'Logged out'
   });
 };
+async function revokeGitHubToken(accessToken) {
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return;
+  await axios({
+    method: 'DELETE',
+    url: `https://api.github.com/applications/${clientId}/token`,
+    auth: {
+      username: clientId,
+      password: clientSecret
+    },
+    data: {
+      access_token: accessToken
+    },
+    headers: {
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'CodeQuest'
+    }
+  });
+}
 module.exports = {
   githubAuth,
   githubCallback,

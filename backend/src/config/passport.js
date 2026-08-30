@@ -15,22 +15,21 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
     proxy: true
   }, async function (accessToken, refreshToken, profile, done) {
     try {
-      let userData = profile;
-      if (supabaseService) {
-        try {
-          userData = await supabaseService.createOrUpdateUser(profile);
-        } catch (error) {
-          console.warn('Failed to store user in Supabase:', error.message);
-        }
+      if (!supabaseService) {
+        console.error('Supabase is required to persist the GitHub access token server-side. Configure SUPABASE_URL and SUPABASE_SERVICE_KEY.');
+        return done(new Error('Authentication is disabled: no server-side token store configured'), null);
       }
-      const user = {
-        id: userData.id || profile.id,
-        username: profile.username,
-        accessToken: accessToken,
-        avatar_url: profile._json.avatar_url,
-        email: profile.emails?.[0]?.value
-      };
-      return done(null, user);
+      let userData = profile;
+      try {
+        userData = await supabaseService.createOrUpdateUser(profile);
+        await supabaseService.persistAccessToken(profile.id, accessToken, refreshToken);
+      } catch (error) {
+        console.error('Failed to persist user/auth data in Supabase:', error.message);
+        return done(error, null);
+      }
+      return done(null, {
+        id: userData.id || profile.id
+      });
     } catch (error) {
       return done(error, null);
     }
@@ -39,9 +38,27 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
   console.warn('GitHub OAuth credentials not found - authentication will not work');
 }
 passport.serializeUser((user, done) => {
-  done(null, user);
+  done(null, user.id);
 });
-passport.deserializeUser((user, done) => {
-  done(null, user);
+passport.deserializeUser(async (id, done) => {
+  if (!supabaseService) {
+    return done(null, null);
+  }
+  try {
+    const user = await supabaseService.getUserWithToken(id);
+    if (!user || !user.accessToken) {
+      return done(null, null);
+    }
+    done(null, {
+      id: user.id || user.github_id,
+      username: user.username,
+      avatar_url: user.avatar_url,
+      email: user.email,
+      accessToken: user.accessToken
+    });
+  } catch (error) {
+    console.error('deserializeUser error:', error.message);
+    done(error, null);
+  }
 });
 module.exports = passport;
