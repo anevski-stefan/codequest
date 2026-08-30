@@ -1,13 +1,7 @@
-const axios = require('axios');
+const githubService = require('../services/githubService');
 exports.getActivity = async (req, res) => {
   try {
-    const response = await axios.get('https://api.github.com/user/events', {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
-    const activities = response.data.map(event => ({
+    const activities = (await githubService.request(req.user.accessToken, 'GET', '/user/events')).map(event => ({
       id: event.id,
       type: event.type,
       repo: event.repo.name,

@@ -1,4 +1,4 @@
-const axios = require('axios');
+const githubService = require('../services/githubService');
 exports.createComment = async (req, res) => {
   try {
     const {
@@ -19,16 +19,11 @@ exports.createComment = async (req, res) => {
         }]
       });
     }
-    const response = await axios.post(`https://api.github.com/repos/${owner}/${repo}/issues/${number}/comments`, {
-      body
-    }, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      }
+    const response = await githubService.request(req.user.accessToken, 'POST', `/repos/${owner}/${repo}/issues/${number}/comments`, {
+      data: { body },
+      contentType: 'application/json'
     });
-    res.status(201).json(response.data);
+    res.status(201).json(response);
   } catch (error) {
     console.error('Error creating comment:', {
       message: error.message,
@@ -71,13 +66,8 @@ exports.getRepoDetails = async (req, res) => {
       owner,
       repo
     } = req.params;
-    const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
-    res.json(response.data);
+    const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}`);
+    res.json(response);
   } catch (error) {
     console.error('Error fetching repository:', error.response?.data);
     res.status(error.response?.status || 500).json({
@@ -91,13 +81,8 @@ exports.getRepoContributors = async (req, res) => {
       owner,
       repo
     } = req.params;
-    const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/stats/contributors`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
-    const contributors = response.data.map(contributor => ({
+    const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/stats/contributors`);
+    const contributors = response.map(contributor => ({
       login: contributor.author.login,
       avatar_url: contributor.author.avatar_url,
       contributions: contributor.total,
@@ -119,13 +104,10 @@ exports.getLotteryContributors = async (req, res) => {
       owner,
       repo
     } = req.params;
-    const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=100`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
+    const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls`, {
+      params: { state: 'all', per_page: 100 }
     });
-    const pullRequests = response.data;
+    const pullRequests = response;
     const contributorCounts = {};
     pullRequests.forEach(pr => {
       const login = pr.user.login;
@@ -159,22 +141,14 @@ exports.getContributorConfidence = async (req, res) => {
       owner,
       repo
     } = req.params;
-    const [contributorsResponse, commitsResponse, prResponse] = await Promise.all([axios.get(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=100`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`
-      }
-    }), axios.get(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=100`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`
-      }
-    }), axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=100`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`
-      }
-    })]);
-    const contributors = contributorsResponse.data;
-    const commits = commitsResponse.data;
-    const prs = prResponse.data;
+    const [contributorsResponse, commitsResponse, prResponse] = await Promise.all([
+      githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/contributors`, { params: { per_page: 100 } }),
+      githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/commits`, { params: { per_page: 100 } }),
+      githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls`, { params: { state: 'all', per_page: 100 } })
+    ]);
+    const contributors = contributorsResponse;
+    const commits = commitsResponse;
+    const prs = prResponse;
     const totalContributors = contributors.length;
     const activeContributors = contributors.filter(c => c.contributions >= 10).length;
     const recentCommits = commits.filter(c => {
@@ -226,25 +200,16 @@ exports.getPulls = async (req, res) => {
       page = 1
     } = req.query;
     const perPage = 30;
-    const searchResponse = await axios.get(`https://api.github.com/search/issues?q=repo:${owner}/${repo}+is:pr+state:${state}`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
-    const totalCount = searchResponse.data.total_count;
-    const pullRequestsResponse = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+    const searchResponse = await githubService.request(req.user.accessToken, 'GET', `/search/issues?q=repo:${owner}/${repo}+is:pr+state:${state}`);
+    const totalCount = searchResponse.total_count;
+    const pullRequestsResponse = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls`, {
       params: {
         state,
         page,
         per_page: perPage
-      },
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
       }
     });
-    const pullRequestsWithDetails = pullRequestsResponse.data.map(pr => ({
+    const pullRequestsWithDetails = pullRequestsResponse.map(pr => ({
       id: pr.id,
       number: pr.number,
       title: pr.title,
@@ -294,26 +259,11 @@ exports.getPullDetails = async (req, res) => {
       repo,
       pullNumber
     } = req.params;
-    const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
-    const filesResponse = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/files`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
-    const commitsResponse = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/commits`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
-    const prFileNames = filesResponse.data.map(file => file.filename);
-    const commitsWithFiles = commitsResponse.data.map(commit => ({
+    const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}`);
+    const filesResponse = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}/files`);
+    const commitsResponse = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}/commits`);
+    const prFileNames = filesResponse.map(file => file.filename);
+    const commitsWithFiles = commitsResponse.map(commit => ({
       sha: commit.sha,
       commit: {
         message: commit.commit.message,
@@ -323,18 +273,18 @@ exports.getPullDetails = async (req, res) => {
       files: prFileNames
     }));
     const details = {
-      number: response.data.number,
-      title: response.data.title,
-      state: response.data.state,
-      created_at: response.data.created_at,
-      updated_at: response.data.updated_at,
-      merged_at: response.data.merged_at,
-      closed_at: response.data.closed_at,
+      number: response.number,
+      title: response.title,
+      state: response.state,
+      created_at: response.created_at,
+      updated_at: response.updated_at,
+      merged_at: response.merged_at,
+      closed_at: response.closed_at,
       user: {
-        login: response.data.user.login,
-        avatar_url: response.data.user.avatar_url
+        login: response.user.login,
+        avatar_url: response.user.avatar_url
       },
-      files: filesResponse.data.map(file => ({
+      files: filesResponse.map(file => ({
         filename: file.filename,
         status: file.status,
         additions: file.additions,
@@ -342,12 +292,12 @@ exports.getPullDetails = async (req, res) => {
         changes: file.changes,
         patch: file.patch
       })),
-      commits: response.data.commits,
-      additions: response.data.additions,
-      deletions: response.data.deletions,
-      changed_files: response.data.changed_files,
-      comments: response.data.comments,
-      review_comments: response.data.review_comments,
+      commits: response.commits,
+      additions: response.additions,
+      deletions: response.deletions,
+      changed_files: response.changed_files,
+      comments: response.comments,
+      review_comments: response.review_comments,
       commits_data: commitsWithFiles
     };
     res.json(details);
