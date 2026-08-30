@@ -8,6 +8,7 @@ class HackathonService {
     instance = this;
     this.hackathons = new Map();
     this.isInitialCrawlComplete = false;
+    this.crawlPromise = null;
     this.axiosConfig = {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -152,19 +153,25 @@ class HackathonService {
     }
   }
   async crawlAll() {
-    try {
-      const hackathons = await this.crawlDevpost();
-      this.hackathons.clear();
-      hackathons.forEach(h => {
-        h.id = this.generateId(h);
-        this.hackathons.set(h.id, h);
-      });
-      this.isInitialCrawlComplete = true;
-      return hackathons;
-    } catch (error) {
-      console.error('Error in crawlAll:', error);
-      throw error;
-    }
+    if (this.crawlPromise) return this.crawlPromise;
+    this.crawlPromise = (async () => {
+      try {
+        const hackathons = await this.crawlDevpost();
+        this.hackathons.clear();
+        hackathons.forEach(h => {
+          h.id = this.generateId(h);
+          this.hackathons.set(h.id, h);
+        });
+        this.isInitialCrawlComplete = true;
+        return hackathons;
+      } catch (error) {
+        console.error('Error in crawlAll:', error);
+        throw error;
+      } finally {
+        this.crawlPromise = null;
+      }
+    })();
+    return this.crawlPromise;
   }
   async getAllHackathons() {
     try {
