@@ -1,4 +1,3 @@
-const nodemailer = require('nodemailer');
 const axios = require('axios');
 exports.subscribe = async (req, res) => {
   try {
