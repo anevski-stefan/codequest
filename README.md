@@ -34,7 +34,6 @@ A modern web application that helps developers discover, track, and contribute t
 - Node.js with Express
 - Passport.js for GitHub OAuth
 - Express middleware for security and performance
-- Memory Cache for performance optimization
 - Express Rate Limiting
 - ETag support for caching
 - Environment-based configuration
@@ -68,27 +67,29 @@ VITE_API_URL=http://localhost:3000
 Backend (.env):
 ```env
 # Server Configuration
-NODE_ENV=your_env
-PORT=your_port
+NODE_ENV=development
+PORT=3000
 
-# Database Configuration
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_KEY=your_supabase_service_key
+# Client (frontend) URL used for post-auth redirects
+CLIENT_URL=http://localhost:5173
+
+# Allowed CORS origins (comma-separated). Falls back to CLIENT_URL then localhost.
+ALLOWED_ORIGINS=http://localhost:5173
 
 # GitHub OAuth Configuration
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
 GITHUB_CALLBACK_URL=http://localhost:3000/auth/github/callback
 
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
+# Supabase (REQUIRED for authentication - access tokens are stored server-side here)
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_KEY=your_supabase_service_role_key
 
 # Session Configuration
 SESSION_SECRET=your_secure_session_secret_here
+
+# Encryption key for at-rest user AI keys (AES-256-GCM)
+AI_KEY_SECRET=your_secure_ai_key_secret_here
 
 # Mailchimp Configuration (Optional)
 MAILCHIMP_API_KEY=your_mailchimp_api_key
