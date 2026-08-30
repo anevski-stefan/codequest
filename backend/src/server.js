@@ -53,6 +53,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(etagMiddleware);
 app.use(express.json());
+app.use(express.urlencoded({
+  extended: true
+}));
 app.use(limiter);
 app.use('/api/activity', requireAuth, activityRoutes);
 app.use('/api/issues', requireAuth, issuesRoutes);
