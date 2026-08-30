@@ -1,4 +1,4 @@
-const axios = require('axios');
+const githubService = require('../services/githubService');
 exports.getIssueComments = async (req, res) => {
   try {
     const {
@@ -13,13 +13,7 @@ exports.getIssueComments = async (req, res) => {
         error: 'Owner and repo are required'
       });
     }
-    const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json'
-      }
-    });
-    const comments = response.data.map(comment => ({
+    const comments = (await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/issues/${issueNumber}/comments`)).map(comment => ({
       id: comment.id,
       body: comment.body,
       user: {
