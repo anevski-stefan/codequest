@@ -17,7 +17,6 @@ const NewsletterForm = () => {
       setStatus('success');
       setMessage(response.data.message);
       setEmail('');
-      document.title = document.title;
     } catch (error) {
       const axiosError = error as AxiosError<{
         error?: string;

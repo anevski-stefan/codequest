@@ -14,7 +14,9 @@ export const useAuth = () => {
   const logoutUser = async () => {
     try {
       await api.post('/auth/logout');
-    } catch {}
+    } catch {
+      // Ignore logout API errors; still clear local session state below.
+    }
     dispatch(logout());
     navigate('/');
   };

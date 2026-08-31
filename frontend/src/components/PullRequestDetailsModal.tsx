@@ -89,7 +89,7 @@ export default function PullRequestDetailsModal({
       return formatDistanceToNow(new Date(dateString), {
         addSuffix: true
       });
-    } catch (error) {
+    } catch {
       console.error('Invalid date:', dateString);
       return '';
     }

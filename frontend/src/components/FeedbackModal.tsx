@@ -28,7 +28,7 @@ export default function FeedbackModal({
         onClose();
         setStatus('idle');
       }, 2000);
-    } catch (error) {
+    } catch {
       setStatus('error');
       setErrorMessage('Failed to send feedback. Please try again later.');
     }

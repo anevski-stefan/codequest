@@ -28,10 +28,7 @@ interface ChatHistory {
   created_at: string;
 }
 const markdownComponents: Components = {
-  a: ({
-    node,
-    ...props
-  }) => <a {...props} target="_blank" rel="noopener noreferrer" />
+  a: (props) => <a {...props} target="_blank" rel="noopener noreferrer" />
 };
 const TypingMarkdown = ({
   text,
