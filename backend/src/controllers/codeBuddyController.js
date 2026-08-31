@@ -2,6 +2,11 @@ const {
   CodeBuddyService
 } = require('../services/codeBuddyService.js');
 const aiKeyStore = require('../utils/aiKeyStore');
+const {
+  badRequest,
+  internal,
+  sendError
+} = require('../utils/httpError');
 const codeBuddyService = new CodeBuddyService();
 exports.chat = async (req, res) => {
   try {
@@ -12,26 +17,18 @@ exports.chat = async (req, res) => {
       service
     } = req.body;
     if (!message) {
-      return res.status(400).json({
-        error: 'Message is required'
-      });
+      return badRequest(res, 'Message is required');
     }
     if (typeof service !== 'string' || !service.trim()) {
-      return res.status(400).json({
-        error: 'AI service is required'
-      });
+      return badRequest(res, 'AI service is required');
     }
     const normalizedService = service.toLowerCase();
     if (!['chatgpt', 'gemini'].includes(normalizedService)) {
-      return res.status(400).json({
-        error: 'Invalid AI service specified'
-      });
+      return badRequest(res, 'Invalid AI service specified');
     }
     const apiKey = await aiKeyStore.getAiKey(req.user.id, normalizedService);
     if (!apiKey) {
-      return res.status(400).json({
-        error: 'No API key configured. Add your key in Settings.'
-      });
+      return badRequest(res, 'No API key configured. Add your key in Settings.');
     }
     try {
       const response = await codeBuddyService.getResponse(message, context, messages, req.user.accessToken, normalizedService, apiKey);
@@ -44,18 +41,10 @@ exports.chat = async (req, res) => {
       });
     } catch (serviceError) {
       console.error(`${service} service error:`, serviceError.message);
-      res.status(503).json({
-        error: `${service} service error`,
-        message: 'Please try again or switch services',
-        details: process.env.NODE_ENV !== 'production' ? serviceError.message : undefined
-      });
+      return sendError(res, 503, `${service} service error: please try again or switch services`, process.env.NODE_ENV !== 'production' ? serviceError.message : undefined);
     }
   } catch (error) {
     console.error('Chat error:', error.message, error.response?.data);
-    res.status(500).json({
-      error: 'Failed to process chat message',
-      message: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
-    });
+    return internal(res, 'Failed to process chat message', process.env.NODE_ENV !== 'production' ? error.message : undefined);
   }
 };

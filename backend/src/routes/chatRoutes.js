@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabaseService = require('../services/supabaseService');
-router.use(express.json());
+router.use(express.json({ limit: '1mb' }));
 router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;

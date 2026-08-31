@@ -75,10 +75,20 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(etagMiddleware);
-app.use(express.json());
-app.use(express.urlencoded({
-  extended: true
+app.use(express.json({
+  limit: '1mb'
 }));
+app.use(express.urlencoded({
+  extended: true,
+  limit: '1mb'
+}));
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
 app.use(limiter);
 app.use('/api/activity', requireAuth, activityRoutes);
 app.use('/api/issues', requireAuth, issuesRoutes);
