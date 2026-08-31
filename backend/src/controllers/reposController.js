@@ -52,8 +52,10 @@ exports.createComment = async (req, res) => {
       return res.status(422).json(error.response.data);
     }
     res.status(500).json({
-      message: error.response?.data?.message || error.message || 'Failed to create comment',
-      details: process.env.NODE_ENV === 'development' ? {
+      message: process.env.NODE_ENV !== 'production'
+        ? (error.response?.data?.message || error.message || 'Failed to create comment')
+        : 'Failed to create comment',
+      details: process.env.NODE_ENV !== 'production' ? {
         error: error.message,
         response: error.response?.data,
         status: error.response?.status

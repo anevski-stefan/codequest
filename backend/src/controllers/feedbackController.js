@@ -29,7 +29,7 @@ exports.submit = async (req, res) => {
     console.error('Feedback submission error:', error);
     res.status(500).json({
       error: 'Failed to send feedback',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: process.env.NODE_ENV !== 'production' ? error.message : undefined
     });
   }
 };
