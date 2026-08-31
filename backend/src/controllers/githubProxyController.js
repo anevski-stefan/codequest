@@ -1,4 +1,4 @@
-const axios = require('axios');
+const GitHubService = require('../services/githubService');
 const ALLOWED_ROUTES = [{
   pattern: /^\/search\/issues$/,
   params: ['q', 'sort', 'order', 'per_page', 'page']
@@ -82,15 +82,9 @@ const proxy = async (req, res) => {
     });
   }
   try {
-    const response = await axios({
-      method: 'GET',
-      url: `https://api.github.com${path}`,
+    const response = await GitHubService.request(req.user.accessToken, 'GET', path, {
       params,
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'CodeQuest'
-      }
+      fullResponse: true
     });
     FORWARDED_HEADERS.forEach(name => {
       const value = response.headers[name];

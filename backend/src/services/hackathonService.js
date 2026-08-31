@@ -1,7 +1,48 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
 const cron = require('node-cron');
+const { getSupabase } = require('../config/supabase');
+
+const HACKATHONS_TABLE = 'hackathons';
 let instance = null;
+
+function toDbRow(hackathon) {
+  return {
+    id: hackathon.id,
+    title: hackathon.title,
+    description: hackathon.description,
+    start_date: hackathon.startDate,
+    end_date: hackathon.endDate,
+    url: hackathon.url,
+    source: hackathon.source,
+    location: hackathon.location,
+    prize: hackathon.prize,
+    tags: hackathon.tags || [],
+    participant_count: hackathon.participantCount || 0,
+    submission_period: hackathon.submissionPeriod,
+    created_at: hackathon.createdAt,
+    updated_at: hackathon.updatedAt
+  };
+}
+
+function fromDbRow(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    url: row.url,
+    source: row.source,
+    location: row.location,
+    prize: row.prize,
+    tags: row.tags || [],
+    participantCount: row.participant_count || 0,
+    submissionPeriod: row.submission_period,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
 class HackathonService {
   constructor() {
     if (instance) return instance;
@@ -18,14 +59,15 @@ class HackathonService {
     this.initialize();
     this.setupCronJob();
   }
-  formatDate(dateStr, isEndDate = false) {
+
+  formatDate(dateStr, dateCtx = {}) {
     if (!dateStr) return '';
     try {
       dateStr = dateStr.trim();
       if (dateStr.match(/^[A-Za-z]{3}\s+\d{1,2},\s*\d{4}$/)) {
         const date = new Date(dateStr);
         if (!isNaN(date.getTime())) {
-          this.lastProcessedMonth = date.toLocaleString('en-US', {
+          dateCtx.month = date.toLocaleString('en-US', {
             month: 'short'
           });
           return date.toLocaleDateString('en-US', {
@@ -40,7 +82,7 @@ class HackathonService {
         const currentYear = new Date().getFullYear();
         const date = new Date(`${month} ${day}, ${currentYear}`);
         if (!isNaN(date.getTime())) {
-          this.lastProcessedMonth = month;
+          dateCtx.month = month;
           if (date < new Date()) {
             date.setFullYear(currentYear + 1);
           }
@@ -52,12 +94,12 @@ class HackathonService {
         }
       }
       if (dateStr.match(/^\d{1,2},\s*\d{4}$/)) {
-        if (!this.lastProcessedMonth && !isEndDate) {
+        const [day, year] = dateStr.split(',').map(s => s.trim());
+        const month = dateCtx.month;
+        if (!month) {
           console.warn(`No month available for date: ${dateStr}`);
           return dateStr;
         }
-        const [day, year] = dateStr.split(',').map(s => s.trim());
-        const month = this.lastProcessedMonth || 'Jan';
         const date = new Date(`${month} ${day}, ${year}`);
         if (!isNaN(date.getTime())) {
           return date.toLocaleDateString('en-US', {
@@ -74,14 +116,17 @@ class HackathonService {
       return dateStr;
     }
   }
+
   async initialize() {
+    await this.hydrateFromDb();
     this.crawlAll().catch(error => {
       console.error('Error during initialization:', error);
       this.isInitialCrawlComplete = true;
     });
   }
+
   setupCronJob() {
-    cron.schedule('0 */6 * * *', async () => {
+    this.cronTask = cron.schedule('0 */6 * * *', async () => {
       try {
         await this.crawlAll();
       } catch (error) {
@@ -89,6 +134,14 @@ class HackathonService {
       }
     });
   }
+
+  shutdown() {
+    if (this.cronTask) {
+      this.cronTask.stop();
+      this.cronTask = null;
+    }
+  }
+
   processTags(hackathon) {
     const processList = items => {
       if (!items) return [];
@@ -100,6 +153,7 @@ class HackathonService {
     const platformTags = processList(hackathon.platforms);
     return [...new Set([...themeTags, ...techTags, ...platformTags])];
   }
+
   async crawlDevpost() {
     try {
       let allHackathons = [];
@@ -122,19 +176,23 @@ class HackathonService {
             console.log('No more hackathons found');
             break;
           }
-          const hackathons = apiResponse.data.hackathons.map(h => ({
-            title: h.title,
-            description: h.tagline || h.description || '',
-            startDate: this.formatDate(h.submission_period_dates?.split(' - ')[0]),
-            endDate: this.formatDate(h.submission_period_dates?.split(' - ')[1]),
-            url: h.url,
-            source: 'devpost',
-            location: h.displayed_location?.location || 'Online',
-            prize: h.prize_amount ? h.prize_amount.replace(/<[^>]*>/g, '') : 'See website for details',
-            tags: this.processTags(h),
-            participantCount: h.registrations_count || 0,
-            submissionPeriod: h.submission_period_dates || ''
-          }));
+          const hackathons = apiResponse.data.hackathons.map(h => {
+            const parts = (h.submission_period_dates || '').split(' - ');
+            const dateCtx = {};
+            return {
+              title: h.title,
+              description: h.tagline || h.description || '',
+              startDate: this.formatDate(parts[0], dateCtx),
+              endDate: this.formatDate(parts[1], dateCtx),
+              url: h.url,
+              source: 'devpost',
+              location: h.displayed_location?.location || 'Online',
+              prize: h.prize_amount ? h.prize_amount.replace(/<[^>]*>/g, '') : 'See website for details',
+              tags: this.processTags(h),
+              participantCount: h.registrations_count || 0,
+              submissionPeriod: h.submission_period_dates || ''
+            };
+          });
           if (hackathons.length > 0) {
             allHackathons = [...allHackathons, ...hackathons];
           }
@@ -152,16 +210,64 @@ class HackathonService {
       return [];
     }
   }
+
+  async getSupabaseClient() {
+    try {
+      return getSupabase();
+    } catch (error) {
+      console.warn('Supabase unavailable; running with in-memory hackathon store:', error.message);
+      return null;
+    }
+  }
+
+  async hydrateFromDb() {
+    const supabase = await this.getSupabaseClient();
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from(HACKATHONS_TABLE)
+        .select('*')
+        .limit(500);
+      if (error) throw error;
+      if (data) {
+        this.replaceAll(data.map(fromDbRow));
+      }
+    } catch (error) {
+      console.error('Failed to hydrate hackathons from DB:', error);
+    }
+  }
+
+  async persistDevpost(hackathons) {
+    const supabase = await this.getSupabaseClient();
+    if (!supabase || hackathons.length === 0) return;
+    const rows = hackathons.map(h => toDbRow({ ...h, updated_at: new Date().toISOString() }));
+    try {
+      const { error } = await supabase
+        .from(HACKATHONS_TABLE)
+        .upsert(rows, { onConflict: 'id' });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Failed to persist hackathons to DB:', error);
+    }
+  }
+
   async crawlAll() {
     if (this.crawlPromise) return this.crawlPromise;
     this.crawlPromise = (async () => {
       try {
         const hackathons = await this.crawlDevpost();
-        this.hackathons.clear();
         hackathons.forEach(h => {
           h.id = this.generateId(h);
-          this.hackathons.set(h.id, h);
         });
+        await this.persistDevpost(hackathons);
+        const merged = new Map();
+        for (const h of this.hackathons.values()) {
+          if (h.source !== 'devpost') {
+            merged.set(h.id, h);
+          }
+        }
+        hackathons.forEach(h => merged.set(h.id, h));
+        this.replaceAll(Array.from(merged.values()));
         this.isInitialCrawlComplete = true;
         return hackathons;
       } catch (error) {
@@ -173,10 +279,20 @@ class HackathonService {
     })();
     return this.crawlPromise;
   }
+
+  replaceAll(hackathons) {
+    const next = new Map();
+    hackathons.forEach(h => next.set(h.id, h));
+    this.hackathons = next;
+  }
+
   async getAllHackathons() {
     try {
       const hackathons = Array.from(this.hackathons.values());
       if (hackathons.length === 0) {
+        await this.hydrateFromDb();
+        const fromDb = Array.from(this.hackathons.values());
+        if (fromDb.length > 0) return fromDb;
         await this.crawlAll();
         return Array.from(this.hackathons.values());
       }
@@ -186,9 +302,11 @@ class HackathonService {
       return [];
     }
   }
+
   getInitialCrawlStatus() {
     return this.isInitialCrawlComplete;
   }
+
   generateId(hackathon) {
     if (hackathon.url) {
       try {
@@ -199,24 +317,62 @@ class HackathonService {
     const base = (hackathon.title || 'hackathon').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     return `${base || 'hackathon'}-${Date.now().toString(36)}`;
   }
+
   getHackathonById(id) {
     return this.hackathons.get(id) || null;
   }
-  createHackathon(data) {
+
+  async createHackathon(data) {
     const hackathon = { ...data };
-    hackathon.id = this.generateId(hackathon);
+    if (!hackathon.id) {
+      hackathon.id = this.generateId(hackathon);
+    }
+    const row = toDbRow(hackathon);
+    const supabase = await this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from(HACKATHONS_TABLE).insert(row);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Failed to persist new hackathon:', error);
+      }
+    }
     this.hackathons.set(hackathon.id, hackathon);
     return hackathon;
   }
-  updateHackathon(id, data) {
+
+  async updateHackathon(id, data) {
     const existing = this.hackathons.get(id);
     if (!existing) return null;
     const updated = { ...existing, ...data, id };
+    const supabase = await this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from(HACKATHONS_TABLE)
+          .update(toDbRow(updated))
+          .eq('id', id);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Failed to persist hackathon update:', error);
+      }
+    }
     this.hackathons.set(id, updated);
     return updated;
   }
-  deleteHackathon(id) {
+
+  async deleteHackathon(id) {
+    const supabase = await this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from(HACKATHONS_TABLE).delete().eq('id', id);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Failed to delete hackathon from DB:', error);
+      }
+    }
     return this.hackathons.delete(id);
   }
 }
+
 module.exports = HackathonService;

@@ -3,10 +3,12 @@ const crypto = require('crypto');
 const session = require('express-session');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 require('dotenv').config();
 const passport = require('passport');
 require('./config/passport');
 const etagMiddleware = require('./middleware/etagMiddleware');
+const requestLogger = require('./middleware/requestLogger');
 const chatRoutes = require('./routes/chatRoutes');
 const hackathonRoutes = require('./routes/hackathonRoutes');
 const authRoutes = require('./routes/authRoutes');
@@ -53,6 +55,8 @@ const corsOrigin = process.env.ALLOWED_ORIGINS
   : (process.env.CLIENT_URL || 'http://localhost:5173');
 
 app.use(helmet());
+app.use(compression());
+app.use(requestLogger);
 app.use(cors({
   origin: corsOrigin,
   credentials: true
@@ -98,6 +102,36 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal server error'
   });
 });
-app.listen(process.env.PORT || 3000, () => {
+
+const server = app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
 });
+
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[server] ${signal} received, shutting down gracefully...`);
+  try {
+    new (require('./services/hackathonService'))().shutdown();
+  } catch (error) {
+    console.warn('[server] Could not stop hackathon scheduler:', error.message);
+  }
+  const forceTimer = setTimeout(() => {
+    console.error('[server] Forcefully exiting after shutdown timeout');
+    process.exit(1);
+  }, 10000);
+  forceTimer.unref();
+  server.close(err => {
+    if (err) {
+      console.error('[server] Error closing server:', err);
+      process.exit(1);
+    }
+    console.log('[server] HTTP server closed');
+    clearTimeout(forceTimer);
+    process.exit(0);
+  });
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
