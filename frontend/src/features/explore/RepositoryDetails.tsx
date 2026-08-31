@@ -106,6 +106,7 @@ const RepositoryDetails = () => {
   } = useQuery<Repository>({
     queryKey: ['repository', owner, repo],
     queryFn: () => getRepositoryDetails(owner!, repo!),
+    enabled: !!owner && !!repo,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000
   });
@@ -114,6 +115,7 @@ const RepositoryDetails = () => {
   } = useQuery<TopContributor[]>({
     queryKey: ['top-contributors', owner, repo],
     queryFn: () => getTopContributors(owner!, repo!),
+    enabled: !!owner && !!repo,
     staleTime: 15 * 60 * 1000,
     gcTime: 60 * 60 * 1000
   });
@@ -122,6 +124,7 @@ const RepositoryDetails = () => {
   } = useQuery<LotteryContributor[]>({
     queryKey: ['lottery-contributors', owner, repo],
     queryFn: () => getLotteryContributors(owner!, repo!),
+    enabled: !!owner && !!repo,
     staleTime: 15 * 60 * 1000,
     gcTime: 60 * 60 * 1000
   });
@@ -130,6 +133,7 @@ const RepositoryDetails = () => {
   } = useQuery<ContributorConfidence>({
     queryKey: ['contributor-confidence', owner, repo],
     queryFn: () => getContributorConfidence(owner!, repo!),
+    enabled: !!owner && !!repo,
     staleTime: 15 * 60 * 1000,
     gcTime: 60 * 60 * 1000
   });
@@ -238,6 +242,7 @@ const RepositoryDetails = () => {
   };
   if (repoLoading) return <RepositorySkeleton />;
   if (!repository) return null;
+  if (!owner || !repo) return null;
   return <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {}
       <div className="flex items-center gap-4 mb-8">

@@ -69,7 +69,10 @@ const Profile = () => {
         return 'interacted with';
     }
   };
-  if (isLoading || !user) return <ProfileSkeleton />;
+  if (isLoading) return <ProfileSkeleton />;
+  if (!user) return <div className="flex flex-1 items-center justify-center p-8 text-center">
+      <p className="text-gray-600 dark:text-gray-400">Session unavailable — please log in again.</p>
+    </div>;
   return <div className="flex flex-col md:flex-row flex-1 dark:bg-[#0B1222] mt-8 gap-6 p-4 md:p-6">
       {}
       <div className="md:w-80 shrink-0">

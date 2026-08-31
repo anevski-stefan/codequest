@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { api } from '../../services/github';
@@ -7,11 +7,23 @@ const AUTH_REDIRECT_KEY = 'auth_redirect';
 const AuthCallback = () => {
   usePageTitle('Authenticating');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const {
     login
   } = useAuth();
   useEffect(() => {
     const handleCallback = async () => {
+      const oauthError = searchParams.get('error');
+      if (oauthError) {
+        const description = searchParams.get('error_description') || searchParams.get('errorDescription');
+        sessionStorage.removeItem(AUTH_REDIRECT_KEY);
+        navigate('/login', {
+          state: {
+            authError: description || oauthError
+          }
+        });
+        return;
+      }
       try {
         const {
           data
@@ -33,7 +45,7 @@ const AuthCallback = () => {
       }
     };
     handleCallback();
-  }, [login, navigate]);
+  }, [login, navigate, searchParams]);
   return null;
 };
 export default AuthCallback;

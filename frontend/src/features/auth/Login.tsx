@@ -16,6 +16,9 @@ const Login = () => {
     isAuthenticated
   } = useSelector((state: RootState) => state.auth);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const authError = (location.state as {
+    authError?: string;
+  })?.authError;
   useEffect(() => {
     if (isAuthenticated) {
       const from = (location.state as {
@@ -80,6 +83,11 @@ const Login = () => {
                   Join thousands of developers building the future of open source. Find projects and hackathons that match your skills.
                 </p>
               </div>
+
+              {authError && <div className="w-full bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 text-sm rounded-lg px-4 py-3">
+                  <p className="font-medium">GitHub sign-in failed</p>
+                  {authError !== 'true' && <p className="mt-1 text-red-600/80 dark:text-red-400/80">{authError}</p>}
+                </div>}
 
               <button onClick={handleGitHubLogin} className="w-full group relative flex items-center justify-center px-6 py-4 
                   bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-50 

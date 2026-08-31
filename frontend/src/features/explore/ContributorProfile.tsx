@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
+import axios from 'axios';
 import { api } from '../../services/github';
 import { Star, GitFork, Calendar, MapPin, Link as LinkIcon, Building, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -68,7 +69,9 @@ const ContributorProfile = () => {
   const [activeModal, setActiveModal] = useState<'followers' | 'following' | 'repos' | null>(null);
   const {
     data: user,
-    isLoading: userLoading
+    isLoading: userLoading,
+    isError: userError,
+    error: userQueryError
   } = useQuery<ContributorDetails>({
     queryKey: ['contributor', username],
     queryFn: async () => {
@@ -226,6 +229,27 @@ const ContributorProfile = () => {
     }
   };
   if (userLoading) return <ProfileSkeleton />;
+  if (userError) {
+    const isNotFound = axios.isAxiosError(userQueryError) && userQueryError.response?.status === 404;
+    if (isNotFound) {
+      return <div className="flex flex-1 items-center justify-center p-8">
+          <div className="max-w-md text-center">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">User not found</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              This GitHub username does not exist or is no longer accessible.
+            </p>
+          </div>
+        </div>;
+    }
+    return <div className="flex flex-1 items-center justify-center p-8">
+        <div className="max-w-md text-center">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Failed to load profile</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Something went wrong while fetching this profile. Please try again.
+          </p>
+        </div>
+      </div>;
+  }
   if (!user) return <div>User not found</div>;
   return <div className="flex flex-col md:flex-row flex-1 dark:bg-[#0B1222] mt-8 gap-6 p-4 md:p-6">
       {}
