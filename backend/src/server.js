@@ -22,6 +22,18 @@ const feedbackRoutes = require('./routes/feedbackRoutes');
 const aiKeysRoutes = require('./routes/aiKeysRoutes');
 const app = express();
 
+const trustProxy = process.env.TRUST_PROXY;
+if (trustProxy === undefined) {
+  app.set('trust proxy', 0);
+} else if (trustProxy === 'true') {
+  app.set('trust proxy', true);
+} else if (trustProxy === 'false') {
+  app.set('trust proxy', false);
+} else {
+  const hops = Number(trustProxy);
+  app.set('trust proxy', Number.isInteger(hops) && hops > 0 ? hops : true);
+}
+
 const envSessionSecret = process.env.SESSION_SECRET;
 let sessionSecret = envSessionSecret;
 if (!sessionSecret) {
