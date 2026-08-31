@@ -12,13 +12,21 @@ export const getStateColor = (state: string) => {
       return 'bg-gray-100 text-gray-800';
   }
 };
+const isHexColor = (color: string): boolean => /^[0-9a-fA-F]{6}$/.test(color);
 export const getLabelColors = (color: string) => {
-  const r = parseInt(color.slice(0, 2), 16);
-  const g = parseInt(color.slice(2, 4), 16);
-  const b = parseInt(color.slice(4, 6), 16);
+  const normalized = color?.trim() ?? '';
+  if (!isHexColor(normalized)) {
+    return {
+      backgroundColor: '#6b7280',
+      color: '#ffffff'
+    };
+  }
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
   const yiq = (r * 299 + g * 587 + b * 114) / 1000;
   return {
-    backgroundColor: `#${color}`,
+    backgroundColor: `#${normalized}`,
     color: yiq >= 128 ? '#000000' : '#ffffff'
   };
 };

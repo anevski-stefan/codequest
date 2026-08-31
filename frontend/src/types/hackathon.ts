@@ -15,5 +15,4 @@ export interface HackathonResponse {
   totalPages: number;
   currentPage: number;
   totalHackathons: number;
-  isLoading: boolean;
 }
