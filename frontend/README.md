@@ -20,7 +20,7 @@ cp .env.example .env   # set VITE_API_URL to your backend URL
 
 - React 18 + TypeScript
 - Redux Toolkit (`src/store`) for auth/global state
-- TanStack Query (React Query) for server data
+- TanStack Query (`@tanstack/react-query` v5) for server data
 - React Router for routing
 - Tailwind CSS for styling
 - Framer Motion for animations

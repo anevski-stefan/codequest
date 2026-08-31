@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from 'react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { getSuggestedIssues, getIssueComments, addIssueComment } from '../../services/github';
 import type { Issue, IssueParams } from '../../types/github';
 import CommentsModal from '../../components/CommentsModal';
@@ -30,14 +30,17 @@ const SuggestedIssues = () => {
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage
-  } = useInfiniteQuery(['comments', selectedIssueId, selectedRepo], async ({
-    pageParam = 1
-  }) => {
-    if (selectedIssueId && selectedRepo) {
-      return await getIssueComments(selectedIssueId, selectedRepo, pageParam);
-    }
-    return null;
-  }, {
+  } = useInfiniteQuery({
+    queryKey: ['comments', selectedIssueId, selectedRepo],
+    queryFn: async ({
+      pageParam = 1
+    }) => {
+      if (selectedIssueId && selectedRepo) {
+        return await getIssueComments(selectedIssueId, selectedRepo, pageParam);
+      }
+      return null;
+    },
+    initialPageParam: 1,
     enabled: !!selectedIssueId && !!selectedRepo,
     getNextPageParam: lastPage => {
       if (!lastPage) return undefined;
@@ -58,36 +61,43 @@ const SuggestedIssues = () => {
       return addIssueComment(issueId, selectedRepo, comment);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['comments', selectedIssueId, selectedRepo]);
+      queryClient.invalidateQueries({ queryKey: ['comments', selectedIssueId, selectedRepo] });
     }
   });
   const {
     data,
     isLoading,
+    isError,
+    isPlaceholderData,
     error
-  } = useQuery(['suggested-issues', filter], () => getSuggestedIssues(filter), {
-    keepPreviousData: true,
+  } = useQuery({
+    queryKey: ['suggested-issues', filter],
+    queryFn: () => getSuggestedIssues(filter),
+    placeholderData: keepPreviousData,
     staleTime: 10 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 60000),
-    onError: error => {
-      console.error('Query error:', error);
-    },
-    onSuccess: newData => {
-      if (filter.page === 1) {
-        setAllIssues(newData.issues);
-      } else {
-        setAllIssues(prev => {
-          const existingIds = new Set(prev.map(issue => `${issue.repository?.fullName}-${issue.number}`));
-          const newUniqueIssues = newData.issues.filter((issue: Issue) => !existingIds.has(`${issue.repository?.fullName}-${issue.number}`));
-          return [...prev, ...newUniqueIssues];
-        });
-      }
-      setInitialFetchComplete(true);
-    }
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 60000)
   });
+  useEffect(() => {
+    if (isPlaceholderData) return;
+    if (isError) {
+      console.error('Query error:', error);
+      return;
+    }
+    if (!data) return;
+    if (filter.page === 1) {
+      setAllIssues(data.issues);
+    } else {
+      setAllIssues(prev => {
+        const existingIds = new Set(prev.map(issue => `${issue.repository?.fullName}-${issue.number}`));
+        const newUniqueIssues = data.issues.filter((issue: Issue) => !existingIds.has(`${issue.repository?.fullName}-${issue.number}`));
+        return [...prev, ...newUniqueIssues];
+      });
+    }
+    setInitialFetchComplete(true);
+  }, [isPlaceholderData, isError, error, data, filter.page]);
   const handleViewComments = (issue: Issue) => {
     if (selectedIssueId !== issue.number) {
       setSelectedIssueId(issue.number);

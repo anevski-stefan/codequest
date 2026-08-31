@@ -1,7 +1,7 @@
 import { AxiosError } from 'axios';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Send, Bot, Minimize2, User, StopCircle, History, X, TrashIcon, Eraser } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/github';
 import ReactMarkdown from 'react-markdown';
 import { useAIService } from '../hooks/useAIService';
@@ -98,33 +98,38 @@ const CodeBuddy = () => {
   const queryClient = useQueryClient();
   const [currentPartialText, setCurrentPartialText] = useState('');
   const {
-    data: chatHistory
-  } = useQuery<ChatHistory[]>(['chatHistory', user?.id], async () => {
-    if (!isAuthenticated || !user?.id) throw new Error('Not authenticated');
-    try {
-      const response = await api.get(`/api/chats/${user.id}`);
-      return response.data;
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        console.error('Chat history fetch error details:', {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-          userId: user.id,
-          headers: error.response?.headers
-        });
+    data: chatHistory,
+    isError: chatHistoryError
+  } = useQuery<ChatHistory[]>({
+    queryKey: ['chatHistory', user?.id],
+    queryFn: async () => {
+      if (!isAuthenticated || !user?.id) throw new Error('Not authenticated');
+      try {
+        const response = await api.get(`/api/chats/${user.id}`);
+        return response.data;
+      } catch (error) {
+        if (error instanceof AxiosError) {
+          console.error('Chat history fetch error details:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            userId: user.id,
+            headers: error.response?.headers
+          });
+        }
+        throw error;
       }
-      throw error;
-    }
-  }, {
+    },
     enabled: !!user?.id && isAuthenticated && showSidebar,
     staleTime: 1000 * 60 * 5,
-    retry: false,
-    onError: error => {
-      toast.error('Failed to load chat history');
-      console.error('Query error:', error);
-    }
+    retry: false
   });
+  useEffect(() => {
+    if (chatHistoryError) {
+      toast.error('Failed to load chat history');
+      console.error('Query error: chat history load failed');
+    }
+  }, [chatHistoryError]);
   const loadChat = (chat: ChatHistory) => {
     setMessages(chat.messages);
     setShowSidebar(false);
@@ -261,7 +266,7 @@ const CodeBuddy = () => {
             userId: user.id,
             title: messages.length === 0 ? input.substring(0, 50) + '...' : undefined
           });
-          queryClient.invalidateQueries(['chatHistory', user.id]);
+          queryClient.invalidateQueries({ queryKey: ['chatHistory', user.id] });
         } catch (error) {
           console.error('Failed to save chat:', error);
           toast.error('Failed to save chat history');
@@ -310,7 +315,7 @@ const CodeBuddy = () => {
       console.error('Error deleting chat:', error);
       toast.error('Failed to delete chat');
       if (user?.id) {
-        queryClient.invalidateQueries(['chatHistory', user.id]);
+        queryClient.invalidateQueries({ queryKey: ['chatHistory', user.id] });
       }
     }
   };
