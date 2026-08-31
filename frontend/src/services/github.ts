@@ -2,8 +2,9 @@ import axios from 'axios';
 import { store } from '../store';
 import { logout } from '../features/auth/authSlice';
 import type { IssueParams, IssueResponse, Issue, Label, GithubUser } from '../types/github';
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   },

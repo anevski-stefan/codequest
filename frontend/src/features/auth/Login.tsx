@@ -6,6 +6,7 @@ import type { RootState } from '../../store';
 import NewsletterForm from '../../components/NewsletterForm';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import FeedbackModal from '../../components/FeedbackModal';
+import { API_BASE_URL } from '../../services/github';
 const Login = () => {
   usePageTitle('Login');
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate, location]);
   const handleGitHubLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/github`;
+    window.location.href = `${API_BASE_URL}/auth/github`;
   };
   return <div className="fixed inset-0 bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900">
       {}
