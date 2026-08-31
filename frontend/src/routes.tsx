@@ -1,26 +1,30 @@
-import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
 import LoadingSpinner from './components/LoadingSpinner';
-const Login = lazy(() => import('./features/auth/Login'));
-const AuthCallback = lazy(() => import('./features/auth/AuthCallback'));
-const Dashboard = lazy(() => import('./features/dashboard/Dashboard'));
-const Profile = lazy(() => import('./features/profile/Profile'));
-const Settings = lazy(() => import('./features/settings/Settings'));
-const SuggestedIssues = lazy(() => import('./features/suggested/SuggestedIssues'));
-const HackathonList = lazy(() => import('./components/HackathonList'));
-const Explore = lazy(() => import('./features/explore/Explore'));
-const RepositoryDetails = lazy(() => import('./features/explore/RepositoryDetails'));
-const ContributorProfile = lazy(() => import('./features/explore/ContributorProfile'));
-const AssignedIssuesPage = lazy(() => import('./features/assigned/AssignedIssues'));
-const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
-const TermsOfService = lazy(() => import('./components/TermsOfService'));
+import ErrorBoundary from './components/ErrorBoundary';
+import lazyWithRetry from './utils/lazyWithRetry';
+const Login = lazyWithRetry(() => import('./features/auth/Login'));
+const AuthCallback = lazyWithRetry(() => import('./features/auth/AuthCallback'));
+const Dashboard = lazyWithRetry(() => import('./features/dashboard/Dashboard'));
+const Profile = lazyWithRetry(() => import('./features/profile/Profile'));
+const Settings = lazyWithRetry(() => import('./features/settings/Settings'));
+const SuggestedIssues = lazyWithRetry(() => import('./features/suggested/SuggestedIssues'));
+const HackathonList = lazyWithRetry(() => import('./components/HackathonList'));
+const Explore = lazyWithRetry(() => import('./features/explore/Explore'));
+const RepositoryDetails = lazyWithRetry(() => import('./features/explore/RepositoryDetails'));
+const ContributorProfile = lazyWithRetry(() => import('./features/explore/ContributorProfile'));
+const AssignedIssuesPage = lazyWithRetry(() => import('./features/assigned/AssignedIssues'));
+const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'));
+const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'));
 const PageFallback = () => <div className="flex items-center justify-center min-h-screen">
     <LoadingSpinner />
   </div>;
 const AppRoutes = () => {
-  return <Suspense fallback={<PageFallback />}>
+  const location = useLocation();
+  return <ErrorBoundary resetKey={location.pathname}>
+      <Suspense fallback={<PageFallback />}>
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
@@ -56,6 +60,7 @@ const AppRoutes = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
-    </Suspense>;
+    </Suspense>
+    </ErrorBoundary>;
 };
 export default AppRoutes;
