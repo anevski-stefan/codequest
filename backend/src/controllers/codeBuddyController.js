@@ -16,7 +16,7 @@ exports.chat = async (req, res) => {
         error: 'Message is required'
       });
     }
-    if (!service) {
+    if (typeof service !== 'string' || !service.trim()) {
       return res.status(400).json({
         error: 'AI service is required'
       });
