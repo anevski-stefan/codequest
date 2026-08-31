@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Users } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import { useDebounce } from '../../hooks/useDebounce';
 import { api, searchTopContributors } from '../../services/github';
 import type { GithubUser } from '../../types/github';
 import { CardSkeleton } from '../../components/skeletons/CardSkeleton';
@@ -54,7 +55,7 @@ const Explore = () => {
   const navigate = useNavigate();
   usePageTitle('Explore');
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const debouncedQuery = useDebounce(searchQuery, 500);
   const [showContributors, setShowContributors] = useState(false);
   const [contributorQuery, setContributorQuery] = useState('');
   const [contributorsPage, setContributorsPage] = useState(1);
@@ -100,9 +101,6 @@ const Explore = () => {
   }, [contributorQuery]);
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    setTimeout(() => {
-      setDebouncedQuery(e.target.value);
-    }, 500);
   };
   const handleRepositoryClick = (fullName: string) => {
     const [owner, repo] = fullName.split('/');
