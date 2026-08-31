@@ -32,8 +32,8 @@ exports.subscribe = async (req, res) => {
         });
       } catch (error) {
         if (error.response?.status === 400 && error.response?.data?.title === 'Member Exists') {
-          return res.status(400).json({
-            error: 'This email is already subscribed to our newsletter'
+          return res.status(200).json({
+            message: 'If this email is not already subscribed, a confirmation link has been sent.'
           });
         }
         throw error;
@@ -51,14 +51,14 @@ exports.subscribe = async (req, res) => {
       }]);
       if (supabaseError) {
         if (supabaseError.code === '23505') {
-          return res.status(400).json({
-            error: 'This email is already subscribed to our newsletter'
+          return res.status(200).json({
+            message: 'If this email is not already subscribed, a confirmation has been processed.'
           });
         }
         throw supabaseError;
       }
       return res.status(200).json({
-        message: 'Successfully subscribed to newsletter!'
+        message: 'If this email is not already subscribed, a confirmation link has been sent.'
       });
     }
   } catch (error) {

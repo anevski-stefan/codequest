@@ -1,3 +1,4 @@
+const MAX_MESSAGE_LENGTH = 5000;
 exports.submit = async (req, res) => {
   try {
     const {
@@ -6,6 +7,11 @@ exports.submit = async (req, res) => {
     if (!message || !message.trim()) {
       return res.status(400).json({
         error: 'Message is required'
+      });
+    }
+    if (typeof message !== 'string' || message.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({
+        error: `Message must be a string of at most ${MAX_MESSAGE_LENGTH} characters`
       });
     }
     const {

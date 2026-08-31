@@ -1,4 +1,5 @@
 const githubService = require('../services/githubService');
+const { githubErrorResponse } = require('../utils/githubError');
 const { isValidOwner, isValidRepo, isValidNumber, isValidState } = require('../utils/validateParams');
 exports.createComment = async (req, res) => {
   try {
@@ -49,17 +50,12 @@ exports.createComment = async (req, res) => {
       });
     }
     if (error.response?.status === 422) {
-      return res.status(422).json(error.response.data);
+      return res.status(422).json({
+        message: 'Could not create comment'
+      });
     }
     res.status(500).json({
-      message: process.env.NODE_ENV !== 'production'
-        ? (error.response?.data?.message || error.message || 'Failed to create comment')
-        : 'Failed to create comment',
-      details: process.env.NODE_ENV !== 'production' ? {
-        error: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      } : undefined
+      message: 'Failed to create comment'
     });
   }
 };
@@ -78,9 +74,7 @@ exports.getRepoDetails = async (req, res) => {
     res.json(response);
   } catch (error) {
     console.error('Error fetching repository:', error.response?.data);
-    res.status(error.response?.status || 500).json({
-      error: error.response?.data?.message || 'Failed to fetch repository'
-    });
+    return githubErrorResponse(res, error, 'Failed to fetch repository');
   }
 };
 exports.getRepoContributors = async (req, res) => {
@@ -106,9 +100,7 @@ exports.getRepoContributors = async (req, res) => {
     res.json(contributors.slice(0, 5));
   } catch (error) {
     console.error('Error fetching contributors:', error.response?.data);
-    res.status(error.response?.status || 500).json({
-      error: error.response?.data?.message || 'Failed to fetch contributors'
-    });
+    return githubErrorResponse(res, error, 'Failed to fetch contributors');
   }
 };
 exports.getLotteryContributors = async (req, res) => {
@@ -148,9 +140,7 @@ exports.getLotteryContributors = async (req, res) => {
     res.json(contributors.slice(0, 4));
   } catch (error) {
     console.error('Error fetching lottery contributors:', error.response?.data);
-    res.status(error.response?.status || 500).json({
-      error: error.response?.data?.message || 'Failed to fetch lottery contributors'
-    });
+    return githubErrorResponse(res, error, 'Failed to fetch lottery contributors');
   }
 };
 exports.getContributorConfidence = async (req, res) => {
@@ -207,9 +197,7 @@ exports.getContributorConfidence = async (req, res) => {
     });
   } catch (error) {
     console.error('Error calculating contributor confidence:', error.response?.data);
-    res.status(error.response?.status || 500).json({
-      error: error.response?.data?.message || 'Failed to calculate contributor confidence'
-    });
+    return githubErrorResponse(res, error, 'Failed to calculate contributor confidence');
   }
 };
 exports.getPulls = async (req, res) => {
@@ -280,9 +268,7 @@ exports.getPulls = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching pull requests:', error.response?.data);
-    res.status(error.response?.status || 500).json({
-      error: error.response?.data?.message || 'Failed to fetch pull requests'
-    });
+    return githubErrorResponse(res, error, 'Failed to fetch pull requests');
   }
 };
 exports.getPullDetails = async (req, res) => {
@@ -341,8 +327,6 @@ exports.getPullDetails = async (req, res) => {
     res.json(details);
   } catch (error) {
     console.error('Error fetching pull request details:', error.message, error.response?.data);
-    res.status(500).json({
-      error: 'Failed to fetch pull request details'
-    });
+    return githubErrorResponse(res, error, 'Failed to fetch pull request details');
   }
 };
