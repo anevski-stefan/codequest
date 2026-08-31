@@ -41,17 +41,24 @@ const TypingMarkdown = ({
 }) => {
   const [currentText, setCurrentText] = useState('');
   const intervalRef = useRef<NodeJS.Timeout>();
+  const onCompleteRef = useRef(onComplete);
+  const onTextChangeRef = useRef(onTextChange);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+    onTextChangeRef.current = onTextChange;
+  });
   useEffect(() => {
     let index = 0;
+    setCurrentText('');
     intervalRef.current = setInterval(() => {
       if (index <= text.length) {
         const newText = text.slice(0, index);
         setCurrentText(newText);
-        onTextChange(newText);
+        onTextChangeRef.current(newText);
         index++;
       } else {
         clearInterval(intervalRef.current);
-        onComplete();
+        onCompleteRef.current();
       }
     }, 15);
     return () => {
@@ -59,7 +66,7 @@ const TypingMarkdown = ({
         clearInterval(intervalRef.current);
       }
     };
-  }, [text, onComplete, onTextChange]);
+  }, [text]);
   return <ReactMarkdown className="prose prose-xs dark:prose-invert max-w-none prose-headings:text-base prose-p:text-sm" components={markdownComponents}>
       {currentText}
     </ReactMarkdown>;
@@ -69,11 +76,19 @@ const ThinkingAnimation = () => <div className="font-mono text-sm text-blue-500 
   </div>;
 const CodeBuddy = () => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const messagesRef = useRef<Message[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
   const [input, setInput] = useState('');
   const [context] = useState<ChatContext>({});
   const [isExpanded, setIsExpanded] = useState(() => {
-    const saved = localStorage.getItem('codeBuddyExpanded');
-    return saved ? JSON.parse(saved) : false;
+    try {
+      const saved = localStorage.getItem('codeBuddyExpanded');
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
   });
   const [isTyping, setIsTyping] = useState(false);
   const [currentTypingMessage, setCurrentTypingMessage] = useState('');
@@ -231,6 +246,7 @@ const CodeBuddy = () => {
   });
   const handleSend = useCallback(async () => {
     if (!input.trim() || isTyping) return;
+    const baseMessages = messagesRef.current;
     const userMessage = {
       role: 'user' as const,
       content: input,
@@ -251,7 +267,7 @@ const CodeBuddy = () => {
         message: input,
         context
       });
-      const updatedMessages = [...messages, userMessage, {
+      const updatedMessages = [...baseMessages, userMessage, {
         role: 'assistant',
         content: chatResponse.message,
         timestamp: new Date()
@@ -261,7 +277,7 @@ const CodeBuddy = () => {
           await api.post('/api/chats', {
             messages: updatedMessages,
             userId: user.id,
-            title: messages.length === 0 ? input.substring(0, 50) + '...' : undefined
+            title: baseMessages.length === 0 ? input.substring(0, 50) + '...' : undefined
           });
           queryClient.invalidateQueries({ queryKey: ['chatHistory', user.id] });
         } catch (error) {
@@ -274,7 +290,7 @@ const CodeBuddy = () => {
         console.error('Chat error:', error);
       }
     }
-  }, [input, context, chatMutation, isTyping, messages, user?.id, queryClient]);
+  }, [input, context, chatMutation, isTyping, isAuthenticated, user?.id, queryClient]);
   const handleStop = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
