@@ -84,6 +84,7 @@ const SuggestedIssues = () => {
     if (isPlaceholderData) return;
     if (isError) {
       console.error('Query error:', error);
+      setInitialFetchComplete(true);
       return;
     }
     if (!data) return;
