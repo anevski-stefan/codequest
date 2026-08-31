@@ -1,5 +1,6 @@
 const githubService = require('../services/githubService');
 const { isValidOwner, isValidRepo, isValidNumber } = require('../utils/validateParams');
+const { githubErrorResponse } = require('../utils/githubError');
 
 const PER_PAGE = 30;
 const MAX_PAGE = 10000;
@@ -48,8 +49,6 @@ exports.getIssueComments = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching comments:', error.response?.data);
-    res.status(error.response?.status || 500).json({
-      error: error.response?.data?.message || 'Failed to fetch comments'
-    });
+    return githubErrorResponse(res, error, 'Failed to fetch comments');
   }
 };

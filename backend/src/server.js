@@ -82,7 +82,7 @@ app.use('/api/repos', requireAuth, reposRoutes);
 app.use('/api/code-buddy', requireAuth, codeBuddyRoutes);
 app.use('/api/chats', requireAuth, chatRoutes);
 app.use('/api/github', githubProxyRoutes);
-app.use('/auth', limiter.authLimiter, authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api/hackathons', hackathonRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/feedback', feedbackRoutes);

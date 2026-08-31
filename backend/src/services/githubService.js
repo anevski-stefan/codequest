@@ -21,10 +21,19 @@ class GitHubService {
       url: `${API_BASE}${path}`,
       params: options.params,
       data: options.data,
-      headers
+      headers,
+      timeout: options.timeout || 15000
     });
     if (options.fullResponse) return response;
     return response.data;
+  }
+
+  static async validateToken(token) {
+    const response = await GitHubService.request(token, 'GET', '/user', {
+      fullResponse: true,
+      timeout: 10000
+    });
+    return response.status === 200;
   }
 
   static async searchIssues(token, query, options = {}) {

@@ -1,5 +1,6 @@
 const HackathonService = require('../services/hackathonService');
 const hackathonService = new HackathonService();
+const MAX_PAGE_SIZE = 50;
 exports.getHackathons = async (req, res) => {
   try {
     const {
@@ -9,6 +10,8 @@ exports.getHackathons = async (req, res) => {
       source,
       filter = 'all'
     } = req.query;
+    const parsedPage = Math.max(1, parseInt(page) || 1);
+    const parsedLimit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(limit) || 10));
     let hackathons = await hackathonService.getAllHackathons();
     const now = new Date();
     if (search) {
@@ -44,12 +47,12 @@ exports.getHackathons = async (req, res) => {
       const dateB = new Date(b.startDate);
       return dateA - dateB;
     });
-    const start = (parseInt(page) - 1) * parseInt(limit);
-    const paginatedHackathons = hackathons.slice(start, start + parseInt(limit));
+    const start = (parsedPage - 1) * parsedLimit;
+    const paginatedHackathons = hackathons.slice(start, start + parsedLimit);
     return res.json({
       hackathons: paginatedHackathons,
-      totalPages: Math.ceil(hackathons.length / parseInt(limit)),
-      currentPage: parseInt(page),
+      totalPages: Math.ceil(hackathons.length / parsedLimit),
+      currentPage: parsedPage,
       totalHackathons: hackathons.length,
       isLoading: !hackathonService.getInitialCrawlStatus()
     });
@@ -151,6 +154,16 @@ exports.deleteHackathon = async (req, res) => {
   }
 };
 const STRING_FIELDS = ['title', 'description', 'startDate', 'endDate', 'url', 'location', 'prize', 'submissionPeriod'];
+const MAX_FIELD_LENGTH = {
+  title: 200,
+  description: 5000,
+  location: 200,
+  prize: 500,
+  url: 2048,
+  startDate: 100,
+  endDate: 100,
+  submissionPeriod: 500
+};
 const TAGS_FIELD = 'tags';
 function isValidUrl(value) {
   try {
@@ -169,6 +182,8 @@ function sanitizeHackathonData(body) {
       if (typeof value !== 'string') return null;
       const trimmed = value.trim();
       if (field === 'url' && trimmed !== '' && !isValidUrl(trimmed)) return null;
+      const max = MAX_FIELD_LENGTH[field];
+      if (trimmed.length > max) return null;
       result[field] = trimmed;
     }
   }
@@ -176,7 +191,9 @@ function sanitizeHackathonData(body) {
     if (!Array.isArray(body[TAGS_FIELD]) || body[TAGS_FIELD].some(tag => typeof tag !== 'string')) {
       return null;
     }
-    result[TAGS_FIELD] = body[TAGS_FIELD].map(tag => tag.trim()).filter(Boolean);
+    const tags = body[TAGS_FIELD].map(tag => tag.trim()).filter(Boolean);
+    if (tags.length > 20 || tags.some(tag => tag.length > 50)) return null;
+    result[TAGS_FIELD] = tags;
   }
   return result;
 }

@@ -23,6 +23,9 @@ router.put('/:service', requireAuth, express.json(), async (req, res) => {
   if (!rawKey) {
     return res.status(400).json({ error: 'API key is required' });
   }
+  if (rawKey.length > 2000) {
+    return res.status(400).json({ error: 'API key is too long' });
+  }
   try {
     await aiKeyStore.setAiKey(req.user.id, service, rawKey);
     res.json({ ok: true, service });

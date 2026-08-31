@@ -1,4 +1,5 @@
 const githubService = require('../services/githubService');
+const { githubErrorResponse } = require('../utils/githubError');
 exports.getAssignedIssues = async (req, res) => {
   try {
     const {
@@ -17,17 +18,11 @@ exports.getAssignedIssues = async (req, res) => {
     res.json(data.items || []);
   } catch (error) {
     console.error('Error fetching assigned issues:', error.message, error.response?.data);
-    if (error.response) {
-      return res.status(error.response.status).json({
-        error: error.response.data.message || 'GitHub API error'
-      });
-    } else if (error.request) {
+    if (error.request && !error.response) {
       return res.status(503).json({
         error: 'Unable to reach GitHub API'
       });
     }
-    res.status(500).json({
-      error: 'Internal server error while fetching assigned issues'
-    });
+    return githubErrorResponse(res, error, 'Failed to fetch assigned issues');
   }
 };
