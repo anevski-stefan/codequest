@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { HackathonCard } from './hackathons/HackathonCard';
 import { Pagination } from './ui/Pagination';
 import { ErrorDisplay } from './ui/ErrorDisplay';
@@ -22,12 +22,14 @@ export default function HackathonList() {
     isError,
     error,
     isFetching
-  } = useQuery<HackathonResponse>(['hackathons', page, debouncedSearch, filter], async () => {
-    const response = await fetchHackathons(page, ITEMS_PER_PAGE, debouncedSearch, filter);
-    return response;
-  }, {
+  } = useQuery<HackathonResponse>({
+    queryKey: ['hackathons', page, debouncedSearch, filter],
+    queryFn: async () => {
+      const response = await fetchHackathons(page, ITEMS_PER_PAGE, debouncedSearch, filter);
+      return response;
+    },
     staleTime: 1000 * 60 * 5,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     refetchInterval: 1000 * 60 * 5
   });
   React.useEffect(() => {

@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from 'react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { GitFork, GitPullRequest, MessageSquare, GitCommit, Plus, Minus, FileText } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -8,7 +8,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { motion } from 'framer-motion';
 import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails } from '../../services/github';
 import PullRequestDetailsModal, { PullRequestDetails } from '../../components/PullRequestDetailsModal';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RepositorySkeleton } from '../../components/skeletons';
 interface Repository {
   id: number;
@@ -103,27 +103,35 @@ const RepositoryDetails = () => {
   const {
     data: repository,
     isLoading: repoLoading
-  } = useQuery<Repository>(['repository', owner, repo], () => getRepositoryDetails(owner!, repo!), {
+  } = useQuery<Repository>({
+    queryKey: ['repository', owner, repo],
+    queryFn: () => getRepositoryDetails(owner!, repo!),
     staleTime: 5 * 60 * 1000,
-    cacheTime: 30 * 60 * 1000
+    gcTime: 30 * 60 * 1000
   });
   const {
     data: topContributors
-  } = useQuery<TopContributor[]>(['top-contributors', owner, repo], () => getTopContributors(owner!, repo!), {
+  } = useQuery<TopContributor[]>({
+    queryKey: ['top-contributors', owner, repo],
+    queryFn: () => getTopContributors(owner!, repo!),
     staleTime: 15 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000
+    gcTime: 60 * 60 * 1000
   });
   const {
     data: lotteryContributors
-  } = useQuery<LotteryContributor[]>(['lottery-contributors', owner, repo], () => getLotteryContributors(owner!, repo!), {
+  } = useQuery<LotteryContributor[]>({
+    queryKey: ['lottery-contributors', owner, repo],
+    queryFn: () => getLotteryContributors(owner!, repo!),
     staleTime: 15 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000
+    gcTime: 60 * 60 * 1000
   });
   const {
     data: contributorConfidence
-  } = useQuery<ContributorConfidence>(['contributor-confidence', owner, repo], () => getContributorConfidence(owner!, repo!), {
+  } = useQuery<ContributorConfidence>({
+    queryKey: ['contributor-confidence', owner, repo],
+    queryFn: () => getContributorConfidence(owner!, repo!),
     staleTime: 15 * 60 * 1000,
-    cacheTime: 60 * 60 * 1000
+    gcTime: 60 * 60 * 1000
   });
   const [allPullRequests, setAllPullRequests] = useState<PullRequest[]>([]);
   const [page, setPage] = useState(1);
@@ -134,54 +142,65 @@ const RepositoryDetails = () => {
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const {
     data: pullRequestsData,
-    isLoading: prsLoading
+    isLoading: prsLoading,
+    isPlaceholderData: prsPlaceholder
   } = useQuery<{
     pullRequests: PullRequest[];
     hasMore: boolean;
     totalCount: number;
-  }>(['pull-requests', owner, repo, prState, page], () => getRepositoryPullRequests(owner!, repo!, prState, page), {
+  }>({
+    queryKey: ['pull-requests', owner, repo, prState, page],
+    queryFn: () => getRepositoryPullRequests(owner!, repo!, prState, page),
     enabled: !!owner && !!repo,
-    keepPreviousData: true,
-    staleTime: 2 * 60 * 1000,
-    onSuccess: newData => {
-      if (newData.hasMore) {
-        queryClient.prefetchQuery(['pull-requests', owner, repo, prState, page + 1], () => getRepositoryPullRequests(owner!, repo!, prState, page + 1));
-      }
-      if (page === 1) {
-        setAllPullRequests(newData.pullRequests);
-      } else {
-        setAllPullRequests(prev => {
-          const existingIds = new Set(prev.map(pr => pr.id));
-          const newUniquePRs = newData.pullRequests.filter(pr => !existingIds.has(pr.id));
-          return [...prev, ...newUniquePRs];
-        });
-      }
-      setIsSwitching(false);
-    }
+    placeholderData: keepPreviousData,
+    staleTime: 2 * 60 * 1000
   });
+  useEffect(() => {
+    if (prsPlaceholder || !pullRequestsData) return;
+    if (pullRequestsData.hasMore) {
+      queryClient.prefetchQuery({
+        queryKey: ['pull-requests', owner, repo, prState, page + 1],
+        queryFn: () => getRepositoryPullRequests(owner!, repo!, prState, page + 1)
+      });
+    }
+    if (page === 1) {
+      setAllPullRequests(pullRequestsData.pullRequests);
+    } else {
+      setAllPullRequests(prev => {
+        const existingIds = new Set(prev.map(pr => pr.id));
+        const newUniquePRs = pullRequestsData.pullRequests.filter(pr => !existingIds.has(pr.id));
+        return [...prev, ...newUniquePRs];
+      });
+    }
+    setIsSwitching(false);
+  }, [prsPlaceholder, pullRequestsData, queryClient, owner, repo, prState, page]);
   const {
     data: prCounts
-  } = useQuery<PullRequestCounts>(['pull-request-counts', owner, repo], async () => {
-    const openData = queryClient.getQueryData(['pull-requests', owner, repo, 'open', 1]) as PullRequestsResult | undefined;
-    const closedData = queryClient.getQueryData(['pull-requests', owner, repo, 'closed', 1]) as PullRequestsResult | undefined;
-    if (openData && closedData) {
+  } = useQuery<PullRequestCounts>({
+    queryKey: ['pull-request-counts', owner, repo],
+    queryFn: async () => {
+      const openData = queryClient.getQueryData(['pull-requests', owner, repo, 'open', 1]) as PullRequestsResult | undefined;
+      const closedData = queryClient.getQueryData(['pull-requests', owner, repo, 'closed', 1]) as PullRequestsResult | undefined;
+      if (openData && closedData) {
+        return {
+          open: openData.totalCount,
+          closed: closedData.totalCount
+        };
+      }
+      const [newOpenData, newClosedData] = await Promise.all([getRepositoryPullRequests(owner!, repo!, 'open', 1), getRepositoryPullRequests(owner!, repo!, 'closed', 1)]);
       return {
-        open: openData.totalCount,
-        closed: closedData.totalCount
+        open: newOpenData.totalCount,
+        closed: newClosedData.totalCount
       };
-    }
-    const [newOpenData, newClosedData] = await Promise.all([getRepositoryPullRequests(owner!, repo!, 'open', 1), getRepositoryPullRequests(owner!, repo!, 'closed', 1)]);
-    return {
-      open: newOpenData.totalCount,
-      closed: newClosedData.totalCount
-    };
-  }, {
+    },
     enabled: !!owner && !!repo,
     staleTime: 5 * 60 * 1000,
-    cacheTime: 30 * 60 * 1000
+    gcTime: 30 * 60 * 1000
   });
   const prefetchPRDetails = (pr: PullRequest) => {
-    queryClient.prefetchQuery(['pr-details', owner, repo, pr.number], () => getPullRequestDetails(owner!, repo!, pr.number), {
+    queryClient.prefetchQuery({
+      queryKey: ['pr-details', owner, repo, pr.number],
+      queryFn: () => getPullRequestDetails(owner!, repo!, pr.number),
       staleTime: 5 * 60 * 1000
     });
   };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Search, Users } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { api, searchTopContributors } from '../../services/github';
@@ -63,32 +63,37 @@ const Explore = () => {
     data,
     isLoading,
     error
-  } = useQuery(['repositories', debouncedQuery], async () => {
-    if (!debouncedQuery) return null;
-    const {
-      data
-    } = await api.get('/api/github/search/repositories', {
-      params: {
-        q: debouncedQuery
-      }
-    });
-    return data;
-  }, {
+  } = useQuery({
+    queryKey: ['repositories', debouncedQuery],
+    queryFn: async () => {
+      if (!debouncedQuery) return null;
+      const {
+        data
+      } = await api.get('/api/github/search/repositories', {
+        params: {
+          q: debouncedQuery
+        }
+      });
+      return data;
+    },
     enabled: !!debouncedQuery
   });
   const {
     data: contributorsData,
     isLoading: contributorsLoading
-  } = useQuery(['contributors', contributorQuery, contributorsPage], () => searchTopContributors(contributorQuery || 'followers:>1000', contributorsPage), {
-    enabled: showContributors,
-    onSuccess: data => {
-      if (contributorsPage === 1) {
-        setAllContributors(data.users);
-      } else {
-        setAllContributors(prev => [...prev, ...data.users]);
-      }
-    }
+  } = useQuery({
+    queryKey: ['contributors', contributorQuery, contributorsPage],
+    queryFn: () => searchTopContributors(contributorQuery || 'followers:>1000', contributorsPage),
+    enabled: showContributors
   });
+  useEffect(() => {
+    if (!contributorsData) return;
+    if (contributorsPage === 1) {
+      setAllContributors(contributorsData.users);
+    } else {
+      setAllContributors(prev => [...prev, ...contributorsData.users]);
+    }
+  }, [contributorsData, contributorsPage]);
   useEffect(() => {
     setContributorsPage(1);
     setAllContributors([]);

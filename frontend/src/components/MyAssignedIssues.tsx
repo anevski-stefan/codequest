@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { getAssignedIssues, getIssueComments, addIssueComment } from '../services/github';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle } from 'lucide-react';
@@ -29,13 +29,12 @@ const MyAssignedIssues = () => {
     data,
     isLoading,
     error
-  } = useQuery(['assignedIssues', issueState], () => getAssignedIssues(issueState), {
+  } = useQuery({
+    queryKey: ['assignedIssues', issueState],
+    queryFn: () => getAssignedIssues(issueState),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     retry: 2,
-    onError: error => {
-      console.error('Failed to fetch assigned issues:', error);
-    },
     select: data => ({
       issues: Array.isArray(data) ? data : data.issues || [],
       totalCount: Array.isArray(data) ? data.length : data.issues?.length || 0,

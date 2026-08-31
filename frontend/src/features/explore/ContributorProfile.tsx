@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery, useInfiniteQuery } from 'react-query';
+import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../../services/github';
 import { Star, GitFork, Calendar, MapPin, Link as LinkIcon, Building, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -69,40 +69,52 @@ const ContributorProfile = () => {
   const {
     data: user,
     isLoading: userLoading
-  } = useQuery<ContributorDetails>(['contributor', username], async () => {
-    const {
-      data
-    } = await api.get(`/api/github/users/${username}`);
-    return data;
+  } = useQuery<ContributorDetails>({
+    queryKey: ['contributor', username],
+    queryFn: async () => {
+      const {
+        data
+      } = await api.get(`/api/github/users/${username}`);
+      return data;
+    }
   });
   const {
     data: organizations
-  } = useQuery(['contributor-orgs', username], async () => {
-    const {
-      data
-    } = await api.get(`/api/github/users/${username}/orgs`);
-    return data;
+  } = useQuery({
+    queryKey: ['contributor-orgs', username],
+    queryFn: async () => {
+      const {
+        data
+      } = await api.get(`/api/github/users/${username}/orgs`);
+      return data;
+    }
   });
   const {
     data: starredRepos
-  } = useQuery(['contributor-starred', username], async () => {
-    const response = await api.get(`/api/github/users/${username}/starred`, {
-      params: {
-        per_page: 1
-      }
-    });
-    const links = response.headers['link'];
-    const match = links?.match(/page=(\d+)>; rel="last"/);
-    return match ? parseInt(match[1]) : 0;
+  } = useQuery({
+    queryKey: ['contributor-starred', username],
+    queryFn: async () => {
+      const response = await api.get(`/api/github/users/${username}/starred`, {
+        params: {
+          per_page: 1
+        }
+      });
+      const links = response.headers['link'];
+      const match = links?.match(/page=(\d+)>; rel="last"/);
+      return match ? parseInt(match[1]) : 0;
+    }
   });
   const {
     data: activityEvents,
     isLoading: activitiesLoading
-  } = useQuery<ActivityEvent[]>(['contributor-activity', username], async () => {
-    const {
-      data
-    } = await api.get(`/api/github/users/${username}/events/public`);
-    return data;
+  } = useQuery<ActivityEvent[]>({
+    queryKey: ['contributor-activity', username],
+    queryFn: async () => {
+      const {
+        data
+      } = await api.get(`/api/github/users/${username}/events/public`);
+      return data;
+    }
   });
   const {
     data: followers,
@@ -110,22 +122,25 @@ const ContributorProfile = () => {
     isFetchingNextPage: isLoadingMoreFollowers,
     fetchNextPage: fetchMoreFollowers,
     hasNextPage: hasMoreFollowers
-  } = useInfiniteQuery(['contributor-followers', username], async ({
-    pageParam = 1
-  }) => {
-    const {
-      data
-    } = await api.get(`/api/github/users/${username}/followers`, {
-      params: {
-        per_page: PER_PAGE,
-        page: pageParam
-      }
-    });
-    return {
-      data,
-      nextPage: data.length === PER_PAGE ? pageParam + 1 : undefined
-    };
-  }, {
+  } = useInfiniteQuery({
+    queryKey: ['contributor-followers', username],
+    queryFn: async ({
+      pageParam = 1
+    }) => {
+      const {
+        data
+      } = await api.get(`/api/github/users/${username}/followers`, {
+        params: {
+          per_page: PER_PAGE,
+          page: pageParam
+        }
+      });
+      return {
+        data,
+        nextPage: data.length === PER_PAGE ? pageParam + 1 : undefined
+      };
+    },
+    initialPageParam: 1,
     getNextPageParam: lastPage => lastPage.nextPage,
     enabled: activeModal === 'followers'
   });
@@ -135,43 +150,48 @@ const ContributorProfile = () => {
     isFetchingNextPage: isLoadingMoreFollowing,
     fetchNextPage: fetchMoreFollowing,
     hasNextPage: hasMoreFollowing
-  } = useInfiniteQuery(['contributor-following', username], async ({
-    pageParam = 1
-  }) => {
-    const {
-      data
-    } = await api.get(`/api/github/users/${username}/following`, {
-      params: {
-        per_page: PER_PAGE,
-        page: pageParam
-      }
-    });
-    return {
-      data,
-      nextPage: data.length === PER_PAGE ? pageParam + 1 : undefined
-    };
-  }, {
+  } = useInfiniteQuery({
+    queryKey: ['contributor-following', username],
+    queryFn: async ({
+      pageParam = 1
+    }) => {
+      const {
+        data
+      } = await api.get(`/api/github/users/${username}/following`, {
+        params: {
+          per_page: PER_PAGE,
+          page: pageParam
+        }
+      });
+      return {
+        data,
+        nextPage: data.length === PER_PAGE ? pageParam + 1 : undefined
+      };
+    },
+    initialPageParam: 1,
     getNextPageParam: lastPage => lastPage.nextPage,
     enabled: activeModal === 'following'
   });
   const {
     data: repos,
     isLoading: reposLoading
-  } = useQuery<Repository[]>(['contributor-repos', username, page], async () => {
-    const {
-      data
-    } = await api.get(`/api/github/users/${username}/repos`, {
-      params: {
-        sort: 'updated',
-        per_page: PER_PAGE,
-        page
-      }
-    });
-    return data;
-  }, {
+  } = useQuery<Repository[]>({
+    queryKey: ['contributor-repos', username, page],
+    queryFn: async () => {
+      const {
+        data
+      } = await api.get(`/api/github/users/${username}/repos`, {
+        params: {
+          sort: 'updated',
+          per_page: PER_PAGE,
+          page
+        }
+      });
+      return data;
+    },
     enabled: !!username,
     staleTime: 5 * 60 * 1000,
-    keepPreviousData: true
+    placeholderData: keepPreviousData
   });
   const Pagination = () => {
     const hasMorePages = repos && Array.isArray(repos) && repos.length >= PER_PAGE;

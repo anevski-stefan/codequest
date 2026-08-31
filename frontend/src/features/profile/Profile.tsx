@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Star, GitFork, Calendar, MapPin, Link as LinkIcon, Building, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -22,17 +22,25 @@ const Profile = () => {
   const {
     data: repos,
     isLoading: reposLoading
-  } = useQuery(['user-repos', page], () => getUserRepositories(page, PER_PAGE));
+  } = useQuery({
+    queryKey: ['user-repos', page],
+    queryFn: () => getUserRepositories(page, PER_PAGE)
+  });
   const {
     data: activities,
     isLoading: activitiesLoading
-  } = useQuery(['user-activities'], () => getUserActivities(user?.login as string), {
+  } = useQuery({
+    queryKey: ['user-activities'],
+    queryFn: () => getUserActivities(user?.login as string),
     enabled: !!user?.login
   });
   const {
     data: starredCount,
     isLoading: starredLoading
-  } = useQuery(['user-starred'], getUserStarredCount);
+  } = useQuery({
+    queryKey: ['user-starred'],
+    queryFn: getUserStarredCount
+  });
   const isLoading = reposLoading || activitiesLoading || starredLoading;
   const Pagination = () => <div className="mt-6 flex items-center justify-center gap-4">
       <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`p-2 rounded-lg ${page === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
