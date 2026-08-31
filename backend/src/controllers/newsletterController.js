@@ -65,7 +65,7 @@ exports.subscribe = async (req, res) => {
     console.error('Newsletter subscription error:', error);
     res.status(500).json({
       error: 'Failed to subscribe to newsletter',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: process.env.NODE_ENV !== 'production' ? error.message : undefined
     });
   }
 };

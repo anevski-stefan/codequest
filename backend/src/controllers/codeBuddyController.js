@@ -47,15 +47,15 @@ exports.chat = async (req, res) => {
       res.status(503).json({
         error: `${service} service error`,
         message: 'Please try again or switch services',
-        details: process.env.NODE_ENV === 'development' ? serviceError.message : undefined
+        details: process.env.NODE_ENV !== 'production' ? serviceError.message : undefined
       });
     }
   } catch (error) {
     console.error('Chat error:', error.message, error.response?.data);
     res.status(500).json({
       error: 'Failed to process chat message',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
     });
   }
 };

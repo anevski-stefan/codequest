@@ -95,7 +95,7 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('[server] Unhandled error:', err);
   res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal server error'
   });
 });
 app.listen(process.env.PORT || 3000, () => {
