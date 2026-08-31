@@ -32,6 +32,10 @@ if (!sessionSecret) {
   console.warn('[server] SESSION_SECRET not set; using a random ephemeral session secret. Sessions will not survive a restart. Set SESSION_SECRET for persistence.');
 }
 
+if (!process.env.AI_KEY_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('AI_KEY_SECRET environment variable is required in production');
+}
+
 const corsOrigin = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : (process.env.CLIENT_URL || 'http://localhost:5173');
