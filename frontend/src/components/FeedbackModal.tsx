@@ -19,8 +19,7 @@ export default function FeedbackModal({
       setStatus('loading');
       setErrorMessage('');
       await api.post('/api/feedback', {
-        message,
-        email: 'anevskistefan11@gmail.com'
+        message
       });
       setStatus('success');
       setMessage('');

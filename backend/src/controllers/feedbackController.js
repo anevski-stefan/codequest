@@ -1,8 +1,7 @@
 exports.submit = async (req, res) => {
   try {
     const {
-      message,
-      email
+      message
     } = req.body;
     if (!message || !message.trim()) {
       return res.status(400).json({
@@ -17,7 +16,7 @@ exports.submit = async (req, res) => {
       error: supabaseError
     } = await supabase.from('feedback').insert([{
       message: message.trim(),
-      email: email || null,
+      email: req.user?.email || null,
       created_at: new Date().toISOString()
     }]);
     if (supabaseError) {
