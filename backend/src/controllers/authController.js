@@ -10,7 +10,27 @@ const githubCallback = [passport.authenticate('github', {
   session: true,
   state: true
 }), (req, res) => {
-  res.redirect(`${clientUrl()}/auth/callback`);
+  if (req.session) {
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Session regeneration error:', err.message);
+        return res.redirect(`${clientUrl()}/login`);
+      }
+      if (req.user) {
+        req.login(req.user, (loginErr) => {
+          if (loginErr) {
+            console.error('Session re-login error:', loginErr.message);
+            return res.redirect(`${clientUrl()}/login`);
+          }
+          res.redirect(`${clientUrl()}/auth/callback`);
+        });
+      } else {
+        res.redirect(`${clientUrl()}/auth/callback`);
+      }
+    });
+  } else {
+    res.redirect(`${clientUrl()}/auth/callback`);
+  }
 }];
 const getMe = async (req, res) => {
   if (!req.user || !req.user.accessToken) {
