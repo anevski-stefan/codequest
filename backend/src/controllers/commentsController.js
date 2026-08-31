@@ -1,4 +1,5 @@
 const githubService = require('../services/githubService');
+const { isValidOwner, isValidRepo, isValidNumber } = require('../utils/validateParams');
 
 const PER_PAGE = 30;
 
@@ -17,9 +18,9 @@ exports.getIssueComments = async (req, res) => {
       repo,
       page = '1'
     } = req.query;
-    if (!owner || !repo) {
+    if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(issueNumber)) {
       return res.status(400).json({
-        error: 'Owner and repo are required'
+        error: 'Invalid owner, repo or issue number'
       });
     }
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);

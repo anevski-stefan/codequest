@@ -1,4 +1,5 @@
 const githubService = require('../services/githubService');
+const { isValidOwner, isValidRepo, isValidNumber, isValidState } = require('../utils/validateParams');
 exports.createComment = async (req, res) => {
   try {
     const {
@@ -6,6 +7,11 @@ exports.createComment = async (req, res) => {
       repo,
       number
     } = req.params;
+    if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(number)) {
+      return res.status(400).json({
+        message: 'Invalid owner, repo or issue number'
+      });
+    }
     const {
       body
     } = req.body;
@@ -61,6 +67,11 @@ exports.getRepoDetails = async (req, res) => {
       owner,
       repo
     } = req.params;
+    if (!isValidOwner(owner) || !isValidRepo(repo)) {
+      return res.status(400).json({
+        error: 'Invalid owner or repo'
+      });
+    }
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}`);
     res.json(response);
   } catch (error) {
@@ -76,6 +87,11 @@ exports.getRepoContributors = async (req, res) => {
       owner,
       repo
     } = req.params;
+    if (!isValidOwner(owner) || !isValidRepo(repo)) {
+      return res.status(400).json({
+        error: 'Invalid owner or repo'
+      });
+    }
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/stats/contributors`);
     const contributors = response.map(contributor => ({
       login: contributor.author.login,
@@ -99,6 +115,11 @@ exports.getLotteryContributors = async (req, res) => {
       owner,
       repo
     } = req.params;
+    if (!isValidOwner(owner) || !isValidRepo(repo)) {
+      return res.status(400).json({
+        error: 'Invalid owner or repo'
+      });
+    }
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls`, {
       params: { state: 'all', per_page: 100 }
     });
@@ -136,6 +157,11 @@ exports.getContributorConfidence = async (req, res) => {
       owner,
       repo
     } = req.params;
+    if (!isValidOwner(owner) || !isValidRepo(repo)) {
+      return res.status(400).json({
+        error: 'Invalid owner or repo'
+      });
+    }
     const [contributorsResponse, commitsResponse, prResponse] = await Promise.all([
       githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/contributors`, { params: { per_page: 100 } }),
       githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/commits`, { params: { per_page: 100 } }),
@@ -194,6 +220,16 @@ exports.getPulls = async (req, res) => {
       state = 'open',
       page = 1
     } = req.query;
+    if (!isValidOwner(owner) || !isValidRepo(repo)) {
+      return res.status(400).json({
+        error: 'Invalid owner or repo'
+      });
+    }
+    if (!isValidState(state)) {
+      return res.status(400).json({
+        error: 'Invalid state; must be open, closed or all'
+      });
+    }
     const perPage = 30;
     const searchResponse = await githubService.request(req.user.accessToken, 'GET', `/search/issues?q=repo:${owner}/${repo}+is:pr+state:${state}`);
     const totalCount = searchResponse.total_count;
@@ -254,6 +290,11 @@ exports.getPullDetails = async (req, res) => {
       repo,
       pullNumber
     } = req.params;
+    if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(pullNumber)) {
+      return res.status(400).json({
+        error: 'Invalid owner, repo or pull request number'
+      });
+    }
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}`);
     const filesResponse = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}/files`);
     const commitsResponse = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}/commits`);
