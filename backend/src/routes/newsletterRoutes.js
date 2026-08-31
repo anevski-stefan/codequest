@@ -3,5 +3,5 @@ const router = express.Router();
 const {
   subscribe
 } = require('../controllers/newsletterController');
-router.post('/subscribe', express.json(), subscribe);
+router.post('/subscribe', express.json({ limit: '1mb' }), subscribe);
 module.exports = router;

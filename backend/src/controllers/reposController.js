@@ -1,5 +1,6 @@
 const githubService = require('../services/githubService');
 const { githubErrorResponse } = require('../utils/githubError');
+const { badRequest, notFound, forbidden, sendError } = require('../utils/httpError');
 const { isValidOwner, isValidRepo, isValidNumber, isValidState } = require('../utils/validateParams');
 exports.createComment = async (req, res) => {
   try {
@@ -9,22 +10,17 @@ exports.createComment = async (req, res) => {
       number
     } = req.params;
     if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(number)) {
-      return res.status(400).json({
-        message: 'Invalid owner, repo or issue number'
-      });
+      return badRequest(res, 'Invalid owner, repo or issue number');
     }
     const {
       body
     } = req.body;
     if (!body) {
-      return res.status(422).json({
-        message: 'Validation Failed',
-        errors: [{
-          resource: 'IssueComment',
-          field: 'body',
-          code: 'missing_field'
-        }]
-      });
+      return sendError(res, 422, 'Validation Failed', [{
+        resource: 'IssueComment',
+        field: 'body',
+        code: 'missing_field'
+      }]);
     }
     const response = await githubService.request(req.user.accessToken, 'POST', `/repos/${owner}/${repo}/issues/${number}/comments`, {
       data: { body },
@@ -40,22 +36,16 @@ exports.createComment = async (req, res) => {
       method: error.config?.method
     });
     if (error.response?.status === 404) {
-      return res.status(404).json({
-        message: 'Issue not found'
-      });
+      return notFound(res, 'Issue not found');
     }
     if (error.response?.status === 403) {
-      return res.status(403).json({
-        message: 'Forbidden'
-      });
+      return forbidden(res, 'Forbidden');
     }
     if (error.response?.status === 422) {
-      return res.status(422).json({
-        message: 'Could not create comment'
-      });
+      return sendError(res, 422, 'Could not create comment');
     }
     res.status(500).json({
-      message: 'Failed to create comment'
+      error: 'Failed to create comment'
     });
   }
 };

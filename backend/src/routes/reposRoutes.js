@@ -16,5 +16,5 @@ router.get('/:owner/:repo/lottery-contributors', etagMiddleware, getLotteryContr
 router.get('/:owner/:repo/contributor-confidence', etagMiddleware, getContributorConfidence);
 router.get('/:owner/:repo/pulls', etagMiddleware, getPulls);
 router.get('/:owner/:repo/pulls/:pullNumber', etagMiddleware, getPullDetails);
-router.post('/:owner/:repo/issues/:number/comments', express.json(), createComment);
+router.post('/:owner/:repo/issues/:number/comments', express.json({ limit: '1mb' }), createComment);
 module.exports = router;

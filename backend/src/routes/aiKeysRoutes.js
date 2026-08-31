@@ -14,7 +14,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.put('/:service', requireAuth, express.json(), async (req, res) => {
+router.put('/:service', requireAuth, express.json({ limit: '1mb' }), async (req, res) => {
   const service = req.params.service.toLowerCase();
   if (!SERVICES.includes(service)) {
     return res.status(400).json({ error: 'Invalid AI service' });
