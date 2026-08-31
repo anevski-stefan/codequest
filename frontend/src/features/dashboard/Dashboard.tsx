@@ -77,8 +77,12 @@ const Dashboard = () => {
       console.error('Error in mutation:', error);
     }
   });
-  const debouncedSetFilter = useMemo(() => debounce((newFilter: IssueParams) => {
-    setFilter(newFilter);
+  const debouncedSetFilter = useMemo(() => debounce((newFilter: Partial<IssueParams>) => {
+    setFilter(prev => ({
+      ...prev,
+      ...Object.fromEntries(Object.entries(newFilter).filter(([, value]) => value != null))
+    }));
+    setIsFilterLoading(true);
     setInitialFetchComplete(false);
   }, 500), []);
   const {
@@ -118,11 +122,8 @@ const Dashboard = () => {
     setInitialFetchComplete(true);
   }, [isPlaceholderData, isError, error, data, filter.page]);
   const handleFilterChange = useCallback((newFilter: Partial<IssueParams>) => {
-    setFilter(prev => ({
-      ...prev,
-      ...Object.fromEntries(Object.entries(newFilter).filter(([, value]) => value != null))
-    }));
-  }, []);
+    debouncedSetFilter(newFilter);
+  }, [debouncedSetFilter]);
   const handleTimeFrameChange = useCallback((value: string) => {
     handleFilterChange({
       timeFrame: value
