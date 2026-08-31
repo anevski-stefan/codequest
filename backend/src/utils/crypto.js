@@ -1,6 +1,11 @@
 const crypto = require('crypto');
 
-const LEGACY_SALT = 'codequest-ai-key-salt';
+// The scrypt salt is a NON-SECRET parameter: its purpose is uniqueness per-record,
+// not confidentiality. All new records use a random per-record salt (see encrypt()).
+// This constant is only a backward-compatibility fallback for records encrypted before
+// random-salt support existed (it is NOT a credential; security relies on AI_KEY_SECRET).
+// It can be overridden via AI_KEY_LEGACY_SALT for deployments that must match historic data.
+const LEGACY_SALT = process.env.AI_KEY_LEGACY_SALT || 'codequest-ai-key-salt';
 
 let secret = null;
 let secretReady = false;
@@ -43,7 +48,26 @@ function decrypt(record) {
   return Buffer.concat([decipher.update(Buffer.from(record.ct, 'hex')), decipher.final()]).toString('utf8');
 }
 
+// Upgrades a legacy record (which used the fixed LEGACY_SALT and has no `salt` field)
+// to the random-salt scheme the next time it is read, so records no longer depend on
+// the static salt. Returns the plaintext and, if the record was legacy, the upgraded
+// record so callers can persist it.
+function decryptAndUpgrade(record) {
+  const plain = decrypt(record);
+  if (record.salt) {
+    return {
+      plain,
+      upgraded: null
+    };
+  }
+  return {
+    plain,
+    upgraded: encrypt(plain)
+  };
+}
+
 module.exports = {
   encrypt,
-  decrypt
+  decrypt,
+  decryptAndUpgrade
 };
