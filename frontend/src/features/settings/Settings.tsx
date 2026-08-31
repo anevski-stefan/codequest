@@ -78,7 +78,7 @@ const SettingsPage = () => {
       const status = await api.get('/api/ai-keys').then(r => r.data);
       setConfigured(status);
       toast.success('Settings saved successfully!');
-    } catch (e) {
+    } catch {
       toast.error('Failed to save settings');
     } finally {
       setIsSaving(false);
