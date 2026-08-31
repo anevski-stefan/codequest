@@ -10,6 +10,16 @@ interface HackathonCardProps {
 export const HackathonCard = memo(function HackathonCard({
   hackathon
 }: HackathonCardProps) {
+  const isSafeUrl = (url: string | undefined) => {
+    if (!url) return false;
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch (error) {
+      return false;
+    }
+  };
+  const safeUrl = isSafeUrl(hackathon.url);
   const getDaysToDeadline = () => {
     const deadline = new Date(hackathon.endDate);
     const today = new Date();
@@ -55,10 +65,16 @@ export const HackathonCard = memo(function HackathonCard({
       </div>
 
       <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700">
-        <a href={hackathon.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors">
-          View Details
-          <ExternalLink className="w-4 h-4" />
-        </a>
+        {safeUrl ? (
+          <a href={hackathon.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors">
+            View Details
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        ) : (
+          <span className="inline-flex items-center gap-2 text-gray-400 dark:text-gray-500 font-semibold">
+            Details unavailable
+          </span>
+        )}
       </div>
     </div>;
 });
