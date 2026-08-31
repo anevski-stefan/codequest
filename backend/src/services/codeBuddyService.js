@@ -29,8 +29,9 @@ class CodeBuddyService {
       throw new Error('GitHub token is required');
     }
     try {
+      const safeLanguage = typeof language === 'string' ? language : 'javascript';
       const labels = ['good-first-issue', '"good first issue"', 'help-wanted', 'beginner'];
-      const baseQuery = ['is:open', 'is:issue', `language:${language.toLowerCase()}`, labels.map(label => `label:${label}`).join(' OR ')].filter(Boolean).join(' ');
+      const baseQuery = ['is:open', 'is:issue', `language:${safeLanguage.toLowerCase()}`, labels.map(label => `label:${label}`).join(' OR ')].filter(Boolean).join(' ');
       const query = encodeURIComponent(baseQuery);
       const options = {
         sort: 'updated',
@@ -66,8 +67,8 @@ class CodeBuddyService {
   }
   async getResponse(userMessage, context, previousMessages, token, service, apiKey) {
     try {
-      const language = context?.language || 'javascript';
-      const difficulty = context?.difficulty || 'all';
+      const language = typeof context?.language === 'string' ? context.language : 'javascript';
+      const difficulty = typeof context?.difficulty === 'string' ? context.difficulty : 'all';
       const issues = await this.getGitHubIssues(token, language, difficulty);
       if (!issues || issues.length === 0) {
         return "I apologize, but I couldn't find any matching issues at the moment. Please try again with different criteria.";
