@@ -13,12 +13,20 @@ export const api = axios.create({
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && isProtectedRequest(error.config?.url)) {
       store.dispatch(logout());
     }
     return Promise.reject(error);
   }
 );
+// A 401 from an authenticated-only endpoint indicates an expired/invalid session,
+// so we sign the user out. Public endpoints (search, public profiles, repo details,
+// auth flows) may legitimately return 401 without meaning the session is broken.
+const isProtectedRequest = (url?: string): boolean => {
+  if (!url) return false;
+  const path = url.split('?')[0];
+  return path.startsWith('/api/issues/assigned') || path.startsWith('/api/github/user/');
+};
 interface GitHubIssue {
   id: number;
   number: number;

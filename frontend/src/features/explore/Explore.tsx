@@ -89,12 +89,15 @@ const Explore = () => {
   });
   useEffect(() => {
     if (!contributorsData) return;
-    if (contributorsPage === 1) {
-      setAllContributors(contributorsData.users);
-    } else {
-      setAllContributors(prev => [...prev, ...contributorsData.users]);
-    }
-  }, [contributorsData, contributorsPage]);
+    setAllContributors(prev => {
+      if (contributorsPage === 1) {
+        return contributorsData.users;
+      }
+      const existingIds = new Set(prev.map(u => u.id));
+      const newUsers = contributorsData.users.filter(u => !existingIds.has(u.id));
+      return [...prev, ...newUsers];
+    });
+  }, [contributorsData, contributorsPage, contributorQuery]);
   useEffect(() => {
     setContributorsPage(1);
     setAllContributors([]);
