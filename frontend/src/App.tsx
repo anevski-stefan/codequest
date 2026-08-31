@@ -8,6 +8,7 @@ import { api } from './services/github';
 import { setCredentials, finishRestore } from './features/auth/authSlice';
 import AppRoutes from './routes';
 import CodeBuddy from './components/CodeBuddy';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
 const queryClient = new QueryClient();
 const App = () => {
@@ -24,7 +25,8 @@ const App = () => {
       store.dispatch(finishRestore());
     });
   }, []);
-  return <QueryClientProvider client={queryClient}>
+  return <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
       <Provider store={store}>
         <ThemeProvider>
           <BrowserRouter>
@@ -38,6 +40,7 @@ const App = () => {
         </ThemeProvider>
         <Toaster />
       </Provider>
-    </QueryClientProvider>;
+    </QueryClientProvider>
+    </ErrorBoundary>;
 };
 export default App;
