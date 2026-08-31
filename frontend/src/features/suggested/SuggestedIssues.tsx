@@ -6,6 +6,7 @@ import CommentsModal from '../../components/CommentsModal';
 import { CardSkeleton } from '../../components/skeletons';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import IssueTable from '../dashboard/components/IssueTable';
+import { toast } from 'react-hot-toast';
 const SuggestedIssues = () => {
   usePageTitle('Suggested Issues');
   const [filter, setFilter] = useState<IssueParams>({
@@ -62,6 +63,12 @@ const SuggestedIssues = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', selectedIssueId, selectedRepo] });
+      toast.success('Comment added');
+    },
+    onError: error => {
+      console.error('Error adding comment:', error);
+      const message = error instanceof Error ? error.message : 'Failed to add comment';
+      toast.error(message || 'Failed to add comment');
     }
   });
   const {
@@ -108,14 +115,10 @@ const SuggestedIssues = () => {
   };
   const handleAddComment = async (comment: string) => {
     if (!selectedIssueId) return;
-    try {
-      await addCommentMutation.mutateAsync({
-        issueId: selectedIssueId,
-        comment
-      });
-    } catch (error) {
-      console.error('Error adding comment:', error);
-    }
+    return addCommentMutation.mutateAsync({
+      issueId: selectedIssueId,
+      comment
+    });
   };
   const showLoadingSpinner = isLoading || !initialFetchComplete;
   const isRateLimitError = error instanceof Error && (error.message.includes('rate limit') || error.message.includes('secondary rate limit'));

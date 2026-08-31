@@ -17,6 +17,8 @@ export function CommentForm({
     try {
       await onSubmit(comment);
       setComment('');
+    } catch {
+      // error feedback is surfaced by the calling component's toast
     } finally {
       setIsSubmitting(false);
     }

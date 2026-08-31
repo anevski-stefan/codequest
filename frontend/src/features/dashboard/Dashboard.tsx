@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
 import type { Issue, IssueParams, Language, IssueResponse } from '../../types/github';
 import debounce from 'lodash/debounce';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import CommentsModal from '../../components/CommentsModal';
 import LabelsFilter from '../../components/LabelsFilter';
 import { FilterDropdown } from './components/FilterDropdown';
@@ -11,6 +11,7 @@ import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from '.
 import { usePageTitle } from '../../hooks/usePageTitle';
 import IssueTable from './components/IssueTable';
 import { CardSkeleton } from '../../components/skeletons';
+import { toast } from 'react-hot-toast';
 const Dashboard = () => {
   usePageTitle('Dashboard');
   const [filter, setFilter] = useState<IssueParams>({
@@ -24,7 +25,6 @@ const Dashboard = () => {
     commentsRange: '',
     labels: []
   });
-  const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
@@ -72,9 +72,12 @@ const Dashboard = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', selectedIssueId, selectedRepo] });
+      toast.success('Comment added');
     },
     onError: error => {
       console.error('Error in mutation:', error);
+      const message = error instanceof Error ? error.message : 'Failed to add comment';
+      toast.error(message || 'Failed to add comment');
     }
   });
   const debouncedSetFilter = useMemo(() => debounce((newFilter: Partial<IssueParams>) => {
@@ -90,16 +93,26 @@ const Dashboard = () => {
     isLoading,
     isError,
     isPlaceholderData,
-    error
-  } = useQuery<IssueResponse, Error>({
+    error,
+    fetchNextPage: fetchNextIssuesPage,
+    hasNextPage: hasNextIssuesPage,
+    isFetchingNextPage: isFetchingNextIssuesPage
+  } = useInfiniteQuery<IssueResponse, Error>({
     queryKey: ['issues', filter],
-    queryFn: () => getIssues(filter),
+    queryFn: ({
+      pageParam
+    }) => getIssues({
+      ...filter,
+      page: pageParam as number
+    }),
+    initialPageParam: 1,
     placeholderData: keepPreviousData,
     staleTime: 0,
     gcTime: 300000,
     refetchOnWindowFocus: false,
-    enabled: true
+    getNextPageParam: (lastPage, allPages) => lastPage.hasMore ? allPages.length + 1 : undefined
   });
+  const allIssues = data?.pages.flatMap(page => page.issues) ?? [];
   useEffect(() => {
     if (isPlaceholderData) return;
     if (isError) {
@@ -108,19 +121,11 @@ const Dashboard = () => {
       setInitialFetchComplete(true);
       return;
     }
-    if (!data) return;
-    if (filter.page === 1) {
-      setAllIssues(data.issues);
-    } else {
-      setAllIssues(prev => {
-        const existingIds = new Set(prev.map(issue => `${issue.repository?.fullName}-${issue.number}`));
-        const newUniqueIssues = data.issues.filter((issue: Issue) => !existingIds.has(`${issue.repository?.fullName}-${issue.number}`));
-        return [...prev, ...newUniqueIssues];
-      });
+    if (data) {
+      setIsFilterLoading(false);
+      setInitialFetchComplete(true);
     }
-    setIsFilterLoading(false);
-    setInitialFetchComplete(true);
-  }, [isPlaceholderData, isError, error, data, filter.page]);
+  }, [isPlaceholderData, isError, error, data]);
   const handleFilterChange = useCallback((newFilter: Partial<IssueParams>) => {
     debouncedSetFilter(newFilter);
   }, [debouncedSetFilter]);
@@ -156,10 +161,7 @@ const Dashboard = () => {
     });
   }, [handleFilterChange]);
   const handleLoadMore = () => {
-    setFilter(prev => ({
-      ...prev,
-      page: prev.page + 1
-    }));
+    fetchNextIssuesPage();
   };
   const handleViewComments = (issue: Issue) => {
     setSelectedIssueId(issue.number);
@@ -168,14 +170,10 @@ const Dashboard = () => {
   };
   const handleAddComment = async (comment: string) => {
     if (!selectedIssueId) return;
-    try {
-      await addCommentMutation.mutateAsync({
-        issueId: selectedIssueId,
-        comment
-      });
-    } catch (error) {
-      console.error('Error adding comment:', error);
-    }
+    return addCommentMutation.mutateAsync({
+      issueId: selectedIssueId,
+      comment
+    });
   };
   const showLoadingSpinner = isLoading || !initialFetchComplete;
   useEffect(() => {
@@ -296,13 +294,16 @@ const Dashboard = () => {
                   <IssueTable issues={allIssues} onViewComments={handleViewComments} />
                 </div>}
 
-              {!isLoading && !isFilterLoading && data?.hasMore && allIssues.length > 0 && <div className="flex justify-center mt-4 md:mt-6">
-                  <button onClick={handleLoadMore} className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm">
-                    Load More
+              {!isLoading && !isFilterLoading && hasNextIssuesPage && allIssues.length > 0 && <div className="flex justify-center mt-4 md:mt-6">
+                  <button onClick={handleLoadMore} disabled={isFetchingNextIssuesPage} className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm md:text-base font-medium shadow-sm">
+                    {isFetchingNextIssuesPage ? <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading...
+                      </span> : 'Load More'}
                   </button>
                 </div>}
 
-              {!isLoading && !isFilterLoading && !data?.hasMore && allIssues.length > 0 && <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8">
+              {!isLoading && !isFilterLoading && !hasNextIssuesPage && allIssues.length > 0 && <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8">
                   No more issues to load
                 </div>}
             </div>}
