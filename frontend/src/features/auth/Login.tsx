@@ -7,6 +7,7 @@ import NewsletterForm from '../../components/NewsletterForm';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import FeedbackModal from '../../components/FeedbackModal';
 import { API_BASE_URL } from '../../services/github';
+const AUTH_REDIRECT_KEY = 'auth_redirect';
 const Login = () => {
   usePageTitle('Login');
   const navigate = useNavigate();
@@ -26,6 +27,14 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate, location]);
   const handleGitHubLogin = () => {
+    const from = (location.state as {
+      from?: Location;
+    })?.from?.pathname;
+    if (from && from.startsWith('/') && !from.startsWith('//')) {
+      sessionStorage.setItem(AUTH_REDIRECT_KEY, from);
+    } else {
+      sessionStorage.removeItem(AUTH_REDIRECT_KEY);
+    }
     window.location.href = `${API_BASE_URL}/auth/github`;
   };
   return <div className="fixed inset-0 bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-[#0B1222] dark:to-gray-900">

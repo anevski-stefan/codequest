@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { api } from '../../services/github';
+const AUTH_REDIRECT_KEY = 'auth_redirect';
 const AuthCallback = () => {
   usePageTitle('Authenticating');
   const navigate = useNavigate();
@@ -21,9 +22,13 @@ const AuthCallback = () => {
         login({
           user: data.user
         });
-        navigate('/dashboard');
+        const saved = sessionStorage.getItem(AUTH_REDIRECT_KEY);
+        sessionStorage.removeItem(AUTH_REDIRECT_KEY);
+        const target = saved && saved.startsWith('/') && !saved.startsWith('//') ? saved : '/dashboard';
+        navigate(target);
       } catch (error) {
         console.error('Detailed auth error:', error);
+        sessionStorage.removeItem(AUTH_REDIRECT_KEY);
         navigate('/');
       }
     };
