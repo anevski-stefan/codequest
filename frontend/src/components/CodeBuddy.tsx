@@ -102,7 +102,7 @@ const CodeBuddy = () => {
     queryFn: async () => {
       if (!isAuthenticated || !user?.id) throw new Error('Not authenticated');
       try {
-        const response = await api.get(`/api/chats/${user.id}`);
+        const response = await api.get('/api/chats');
         return response.data;
       } catch (error) {
         if (error instanceof AxiosError) {

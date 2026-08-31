@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const supabaseService = require('../services/supabaseService');
 router.use(express.json());
-router.get('/:userId', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
     const data = await supabaseService.getUserChats(userId);
