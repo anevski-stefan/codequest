@@ -3,7 +3,7 @@ const {
 } = require('../config/supabase');
 const {
   encrypt,
-  decrypt
+  decryptAndUpgrade
 } = require('../utils/crypto');
 class SupabaseService {
   async persistAccessToken(userId, accessToken, refreshToken) {
@@ -35,7 +35,13 @@ class SupabaseService {
     };
     let accessToken;
     try {
-      accessToken = decrypt(JSON.parse(data.github_token));
+      const { plain, upgraded } = decryptAndUpgrade(JSON.parse(data.github_token));
+      if (upgraded) {
+        await getSupabase().from('users')
+          .update({ github_token: JSON.stringify(upgraded) })
+          .eq('github_id', userId);
+      }
+      accessToken = plain;
     } catch (e) {
       return {
         ...data,

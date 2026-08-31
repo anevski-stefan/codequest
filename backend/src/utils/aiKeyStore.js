@@ -4,7 +4,8 @@ const {
 
 const {
   encrypt,
-  decrypt
+  decrypt,
+  decryptAndUpgrade
 } = require('./crypto');
 
 async function setAiKey(userId, service, rawKey) {
@@ -26,7 +27,14 @@ async function getAiKey(userId, service) {
     throw error;
   }
   try {
-    return decrypt(JSON.parse(data.encrypted_key));
+    const { plain, upgraded } = decryptAndUpgrade(JSON.parse(data.encrypted_key));
+    if (upgraded) {
+      await getSupabase().from('ai_keys')
+        .update({ encrypted_key: JSON.stringify(upgraded) })
+        .eq('user_id', String(userId))
+        .eq('service', service);
+    }
+    return plain;
   } catch (e) {
     return null;
   }
