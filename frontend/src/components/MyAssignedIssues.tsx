@@ -8,16 +8,7 @@ import type { Comment } from '../types/comments';
 import CommentsModal from './CommentsModal';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { CardSkeleton } from './skeletons';
-const getLabelColors = (color: string) => {
-  const r = parseInt(color.slice(0, 2), 16);
-  const g = parseInt(color.slice(2, 4), 16);
-  const b = parseInt(color.slice(4, 6), 16);
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return {
-    backgroundColor: `#${color}`,
-    color: yiq >= 128 ? '#000000' : '#ffffff'
-  };
-};
+import { getLabelColors } from '../features/dashboard/utils/filterUtils';
 const MyAssignedIssues = () => {
   usePageTitle('My Assigned Issues');
   const [issueState, setIssueState] = useState<string>('open');

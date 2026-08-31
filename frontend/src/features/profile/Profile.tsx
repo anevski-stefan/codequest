@@ -5,7 +5,7 @@ import { Star, GitFork, Calendar, MapPin, Link as LinkIcon, Building, X, Chevron
 import { motion } from 'framer-motion';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import type { RootState } from '../../store';
-import type { GithubUser, GitHubRepo, GitHubActivityEvent } from '../../types/github';
+import type { GitHubRepo, GitHubActivityEvent } from '../../types/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getUserRepositories, getUserActivities, getUserStarredCount } from '../../services/github';
 import { ProfileSkeleton } from '../../components/skeletons/ProfileSkeleton';
@@ -13,9 +13,7 @@ const Profile = () => {
   usePageTitle('Profile');
   const {
     user
-  } = useSelector((state: RootState) => state.auth) as {
-    user: GithubUser | null;
-  };
+  } = useSelector((state: RootState) => state.auth);
   const [activeTab, setActiveTab] = useState<'overview' | 'repositories'>('overview');
   const [page, setPage] = useState(1);
   const PER_PAGE = 10;
