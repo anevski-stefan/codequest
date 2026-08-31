@@ -2,6 +2,7 @@ const githubService = require('../services/githubService');
 const { isValidOwner, isValidRepo, isValidNumber } = require('../utils/validateParams');
 
 const PER_PAGE = 30;
+const MAX_PAGE = 10000;
 
 function hasNextPage(linkHeader) {
   if (!linkHeader) return false;
@@ -23,7 +24,7 @@ exports.getIssueComments = async (req, res) => {
         error: 'Invalid owner, repo or issue number'
       });
     }
-    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const pageNum = Math.min(Math.max(parseInt(page, 10) || 1, 1), MAX_PAGE);
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
       params: { page: pageNum, per_page: PER_PAGE },
       fullResponse: true
@@ -41,7 +42,7 @@ exports.getIssueComments = async (req, res) => {
     const hasMore = hasNextPage(response.headers.link);
     res.json({
       comments,
-      totalCount: comments.length,
+      pageCount: comments.length,
       hasMore,
       nextPage: hasMore ? pageNum + 1 : null
     });
