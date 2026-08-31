@@ -152,6 +152,14 @@ exports.deleteHackathon = async (req, res) => {
 };
 const STRING_FIELDS = ['title', 'description', 'startDate', 'endDate', 'url', 'location', 'prize', 'submissionPeriod'];
 const TAGS_FIELD = 'tags';
+function isValidUrl(value) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch (error) {
+    return false;
+  }
+}
 function sanitizeHackathonData(body) {
   if (!body || typeof body !== 'object') return null;
   const result = {};
@@ -159,7 +167,9 @@ function sanitizeHackathonData(body) {
     const value = body[field];
     if (value !== undefined && value !== null) {
       if (typeof value !== 'string') return null;
-      result[field] = value.trim();
+      const trimmed = value.trim();
+      if (field === 'url' && trimmed !== '' && !isValidUrl(trimmed)) return null;
+      result[field] = trimmed;
     }
   }
   if (body[TAGS_FIELD] !== undefined && body[TAGS_FIELD] !== null) {
