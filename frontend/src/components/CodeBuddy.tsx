@@ -99,7 +99,16 @@ const CodeBuddy = () => {
   const selectedService = useAIService();
   const { data: aiKeyStatus } = useQuery({
     queryKey: ['aiKeys'],
-    queryFn: () => api.get('/api/ai-keys').then(r => r.data as { chatgpt: boolean; gemini: boolean }),
+    queryFn: async () => {
+      const data = await api.get('/api/ai-keys').then(r => r.data);
+      if (!data || typeof data !== 'object') {
+        return { chatgpt: false, gemini: false };
+      }
+      return {
+        chatgpt: (data as Record<string, unknown>).chatgpt === true,
+        gemini: (data as Record<string, unknown>).gemini === true
+      };
+    },
     retry: false
   });
   const abortControllerRef = useRef<AbortController | null>(null);
