@@ -1,6 +1,7 @@
 const {
   CodeBuddyService
 } = require('../services/codeBuddyService.js');
+const logger = require('../utils/logger');
 const aiKeyStore = require('../utils/aiKeyStore');
 const {
   badRequest,
@@ -40,11 +41,11 @@ exports.chat = async (req, res) => {
         timestamp: new Date()
       });
     } catch (serviceError) {
-      console.error(`${service} service error:`, serviceError.message);
+      logger.error(`${service} service error:`, serviceError.message);
       return sendError(res, 503, `${service} service error: please try again or switch services`, process.env.NODE_ENV !== 'production' ? serviceError.message : undefined);
     }
   } catch (error) {
-    console.error('Chat error:', error.message, error.response?.data);
+    logger.error('Chat error:', error.message, error.response?.data);
     return internal(res, 'Failed to process chat message', process.env.NODE_ENV !== 'production' ? error.message : undefined);
   }
 };

@@ -1,6 +1,7 @@
 const {
   getSupabase
 } = require('../config/supabase');
+const logger = require('../utils/logger');
 const {
   encrypt,
   decryptAndUpgrade
@@ -87,7 +88,7 @@ class SupabaseService {
       if (updateError) throw updateError;
       return updatedUser;
     } catch (error) {
-      console.error('Supabase user operation error:', error);
+      logger.error('Supabase user operation error:', error);
       throw error;
     }
   }
@@ -105,7 +106,7 @@ class SupabaseService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Supabase chat save error:', error);
+      logger.error('Supabase chat save error:', error);
       throw error;
     }
   }
@@ -120,7 +121,7 @@ class SupabaseService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching user chats:', error);
+      logger.error('Error fetching user chats:', error);
       throw error;
     }
   }
@@ -136,7 +137,7 @@ class SupabaseService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting chat:', error);
+      logger.error('Error deleting chat:', error);
       throw error;
     }
   }

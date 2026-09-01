@@ -1,4 +1,5 @@
 const githubService = require('../services/githubService');
+const logger = require('../utils/logger');
 const { githubErrorResponse } = require('../utils/githubError');
 exports.getAssignedIssues = async (req, res) => {
   try {
@@ -17,7 +18,7 @@ exports.getAssignedIssues = async (req, res) => {
     }
     res.json(data.items || []);
   } catch (error) {
-    console.error('Error fetching assigned issues:', error.message, error.response?.data);
+    logger.error('Error fetching assigned issues:', error.message, error.response?.data);
     if (error.request && !error.response) {
       return res.status(503).json({
         error: 'Unable to reach GitHub API'

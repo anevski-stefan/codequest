@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('./utils/logger');
 const crypto = require('crypto');
 const session = require('express-session');
 const cors = require('cors');
@@ -43,12 +44,17 @@ if (!sessionSecret) {
     throw new Error('SESSION_SECRET environment variable is required in production');
   }
   sessionSecret = crypto.randomBytes(32).toString('hex');
-  console.warn('[server] SESSION_SECRET not set; using a random ephemeral session secret. Sessions will not survive a restart. Set SESSION_SECRET for persistence.');
+  logger.warn('[server] SESSION_SECRET not set; using a random ephemeral session secret. Sessions will not survive a restart. Set SESSION_SECRET for persistence.');
 }
 
 if (!process.env.AI_KEY_SECRET && process.env.NODE_ENV === 'production') {
   throw new Error('AI_KEY_SECRET environment variable is required in production');
 }
+
+const envSessionMaxAge = Number(process.env.SESSION_MAX_AGE_MS);
+const sessionMaxAgeMs = Number.isInteger(envSessionMaxAge) && envSessionMaxAge > 0
+  ? envSessionMaxAge
+  : 24 * 60 * 60 * 1000;
 
 const corsOrigin = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
@@ -69,7 +75,7 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000
+    maxAge: sessionMaxAgeMs
   }
 }));
 app.use(passport.initialize());
@@ -107,37 +113,37 @@ app.use((req, res) => {
   });
 });
 app.use((err, req, res, next) => {
-  console.error('[server] Unhandled error:', err);
+  logger.error('[server] Unhandled error:', err);
   res.status(err.status || 500).json({
     error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal server error'
   });
 });
 
 const server = app.listen(process.env.PORT || 3000, () => {
-  console.log(`Server is running on port ${process.env.PORT || 3000}`);
+  logger.info(`Server is running on port ${process.env.PORT || 3000}`);
 });
 
 let shuttingDown = false;
 function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`[server] ${signal} received, shutting down gracefully...`);
+  logger.info(`[server] ${signal} received, shutting down gracefully...`);
   try {
     new (require('./services/hackathonService'))().shutdown();
   } catch (error) {
-    console.warn('[server] Could not stop hackathon scheduler:', error.message);
+    logger.warn('[server] Could not stop hackathon scheduler:', error.message);
   }
   const forceTimer = setTimeout(() => {
-    console.error('[server] Forcefully exiting after shutdown timeout');
+    logger.error('[server] Forcefully exiting after shutdown timeout');
     process.exit(1);
   }, 10000);
   forceTimer.unref();
   server.close(err => {
     if (err) {
-      console.error('[server] Error closing server:', err);
+      logger.error('[server] Error closing server:', err);
       process.exit(1);
     }
-    console.log('[server] HTTP server closed');
+    logger.info('[server] HTTP server closed');
     clearTimeout(forceTimer);
     process.exit(0);
   });

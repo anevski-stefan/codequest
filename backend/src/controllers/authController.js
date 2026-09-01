@@ -1,4 +1,5 @@
 const passport = require('passport');
+const logger = require('../utils/logger');
 const axios = require('axios');
 const clientUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
 const githubAuth = passport.authenticate('github', {
@@ -13,13 +14,13 @@ const githubCallback = [passport.authenticate('github', {
   if (req.session) {
     req.session.regenerate((err) => {
       if (err) {
-        console.error('Session regeneration error:', err.message);
+        logger.error('Session regeneration error:', err.message);
         return res.redirect(`${clientUrl()}/login`);
       }
       if (req.user) {
         req.login(req.user, (loginErr) => {
           if (loginErr) {
-            console.error('Session re-login error:', loginErr.message);
+            logger.error('Session re-login error:', loginErr.message);
             return res.redirect(`${clientUrl()}/login`);
           }
           res.redirect(`${clientUrl()}/auth/callback`);
@@ -57,7 +58,7 @@ const getMe = async (req, res) => {
         error: 'Unauthorized'
       });
     }
-    console.error('getMe error:', error.response?.data || error.message);
+    logger.error('getMe error:', error.response?.data || error.message);
     res.status(500).json({
       error: 'Failed to fetch user'
     });
@@ -69,7 +70,7 @@ const logout = async (req, res) => {
     try {
       await revokeGitHubToken(accessToken);
     } catch (error) {
-      console.warn('Failed to revoke GitHub token on logout:', error.message);
+      logger.warn('Failed to revoke GitHub token on logout:', error.message);
     }
   }
   if (req.logout) {

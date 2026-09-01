@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const router = express.Router();
 const requireAuth = require('../middleware/requireAuth');
 const aiKeyStore = require('../utils/aiKeyStore');
@@ -9,7 +10,7 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     res.json(await aiKeyStore.hasAiKeys(req.user.id));
   } catch (e) {
-    console.error('Failed to read AI keys:', e);
+    logger.error('Failed to read AI keys:', e);
     res.status(500).json({ error: 'Failed to read API keys' });
   }
 });
@@ -30,7 +31,7 @@ router.put('/:service', requireAuth, express.json({ limit: '1mb' }), async (req,
     await aiKeyStore.setAiKey(req.user.id, service, rawKey);
     res.json({ ok: true, service });
   } catch (e) {
-    console.error('Failed to store AI key:', e);
+    logger.error('Failed to store AI key:', e);
     res.status(500).json({ error: 'Failed to store API key' });
   }
 });
@@ -44,7 +45,7 @@ router.delete('/:service', requireAuth, async (req, res) => {
     await aiKeyStore.deleteAiKey(req.user.id, service);
     res.json({ ok: true, service });
   } catch (e) {
-    console.error('Failed to delete AI key:', e);
+    logger.error('Failed to delete AI key:', e);
     res.status(500).json({ error: 'Failed to delete API key' });
   }
 });

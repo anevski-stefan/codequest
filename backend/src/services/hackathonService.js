@@ -1,4 +1,5 @@
 const axios = require('axios');
+const logger = require('../utils/logger');
 const cron = require('node-cron');
 const { getSupabase } = require('../config/supabase');
 
@@ -97,7 +98,7 @@ class HackathonService {
         const [day, year] = dateStr.split(',').map(s => s.trim());
         const month = dateCtx.month;
         if (!month) {
-          console.warn(`No month available for date: ${dateStr}`);
+          logger.warn(`No month available for date: ${dateStr}`);
           return dateStr;
         }
         const date = new Date(`${month} ${day}, ${year}`);
@@ -109,10 +110,10 @@ class HackathonService {
           });
         }
       }
-      console.warn(`Unrecognized date format: ${dateStr}`);
+      logger.warn(`Unrecognized date format: ${dateStr}`);
       return dateStr;
     } catch (error) {
-      console.warn(`Error formatting date: ${dateStr}`, error);
+      logger.warn(`Error formatting date: ${dateStr}`, error);
       return dateStr;
     }
   }
@@ -120,17 +121,18 @@ class HackathonService {
   async initialize() {
     await this.hydrateFromDb();
     this.crawlAll().catch(error => {
-      console.error('Error during initialization:', error);
+      logger.error('Error during initialization:', error);
       this.isInitialCrawlComplete = true;
     });
   }
 
   setupCronJob() {
-    this.cronTask = cron.schedule('0 */6 * * *', async () => {
+    const schedule = process.env.HACKATHON_CRAWL_CRON || '0 */6 * * *';
+    this.cronTask = cron.schedule(schedule, async () => {
       try {
         await this.crawlAll();
       } catch (error) {
-        console.error('Scheduled crawl failed:', error);
+        logger.error('Scheduled crawl failed:', error);
       }
     });
   }
@@ -173,7 +175,7 @@ class HackathonService {
             }
           });
           if (!apiResponse.data?.hackathons) {
-            console.log('No more hackathons found');
+            logger.info('No more hackathons found');
             break;
           }
           const hackathons = apiResponse.data.hackathons.map(h => {
@@ -200,13 +202,13 @@ class HackathonService {
           page++;
           await new Promise(resolve => setTimeout(resolve, 1500));
         } catch (error) {
-          console.error(`Error fetching page ${page}:`, error.message);
+          logger.error(`Error fetching page ${page}:`, error.message);
           break;
         }
       }
       return allHackathons;
     } catch (error) {
-      console.error('Error in crawlDevpost:', error);
+      logger.error('Error in crawlDevpost:', error);
       return [];
     }
   }
@@ -215,7 +217,7 @@ class HackathonService {
     try {
       return getSupabase();
     } catch (error) {
-      console.warn('Supabase unavailable; running with in-memory hackathon store:', error.message);
+      logger.warn('Supabase unavailable; running with in-memory hackathon store:', error.message);
       return null;
     }
   }
@@ -233,7 +235,7 @@ class HackathonService {
         this.replaceAll(data.map(fromDbRow));
       }
     } catch (error) {
-      console.error('Failed to hydrate hackathons from DB:', error);
+      logger.error('Failed to hydrate hackathons from DB:', error);
     }
   }
 
@@ -247,7 +249,7 @@ class HackathonService {
         .upsert(rows, { onConflict: 'id' });
       if (error) throw error;
     } catch (error) {
-      console.error('Failed to persist hackathons to DB:', error);
+      logger.error('Failed to persist hackathons to DB:', error);
     }
   }
 
@@ -271,7 +273,7 @@ class HackathonService {
         this.isInitialCrawlComplete = true;
         return hackathons;
       } catch (error) {
-        console.error('Error in crawlAll:', error);
+        logger.error('Error in crawlAll:', error);
         throw error;
       } finally {
         this.crawlPromise = null;
@@ -298,7 +300,7 @@ class HackathonService {
       }
       return hackathons;
     } catch (error) {
-      console.error('Error in getAllHackathons:', error);
+      logger.error('Error in getAllHackathons:', error);
       return [];
     }
   }
@@ -334,7 +336,7 @@ class HackathonService {
         const { error } = await supabase.from(HACKATHONS_TABLE).insert(row);
         if (error) throw error;
       } catch (error) {
-        console.error('Failed to persist new hackathon:', error);
+        logger.error('Failed to persist new hackathon:', error);
       }
     }
     this.hackathons.set(hackathon.id, hackathon);
@@ -354,7 +356,7 @@ class HackathonService {
           .eq('id', id);
         if (error) throw error;
       } catch (error) {
-        console.error('Failed to persist hackathon update:', error);
+        logger.error('Failed to persist hackathon update:', error);
       }
     }
     this.hackathons.set(id, updated);
@@ -368,7 +370,7 @@ class HackathonService {
         const { error } = await supabase.from(HACKATHONS_TABLE).delete().eq('id', id);
         if (error) throw error;
       } catch (error) {
-        console.error('Failed to delete hackathon from DB:', error);
+        logger.error('Failed to delete hackathon from DB:', error);
       }
     }
     return this.hackathons.delete(id);

@@ -1,4 +1,5 @@
 const githubService = require('../services/githubService');
+const logger = require('../utils/logger');
 const { githubErrorResponse } = require('../utils/githubError');
 const { badRequest, notFound, forbidden, sendError } = require('../utils/httpError');
 const { isValidOwner, isValidRepo, isValidNumber, isValidState } = require('../utils/validateParams');
@@ -28,7 +29,7 @@ exports.createComment = async (req, res) => {
     });
     res.status(201).json(response);
   } catch (error) {
-    console.error('Error creating comment:', {
+    logger.error('Error creating comment:', {
       message: error.message,
       response: error.response?.data,
       status: error.response?.status,
@@ -63,7 +64,7 @@ exports.getRepoDetails = async (req, res) => {
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}`);
     res.json(response);
   } catch (error) {
-    console.error('Error fetching repository:', error.response?.data);
+    logger.error('Error fetching repository:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch repository');
   }
 };
@@ -89,7 +90,7 @@ exports.getRepoContributors = async (req, res) => {
     contributors.forEach(c => c.percentage = Math.round(c.contributions / total * 100));
     res.json(contributors.slice(0, 5));
   } catch (error) {
-    console.error('Error fetching contributors:', error.response?.data);
+    logger.error('Error fetching contributors:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch contributors');
   }
 };
@@ -129,7 +130,7 @@ exports.getLotteryContributors = async (req, res) => {
     contributors.forEach(c => c.percentage = Math.round(c.pull_requests / total * 100));
     res.json(contributors.slice(0, 4));
   } catch (error) {
-    console.error('Error fetching lottery contributors:', error.response?.data);
+    logger.error('Error fetching lottery contributors:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch lottery contributors');
   }
 };
@@ -186,7 +187,7 @@ exports.getContributorConfidence = async (req, res) => {
       message
     });
   } catch (error) {
-    console.error('Error calculating contributor confidence:', error.response?.data);
+    logger.error('Error calculating contributor confidence:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to calculate contributor confidence');
   }
 };
@@ -257,7 +258,7 @@ exports.getPulls = async (req, res) => {
       totalCount
     });
   } catch (error) {
-    console.error('Error fetching pull requests:', error.response?.data);
+    logger.error('Error fetching pull requests:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch pull requests');
   }
 };
@@ -318,7 +319,7 @@ exports.getPullDetails = async (req, res) => {
     };
     res.json(details);
   } catch (error) {
-    console.error('Error fetching pull request details:', error.message, error.response?.data);
+    logger.error('Error fetching pull request details:', error.message, error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch pull request details');
   }
 };

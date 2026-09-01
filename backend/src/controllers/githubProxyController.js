@@ -1,4 +1,5 @@
 const GitHubService = require('../services/githubService');
+const logger = require('../utils/logger');
 const ALLOWED_ROUTES = [{
   pattern: /^\/search\/issues$/,
   params: ['q', 'sort', 'order', 'per_page', 'page']
@@ -104,7 +105,7 @@ const proxy = async (req, res) => {
         error: 'Unauthorized'
       });
     }
-    console.error('GitHub proxy error:', error.response?.data || error.message);
+    logger.error('GitHub proxy error:', error.response?.data || error.message);
     const status = error.response?.status || 500;
     res.status(status).json({
       error: 'GitHub request failed'
