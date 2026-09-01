@@ -285,7 +285,6 @@ const CodeBuddy = () => {
         try {
           await api.post('/api/chats', {
             messages: updatedMessages,
-            userId: user.id,
             title: baseMessages.length === 0 ? input.substring(0, 50) + '...' : undefined
           });
           queryClient.invalidateQueries({ queryKey: ['chatHistory', user.id] });
@@ -323,11 +322,7 @@ const CodeBuddy = () => {
         toast.error('You must be logged in to delete chats');
         return;
       }
-      await api.delete(`/api/chats/${chatId}`, {
-        headers: {
-          'user-id': user.id
-        }
-      });
+      await api.delete(`/api/chats/${chatId}`);
       queryClient.setQueryData(['chatHistory', user.id], (oldData: ChatHistory[] | undefined) => {
         if (!oldData) return [];
         return oldData.filter(chat => chat.id !== chatId);

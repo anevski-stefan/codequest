@@ -28,8 +28,13 @@ const requireAuth = (req, res, next) => {
       }
       next();
     })
-    .catch(() => {
-      next();
+    .catch((error) => {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Token validation error:', error.message);
+      }
+      return res.status(503).json({
+        error: 'Unable to verify authentication token'
+      });
     });
 };
 module.exports = requireAuth;
