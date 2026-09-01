@@ -12,7 +12,7 @@ export const getStateColor = (state: string) => {
       return 'bg-gray-100 text-gray-800';
   }
 };
-const isHexColor = (color: string): boolean => /^[0-9a-fA-F]{6}$/.test(color);
+export const isHexColor = (color: string): boolean => /^[0-9a-fA-F]{6}$/.test(color.trim());
 export const getLabelColors = (color: string) => {
   const normalized = color?.trim() ?? '';
   if (!isHexColor(normalized)) {
