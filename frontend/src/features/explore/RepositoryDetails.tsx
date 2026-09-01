@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { motion } from 'framer-motion';
 import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails } from '../../services/github';
+import { getLabelColors, isHexColor } from '../dashboard/utils/filterUtils';
 import PullRequestDetailsModal, { PullRequestDetails } from '../../components/PullRequestDetailsModal';
 import { useState, useEffect } from 'react';
 import { RepositorySkeleton } from '../../components/skeletons';
@@ -529,12 +530,16 @@ const RepositoryDetails = () => {
 
                       {}
                       {pr.labels.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">
-                          {pr.labels.map(label => <span key={label.name} className="px-2 py-0.5 rounded-full text-xs font-medium" style={{
-                    backgroundColor: `#${label.color}20`,
-                    color: `#${label.color}`
+                          {pr.labels.map(label => {
+                            const normalizedColor = label.color.trim();
+                            const isSafeColor = isHexColor(normalizedColor);
+                            return <span key={label.name} className="px-2 py-0.5 rounded-full text-xs font-medium" style={{
+                    backgroundColor: isSafeColor ? `#${normalizedColor}20` : '#6b728020',
+                    color: getLabelColors(normalizedColor).color
                   }}>
-                              {label.name}
-                            </span>)}
+                                {label.name}
+                              </span>;
+                          })}
                         </div>}
 
                       {}

@@ -53,9 +53,15 @@ interface ActivityEvent {
     description?: string;
   };
 }
+const VALID_URL_SCHEMES = ['http', 'https', 'mailto'];
 const formatUrl = (url: string) => {
   if (!url) return '';
-  return url.startsWith('http') ? url : `https://${url}`;
+  const trimmed = url.trim();
+  const schemeMatch = trimmed.match(/^([a-z][a-z0-9+.-]*):/i);
+  if (schemeMatch) {
+    return VALID_URL_SCHEMES.includes(schemeMatch[1].toLowerCase()) ? trimmed : '#';
+  }
+  return `https://${trimmed}`;
 };
 const ContributorProfile = () => {
   const {

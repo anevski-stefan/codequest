@@ -26,15 +26,18 @@ const aiKeysRoutes = require('./routes/aiKeysRoutes');
 const app = express();
 
 const trustProxy = process.env.TRUST_PROXY;
-if (trustProxy === undefined) {
-  app.set('trust proxy', 0);
+if (trustProxy === undefined || trustProxy === '' || trustProxy === 'false' || trustProxy === '0') {
+  app.set('trust proxy', false);
 } else if (trustProxy === 'true') {
   app.set('trust proxy', true);
-} else if (trustProxy === 'false') {
-  app.set('trust proxy', false);
 } else {
   const hops = Number(trustProxy);
-  app.set('trust proxy', Number.isInteger(hops) && hops > 0 ? hops : true);
+  if (Number.isInteger(hops) && hops > 0) {
+    app.set('trust proxy', hops);
+  } else {
+    logger.warn(`[server] Invalid TRUST_PROXY value "${trustProxy}"; defaulting to no proxy trust.`);
+    app.set('trust proxy', false);
+  }
 }
 
 const envSessionSecret = process.env.SESSION_SECRET;

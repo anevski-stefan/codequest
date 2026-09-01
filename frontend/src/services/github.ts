@@ -2,7 +2,21 @@ import axios from 'axios';
 import { store } from '../store';
 import { logout } from '../features/auth/authSlice';
 import type { IssueParams, IssueResponse, Issue, GithubUser } from '../types/github';
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const resolveApiBaseUrl = () => {
+  const base = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(base);
+  if (!/^https?:\/\//i.test(base)) {
+    throw new Error('VITE_API_URL must start with http:// or https://');
+  }
+  if (base.startsWith('http://') && !isLocalhost) {
+    if (import.meta.env.PROD) {
+      throw new Error('VITE_API_URL must use HTTPS in production');
+    }
+    console.warn(`[api] VITE_API_URL uses insecure HTTP (${base}); production builds require HTTPS`);
+  }
+  return base;
+};
+export const API_BASE_URL = resolveApiBaseUrl();
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
