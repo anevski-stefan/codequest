@@ -1,4 +1,4 @@
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativeDate } from '../../utils/formatDate';
 import { getStateColor } from '../../features/dashboard/utils/filterUtils';
 import type { IssueMetadataProps } from './types';
 export const IssueMetadata = ({
@@ -10,9 +10,7 @@ export const IssueMetadata = ({
     </span>
     <span className="hidden md:inline">•</span>
     <span className="text-xs md:text-sm">
-      Created {formatDistanceToNow(new Date(issue.createdAt), {
-      addSuffix: true
-    })}
+      Created {formatRelativeDate(issue.createdAt)}
     </span>
     <span className="hidden md:inline">•</span>
     <span className="text-xs md:text-sm">

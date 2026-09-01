@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
+import LoadingSpinner from './LoadingSpinner';
 const PrivateRoute = ({
   children
 }: {
@@ -12,8 +13,8 @@ const PrivateRoute = ({
   } = useSelector((state: RootState) => state.auth);
   const location = useLocation();
   if (!restored) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Loading…
+    return <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
       </div>;
   }
   if (!isAuthenticated) {

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativeDate } from '../../../utils/formatDate';
 import { MessageSquare, ExternalLink } from 'lucide-react';
 import type { Issue } from '../../../types/github';
 import { getStateColor, getLabelColors } from '../utils/filterUtils';
@@ -78,9 +78,7 @@ const IssueTable = memo(({
                   <td className="hidden lg:table-cell px-6 py-4">
                     <div className="flex justify-center items-center">
                       <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        {formatDistanceToNow(new Date(issue.createdAt), {
-                      addSuffix: true
-                    })}
+                        {formatRelativeDate(issue.createdAt)}
                       </span>
                     </div>
                   </td>
@@ -154,9 +152,7 @@ const IssueTable = memo(({
             <div className="flex items-center justify-between pt-2">
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {formatDistanceToNow(new Date(issue.createdAt), {
-                addSuffix: true
-              })}
+                  {formatRelativeDate(issue.createdAt)}
                 </span>
                 <span className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                   <MessageSquare size={14} className="mr-1" />

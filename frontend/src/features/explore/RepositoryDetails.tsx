@@ -3,7 +3,7 @@ import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-quer
 import { GitFork, GitPullRequest, MessageSquare, GitCommit, Plus, Minus, FileText } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativeDate } from '../../utils/formatDate';
 import { motion } from 'framer-motion';
 import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails } from '../../services/github';
 import { getLabelColors, isHexColor } from '../dashboard/utils/filterUtils';
@@ -252,9 +252,7 @@ const RepositoryDetails = () => {
           </a>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              Last updated {formatDistanceToNow(new Date(repository.updated_at), {
-              addSuffix: true
-            })}
+              Last updated {formatRelativeDate(repository.updated_at)}
             </span>
           </div>
         </div>
@@ -470,9 +468,7 @@ const RepositoryDetails = () => {
                               <span>•</span>
                               <span>{pr.user.login}</span>
                               <span>•</span>
-                              <span>{formatDistanceToNow(new Date(pr.created_at), {
-                            addSuffix: true
-                          })}</span>
+                              <span>{formatRelativeDate(pr.created_at)}</span>
                             </div>
                           </div>
                         </div>
