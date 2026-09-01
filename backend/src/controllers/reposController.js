@@ -273,9 +273,11 @@ exports.getPullDetails = async (req, res) => {
         error: 'Invalid owner, repo or pull request number'
       });
     }
-    const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}`);
-    const filesResponse = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}/files`);
-    const commitsResponse = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}/commits`);
+    const [response, filesResponse, commitsResponse] = await Promise.all([
+      githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}`),
+      githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}/files`),
+      githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}/commits`)
+    ]);
     const prFileNames = filesResponse.map(file => file.filename);
     const commitsWithFiles = commitsResponse.map(commit => ({
       sha: commit.sha,
