@@ -1,10 +1,11 @@
 const passport = require('passport');
+const logger = require('../utils/logger');
 const GitHubStrategy = require('passport-github2').Strategy;
 let supabaseService;
 try {
   supabaseService = require('../services/supabaseService');
 } catch (error) {
-  console.warn('Supabase service not configured - user data will not be stored');
+  logger.warn('Supabase service not configured - user data will not be stored');
 }
 if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
   passport.use(new GitHubStrategy({
@@ -16,7 +17,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
   }, async function (accessToken, refreshToken, profile, done) {
     try {
       if (!supabaseService) {
-        console.error('Supabase is required to persist the GitHub access token server-side. Configure SUPABASE_URL and SUPABASE_SERVICE_KEY.');
+        logger.error('Supabase is required to persist the GitHub access token server-side. Configure SUPABASE_URL and SUPABASE_SERVICE_KEY.');
         return done(new Error('Authentication is disabled: no server-side token store configured'), null);
       }
       let userData = profile;
@@ -24,7 +25,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
         userData = await supabaseService.createOrUpdateUser(profile);
         await supabaseService.persistAccessToken(profile.id, accessToken, refreshToken);
       } catch (error) {
-        console.error('Failed to persist user/auth data in Supabase:', error.message);
+        logger.error('Failed to persist user/auth data in Supabase:', error.message);
         return done(error, null);
       }
       return done(null, {
@@ -35,7 +36,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
     }
   }));
 } else {
-  console.warn('GitHub OAuth credentials not found - authentication will not work');
+  logger.warn('GitHub OAuth credentials not found - authentication will not work');
 }
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -57,7 +58,7 @@ passport.deserializeUser(async (id, done) => {
       accessToken: user.accessToken
     });
   } catch (error) {
-    console.error('deserializeUser error:', error.message);
+    logger.error('deserializeUser error:', error.message);
     done(error, null);
   }
 });

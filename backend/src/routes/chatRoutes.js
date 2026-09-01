@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const router = express.Router();
 const supabaseService = require('../services/supabaseService');
 router.use(express.json({ limit: '1mb' }));
@@ -13,7 +14,7 @@ router.get('/', async (req, res) => {
     }
     res.json(data);
   } catch (error) {
-    console.error('Error fetching chats:', error);
+    logger.error('Error fetching chats:', error);
     res.status(500).json({
       error: 'Failed to fetch chats'
     });
@@ -40,7 +41,7 @@ router.delete('/:chatId', async (req, res) => {
       message: 'Chat deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting chat:', error);
+    logger.error('Error deleting chat:', error);
     res.status(500).json({
       error: 'Failed to delete chat'
     });
@@ -61,7 +62,7 @@ router.post('/', async (req, res) => {
     const data = await supabaseService.saveChat(userId, messages, title);
     res.status(201).json(data);
   } catch (error) {
-    console.error('Error saving chat:', error);
+    logger.error('Error saving chat:', error);
     res.status(500).json({
       error: 'Failed to save chat'
     });

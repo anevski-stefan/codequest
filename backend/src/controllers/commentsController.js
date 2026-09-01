@@ -1,4 +1,5 @@
 const githubService = require('../services/githubService');
+const logger = require('../utils/logger');
 const { isValidOwner, isValidRepo, isValidNumber } = require('../utils/validateParams');
 const { githubErrorResponse } = require('../utils/githubError');
 
@@ -48,7 +49,7 @@ exports.getIssueComments = async (req, res) => {
       nextPage: hasMore ? pageNum + 1 : null
     });
   } catch (error) {
-    console.error('Error fetching comments:', error.response?.data);
+    logger.error('Error fetching comments:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch comments');
   }
 };

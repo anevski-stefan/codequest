@@ -1,4 +1,5 @@
 const githubService = require('../services/githubService');
+const logger = require('../utils/logger');
 exports.getActivity = async (req, res) => {
   try {
     const activities = (await githubService.request(req.user.accessToken, 'GET', '/user/events')).map(event => ({
@@ -10,7 +11,7 @@ exports.getActivity = async (req, res) => {
     }));
     res.json(activities);
   } catch (error) {
-    console.error('Error fetching activity:', error.response?.data);
+    logger.error('Error fetching activity:', error.response?.data);
     res.status(500).json({
       error: 'Failed to fetch activity'
     });

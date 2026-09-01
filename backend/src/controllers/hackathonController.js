@@ -1,4 +1,5 @@
 const HackathonService = require('../services/hackathonService');
+const logger = require('../utils/logger');
 const hackathonService = new HackathonService();
 const MAX_PAGE_SIZE = 50;
 exports.getHackathons = async (req, res) => {
@@ -57,7 +58,7 @@ exports.getHackathons = async (req, res) => {
       isLoading: !hackathonService.getInitialCrawlStatus()
     });
   } catch (error) {
-    console.error('Error in /api/hackathons:', error);
+    logger.error('Error in /api/hackathons:', error);
     return res.status(500).json({
       error: 'Failed to fetch hackathons',
       details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
@@ -78,7 +79,7 @@ exports.getHackathonById = async (req, res) => {
     }
     res.json(hackathon);
   } catch (error) {
-    console.error('Error fetching hackathon:', error);
+    logger.error('Error fetching hackathon:', error);
     res.status(500).json({
       error: 'Failed to fetch hackathon'
     });
@@ -100,7 +101,7 @@ exports.createHackathon = async (req, res) => {
     const newHackathon = await hackathonService.createHackathon(hackathonData);
     res.status(201).json(newHackathon);
   } catch (error) {
-    console.error('Error creating hackathon:', error);
+    logger.error('Error creating hackathon:', error);
     res.status(500).json({
       error: 'Failed to create hackathon'
     });
@@ -128,7 +129,7 @@ exports.updateHackathon = async (req, res) => {
     }
     res.json(updatedHackathon);
   } catch (error) {
-    console.error('Error updating hackathon:', error);
+    logger.error('Error updating hackathon:', error);
     res.status(500).json({
       error: 'Failed to update hackathon'
     });
@@ -147,7 +148,7 @@ exports.deleteHackathon = async (req, res) => {
     }
     res.status(204).send();
   } catch (error) {
-    console.error('Error deleting hackathon:', error);
+    logger.error('Error deleting hackathon:', error);
     res.status(500).json({
       error: 'Failed to delete hackathon'
     });

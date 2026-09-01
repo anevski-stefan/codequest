@@ -1,6 +1,22 @@
 const axios = require('axios');
 const GitHubService = require('./githubService');
 const OpenAI = require('openai');
+const logger = require('../utils/logger');
+const DEFAULT_GITHUB_LABELS = 'good-first-issue,"good first issue",help-wanted,beginner';
+const toLabelList = value => value
+  .split(',')
+  .map(l => l.trim())
+  .filter(Boolean);
+const getAIConfig = () => ({
+  openaiModel: process.env.OPENAI_MODEL || 'gpt-4o',
+  openaiBaseUrl: process.env.OPENAI_BASE_URL || 'https://models.inference.ai.azure.com',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-pro',
+  geminiBaseUrl: process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com',
+  temperature: Number(process.env.AI_TEMPERATURE || 0.7),
+  chatgptMaxTokens: Number(process.env.CHATGPT_MAX_TOKENS || 2048),
+  geminiMaxTokens: Number(process.env.GEMINI_MAX_TOKENS || 1000),
+  githubLabels: toLabelList(process.env.GITHUB_ISSUE_LABELS || DEFAULT_GITHUB_LABELS)
+});
 const SYSTEM_PROMPT = `You are Code Buddy, an AI assistant helping developers find beginner-friendly open source issues.
 When suggesting issues, ALWAYS show at least 5 issues (or all available if fewer than 5) and format your response like this:
 
@@ -30,7 +46,7 @@ class CodeBuddyService {
     }
     try {
       const safeLanguage = typeof language === 'string' ? language : 'javascript';
-      const labels = ['good-first-issue', '"good first issue"', 'help-wanted', 'beginner'];
+      const labels = getAIConfig().githubLabels;
       const baseQuery = ['is:open', 'is:issue', `language:${safeLanguage.toLowerCase()}`, labels.map(label => `label:${label}`).join(' OR ')].filter(Boolean).join(' ');
       const query = encodeURIComponent(baseQuery);
       const options = {
@@ -56,7 +72,7 @@ class CodeBuddyService {
       }));
       return formattedIssues;
     } catch (error) {
-      console.error('GitHub API Error:', {
+      logger.error('GitHub API Error:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
@@ -89,15 +105,16 @@ class CodeBuddyService {
         throw new Error('Invalid AI service selected');
       }
     } catch (error) {
-      console.error('Error in getResponse:', error);
+      logger.error('Error in getResponse:', error);
       throw error;
     }
   }
   async getChatGPTResponse(userMessage, issuesContext, previousMessages, apiKey) {
     try {
+      const config = getAIConfig();
       const openai = new OpenAI({
         apiKey: apiKey,
-        baseURL: 'https://models.inference.ai.azure.com',
+        baseURL: config.openaiBaseUrl,
         defaultHeaders: {
           'api-key': apiKey,
           'Content-Type': 'application/json'
@@ -106,7 +123,7 @@ class CodeBuddyService {
       const truncatedIssuesContext = issuesContext.split('\n\n').slice(0, 5).join('\n\n');
       const limitedPreviousMessages = previousMessages.slice(-5);
       const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: config.openaiModel,
         messages: [{
           role: 'system',
           content: SYSTEM_PROMPT
@@ -117,13 +134,13 @@ class CodeBuddyService {
           role: 'user',
           content: userMessage
         }],
-        temperature: 0.7,
-        max_tokens: 2048,
+        temperature: config.temperature,
+        max_tokens: config.chatgptMaxTokens,
         top_p: 1
       });
       return response.choices[0].message.content;
     } catch (error) {
-      console.error('Azure OpenAI error:', error);
+      logger.error('Azure OpenAI error:', error);
       if (error.response?.status === 401) {
         throw new Error('Invalid Azure OpenAI API key');
       }
@@ -135,13 +152,15 @@ class CodeBuddyService {
   }
   async getGeminiResponse(userMessage, issuesContext, previousMessages, apiKey) {
     try {
+      const config = getAIConfig();
+      const geminiUrl = `${config.geminiBaseUrl}/v1beta/models/${config.geminiModel}:generateContent`;
       const formattedMessages = previousMessages.map(msg => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{
           text: msg.content
         }]
       }));
-      const response = await axios.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+      const response = await axios.post(geminiUrl, {
         contents: [{
           role: 'user',
           parts: [{
@@ -159,8 +178,8 @@ class CodeBuddyService {
           }]
         }],
         generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000
+          temperature: config.temperature,
+          maxOutputTokens: config.geminiMaxTokens
         }
       }, {
         headers: {
@@ -175,7 +194,7 @@ class CodeBuddyService {
       }
       return response.data.candidates[0].content.parts[0].text;
     } catch (error) {
-      console.error('Gemini API error:', error.response?.data || error.message);
+      logger.error('Gemini API error:', error.response?.data || error.message);
       if (error.response?.status === 401) {
         throw new Error('Invalid Gemini API key');
       }

@@ -1,4 +1,5 @@
 const MAX_MESSAGE_LENGTH = 5000;
+const logger = require('../utils/logger');
 exports.submit = async (req, res) => {
   try {
     const {
@@ -32,7 +33,7 @@ exports.submit = async (req, res) => {
       message: 'Feedback sent successfully!'
     });
   } catch (error) {
-    console.error('Feedback submission error:', error);
+    logger.error('Feedback submission error:', error);
     res.status(500).json({
       error: 'Failed to send feedback',
       message: process.env.NODE_ENV !== 'production' ? error.message : undefined
