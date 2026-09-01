@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAssignedIssues, getIssueComments, addIssueComment } from '../services/github';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import type { Issue } from '../types/github';
-import type { Comment } from '../types/comments';
 import CommentsModal from './CommentsModal';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { CardSkeleton } from './skeletons';
@@ -14,8 +14,56 @@ const MyAssignedIssues = () => {
   const [issueState, setIssueState] = useState<string>('open');
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const {
+    data: commentsData,
+    isLoading: isLoadingComments,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage
+  } = useInfiniteQuery({
+    queryKey: ['assignedComments', selectedIssueId, selectedRepo],
+    queryFn: async ({
+      pageParam = 1
+    }) => {
+      if (selectedIssueId && selectedRepo) {
+        const result = await getIssueComments(selectedIssueId, selectedRepo, pageParam);
+        return result;
+      }
+      return null;
+    },
+    initialPageParam: 1,
+    enabled: !!selectedIssueId && !!selectedRepo,
+    getNextPageParam: lastPage => {
+      if (!lastPage) return undefined;
+      return lastPage.hasMore ? lastPage.nextPage : undefined;
+    }
+  });
+  const allComments = commentsData?.pages?.flatMap(page => page?.comments ?? []) ?? [];
+  const addCommentMutation = useMutation({
+    mutationFn: ({
+      issueId,
+      comment
+    }: {
+      issueId: number;
+      comment: string;
+    }) => {
+      if (!selectedRepo) {
+        throw new Error('No repository selected');
+      }
+      return addIssueComment(issueId, selectedRepo, comment);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assignedComments', selectedIssueId, selectedRepo] });
+      toast.success('Comment added');
+    },
+    onError: error => {
+      console.error('Error in add comment mutation:', error);
+      const message = error instanceof Error ? error.message : 'Failed to add comment';
+      toast.error(message || 'Failed to add comment');
+    }
+  });
   const {
     data,
     isLoading,
@@ -33,30 +81,22 @@ const MyAssignedIssues = () => {
       hasMore: false
     })
   });
-  const handleOpenComments = async (issueNumber: number, repoFullName: string) => {
-    setSelectedIssueId(issueNumber);
+  const handleOpenComments = (issue: Issue) => {
+    setSelectedIssueId(issue.number);
+    setSelectedRepo(issue.repository.fullName);
     setIsCommentsModalOpen(true);
-    setIsLoadingComments(true);
-    try {
-      const response = await getIssueComments(issueNumber, repoFullName);
-      setComments(response.comments || []);
-    } catch (error) {
-      console.error('Failed to fetch comments:', error);
-    } finally {
-      setIsLoadingComments(false);
-    }
   };
   const handleAddComment = async (comment: string) => {
-    const issue = data?.issues.find((i: Issue) => i.number === selectedIssueId);
-    if (issue && selectedIssueId) {
-      try {
-        await addIssueComment(selectedIssueId, issue.repository.fullName, comment);
-        const response = await getIssueComments(selectedIssueId, issue.repository.fullName);
-        setComments(response.comments || []);
-      } catch (error) {
-        console.error('Failed to add comment:', error);
-      }
-    }
+    if (!selectedIssueId) return;
+    await addCommentMutation.mutateAsync({
+      issueId: selectedIssueId,
+      comment
+    });
+  };
+  const closeComments = () => {
+    setIsCommentsModalOpen(false);
+    setSelectedIssueId(null);
+    setSelectedRepo(null);
   };
   if (isLoading) {
     return <div className="mt-[64px] p-4 grid gap-6">
@@ -114,7 +154,7 @@ const MyAssignedIssues = () => {
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <button onClick={() => handleOpenComments(issue.number, issue.repository.fullName)} className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
+                      <button onClick={() => handleOpenComments(issue)} className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
                         <MessageCircle size={14} className="mr-1.5" />
                         View Comments
                       </button>
@@ -131,11 +171,9 @@ const MyAssignedIssues = () => {
             </p>
           </div>}
 
-        {selectedIssueId && <CommentsModal isOpen={isCommentsModalOpen} onClose={() => {
-        setIsCommentsModalOpen(false);
-        setSelectedIssueId(null);
-        setComments([]);
-      }} comments={comments} isLoading={isLoadingComments} onAddComment={handleAddComment} onLoadMore={() => {}} hasMoreComments={false} isLoadingMore={false} />}
+{selectedIssueId && <CommentsModal isOpen={isCommentsModalOpen} onClose={() => {
+        closeComments();
+      }} comments={allComments} isLoading={isLoadingComments} onAddComment={handleAddComment} onLoadMore={() => fetchNextPage()} hasMoreComments={!!hasNextPage} isLoadingMore={isFetchingNextPage} />}
       </div>
     </div>;
 };

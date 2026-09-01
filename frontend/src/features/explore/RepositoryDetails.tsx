@@ -4,7 +4,6 @@ import { GitFork, GitPullRequest, MessageSquare, GitCommit, Plus, Minus, FileTex
 import { usePageTitle } from '../../hooks/usePageTitle';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { formatDistanceToNow } from 'date-fns';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { motion } from 'framer-motion';
 import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails } from '../../services/github';
 import { getLabelColors, isHexColor } from '../dashboard/utils/filterUtils';
@@ -93,7 +92,6 @@ interface PullRequestCounts {
   open: number;
   closed: number;
 }
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler);
 const RepositoryDetails = () => {
   const {
     owner,

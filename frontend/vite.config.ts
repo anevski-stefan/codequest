@@ -1,11 +1,51 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+const CSP_DIRECTIVES = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https:",
+  "connect-src 'self' https:",
+  "font-src 'self' data:",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'"
+];
+const cspPlugin = (): Plugin => ({
+  name: 'inject-security-headers',
+  apply: 'build',
+  transformIndexHtml() {
+    return {
+      html: undefined,
+      tags: [{
+        tag: 'meta',
+        attrs: {
+          'http-equiv': 'Content-Security-Policy',
+          content: CSP_DIRECTIVES.join('; ')
+        },
+        injectTo: 'head-prepend'
+      }, {
+        tag: 'meta',
+        attrs: {
+          'http-equiv': 'X-Frame-Options',
+          content: 'DENY'
+        },
+        injectTo: 'head-prepend'
+      }, {
+        tag: 'meta',
+        attrs: {
+          'http-equiv': 'X-Content-Type-Options',
+          content: 'nosniff'
+        },
+        injectTo: 'head-prepend'
+      }]
+    };
+  }
+});
 const vendorChunks = (id: string) => {
   if (!id.includes('node_modules')) {
     return undefined;
-  }
-  if (id.includes('chart.js') || id.includes('react-chartjs-2')) {
-    return 'chart';
   }
   if (id.includes('framer-motion')) {
     return 'motion';
@@ -34,7 +74,7 @@ const vendorChunks = (id: string) => {
   return undefined;
 };
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), cspPlugin()],
   build: {
     rollupOptions: {
       output: {

@@ -17,7 +17,7 @@ exports.chat = async (req, res) => {
       messages,
       service
     } = req.body;
-    if (!message) {
+    if (typeof message !== 'string' || !message.trim()) {
       return badRequest(res, 'Message is required');
     }
     if (typeof service !== 'string' || !service.trim()) {

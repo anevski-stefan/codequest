@@ -3,6 +3,25 @@ const GitHubService = require('./githubService');
 const OpenAI = require('openai');
 const logger = require('../utils/logger');
 const DEFAULT_GITHUB_LABELS = 'good-first-issue,"good first issue",help-wanted,beginner';
+const MAX_PREVIOUS_MESSAGES = 5;
+const MAX_MESSAGE_CHARS = 4000;
+const sanitizeMessages = (messages) => {
+  if (!Array.isArray(messages)) return [];
+  const result = [];
+  for (const msg of messages) {
+    if (!msg || typeof msg !== 'object') continue;
+    const role = msg.role === 'assistant' ? 'assistant' : msg.role === 'user' ? 'user' : null;
+    if (!role) continue;
+    const content = typeof msg.content === 'string' ? msg.content.trim() : '';
+    if (!content) continue;
+    result.push({
+      role,
+      content: content.slice(0, MAX_MESSAGE_CHARS)
+    });
+    if (result.length >= MAX_PREVIOUS_MESSAGES) break;
+  }
+  return result;
+};
 const toLabelList = value => value
   .split(',')
   .map(l => l.trim())
@@ -83,6 +102,11 @@ class CodeBuddyService {
   }
   async getResponse(userMessage, context, previousMessages, token, service, apiKey) {
     try {
+      const safeUserMessage = typeof userMessage === 'string' ? userMessage.trim().slice(0, MAX_MESSAGE_CHARS) : '';
+      if (!safeUserMessage) {
+        throw new Error('Message is required');
+      }
+      const safePreviousMessages = sanitizeMessages(previousMessages);
       const language = typeof context?.language === 'string' ? context.language : 'javascript';
       const difficulty = typeof context?.difficulty === 'string' ? context.difficulty : 'all';
       const issues = await this.getGitHubIssues(token, language, difficulty);
@@ -98,9 +122,9 @@ class CodeBuddyService {
         throw new Error(`${service?.toUpperCase() || 'AI'} service configuration is missing`);
       }
       if (service === 'chatgpt') {
-        return await this.getChatGPTResponse(userMessage, issuesContext, previousMessages, apiKey);
+        return await this.getChatGPTResponse(safeUserMessage, issuesContext, safePreviousMessages, apiKey);
       } else if (service === 'gemini') {
-        return await this.getGeminiResponse(userMessage, issuesContext, previousMessages, apiKey);
+        return await this.getGeminiResponse(safeUserMessage, issuesContext, safePreviousMessages, apiKey);
       } else {
         throw new Error('Invalid AI service selected');
       }
@@ -121,7 +145,6 @@ class CodeBuddyService {
         }
       });
       const truncatedIssuesContext = issuesContext.split('\n\n').slice(0, 5).join('\n\n');
-      const limitedPreviousMessages = previousMessages.slice(-5);
       const response = await openai.chat.completions.create({
         model: config.openaiModel,
         messages: [{
@@ -130,7 +153,7 @@ class CodeBuddyService {
         }, {
           role: 'system',
           content: `Here are some recent beginner issues:\n\n${truncatedIssuesContext}`
-        }, ...limitedPreviousMessages, {
+        }, ...previousMessages, {
           role: 'user',
           content: userMessage
         }],

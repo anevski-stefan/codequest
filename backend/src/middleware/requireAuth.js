@@ -1,6 +1,6 @@
 const GitHubService = require('../services/githubService');
 
-const TOKEN_VALIDITY_WINDOW_MS = 10 * 60 * 1000;
+const TOKEN_VALIDITY_WINDOW_MS = 60 * 1000;
 
 const requireAuth = (req, res, next) => {
   if (!req.user || !req.user.accessToken) {
@@ -18,6 +18,7 @@ const requireAuth = (req, res, next) => {
       if (!valid) {
         if (req.session) {
           delete req.session.lastTokenCheck;
+          delete req.session.passport;
         }
         return res.status(401).json({
           error: 'Unauthorized'

@@ -1,5 +1,5 @@
 import { AxiosError } from 'axios';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { Send, Bot, Minimize2, User, StopCircle, History, X, TrashIcon, Eraser } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/github';
@@ -27,8 +27,15 @@ interface ChatHistory {
   messages: Message[];
   created_at: string;
 }
+const ALLOWED_URL_SCHEMES = /^(https?:|mailto:)/i;
+const SafeLink = ({ href, children }: { href: string; children: ReactNode }) => {
+  if (typeof href !== 'string' || !ALLOWED_URL_SCHEMES.test(href)) {
+    return <span>{children}</span>;
+  }
+  return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+};
 const markdownComponents: Components = {
-  a: (props) => <a {...props} target="_blank" rel="noopener noreferrer" />
+  a: ({ href, children }) => <SafeLink href={href || ''} children={children} />
 };
 const TypingMarkdown = ({
   text,
@@ -191,7 +198,7 @@ const CodeBuddy = () => {
       if (!status[currentService]) {
         throw new Error('Please set up your API key in Settings to use CodeBuddy');
       }
-      const formattedMessages = messages.slice(-5).map(msg => ({
+      const formattedMessages = messagesRef.current.slice(-5).map(msg => ({
         role: msg.role,
         content: msg.content,
         timestamp: msg.timestamp

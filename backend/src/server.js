@@ -20,9 +20,16 @@ const codeBuddyRoutes = require('./routes/codeBuddyRoutes');
 const githubProxyRoutes = require('./routes/githubProxyRoutes');
 const requireAuth = require('./middleware/requireAuth');
 const limiter = require('./middleware/rateLimiter');
+const {
+  newsletterLimiter,
+  feedbackLimiter,
+  aiChatLimiter,
+  aiKeysLimiter
+} = limiter;
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const aiKeysRoutes = require('./routes/aiKeysRoutes');
+const SupabaseSessionStore = require('./utils/supabaseSessionStore');
 const app = express();
 
 const trustProxy = process.env.TRUST_PROXY;
@@ -54,10 +61,25 @@ if (!process.env.AI_KEY_SECRET && process.env.NODE_ENV === 'production') {
   throw new Error('AI_KEY_SECRET environment variable is required in production');
 }
 
+if (!process.env.GITHUB_CALLBACK_URL && process.env.NODE_ENV === 'production') {
+  throw new Error('GITHUB_CALLBACK_URL environment variable is required in production');
+}
+
 const envSessionMaxAge = Number(process.env.SESSION_MAX_AGE_MS);
 const sessionMaxAgeMs = Number.isInteger(envSessionMaxAge) && envSessionMaxAge > 0
   ? envSessionMaxAge
   : 24 * 60 * 60 * 1000;
+
+const requestedSessionStore = (process.env.SESSION_STORE || 'memory').toLowerCase();
+let sessionStore;
+if (requestedSessionStore === 'supabase') {
+  sessionStore = new SupabaseSessionStore();
+} else {
+  if (process.env.NODE_ENV === 'production') {
+    logger.warn('[server] SESSION_STORE not set to "supabase"; using in-memory sessions. Set SESSION_STORE=supabase for restart-safe, multi-instance sessions.');
+  }
+  sessionStore = new session.MemoryStore();
+}
 
 const corsOrigin = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
@@ -74,6 +96,7 @@ app.use(session({
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
+  store: sessionStore,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -102,14 +125,14 @@ app.use(limiter);
 app.use('/api/activity', requireAuth, activityRoutes);
 app.use('/api/issues', requireAuth, issuesRoutes);
 app.use('/api/repos', requireAuth, reposRoutes);
-app.use('/api/code-buddy', requireAuth, codeBuddyRoutes);
-app.use('/api/chats', requireAuth, chatRoutes);
+app.use('/api/code-buddy', requireAuth, aiChatLimiter, codeBuddyRoutes);
+app.use('/api/chats', requireAuth, aiChatLimiter, chatRoutes);
 app.use('/api/github', githubProxyRoutes);
 app.use('/auth', authRoutes);
 app.use('/api/hackathons', hackathonRoutes);
-app.use('/api/newsletter', newsletterRoutes);
-app.use('/api/feedback', feedbackRoutes);
-app.use('/api/ai-keys', requireAuth, aiKeysRoutes);
+app.use('/api/newsletter', newsletterLimiter, newsletterRoutes);
+app.use('/api/feedback', feedbackLimiter, feedbackRoutes);
+app.use('/api/ai-keys', requireAuth, aiKeysLimiter, aiKeysRoutes);
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not found'
