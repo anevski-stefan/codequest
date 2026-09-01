@@ -24,6 +24,5 @@ cp .env.example .env   # set VITE_API_URL to your backend URL
 - React Router for routing
 - Tailwind CSS for styling
 - Framer Motion for animations
-- Chart.js for charts
 
 See the [root README](../README.md) for full project setup and backend configuration.
