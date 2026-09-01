@@ -1,6 +1,6 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useState, useMemo, useCallback } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativeDate } from '../utils/formatDate';
 import { X, GitCommit, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
 export interface PullRequestFile {
@@ -83,17 +83,7 @@ export default function PullRequestDetailsModal({
       setExpandedFiles(filesToExpand);
     }
   }, [pullRequestDetails]);
-  const formatDate = useCallback((dateString?: string) => {
-    if (!dateString) return '';
-    try {
-      return formatDistanceToNow(new Date(dateString), {
-        addSuffix: true
-      });
-    } catch {
-      console.error('Invalid date:', dateString);
-      return '';
-    }
-  }, []);
+  const formatDate = useCallback((dateString?: string) => formatRelativeDate(dateString), []);
   const headerContent = useMemo(() => {
     if (isLoading) {
       return <div className="flex items-center gap-4">

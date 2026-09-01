@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAssignedIssues, getIssueComments, addIssueComment } from '../services/github';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativeDate } from '../utils/formatDate';
 import { MessageCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Issue } from '../types/github';
@@ -144,9 +144,7 @@ const MyAssignedIssues = () => {
                       </span>
                       <span className="hidden sm:inline">•</span>
                       <span>
-                        Updated {formatDistanceToNow(new Date(issue.updatedAt), {
-                    addSuffix: true
-                  })}
+                        Updated {formatRelativeDate(issue.updatedAt)}
                       </span>
                       <span className="hidden sm:inline">•</span>
                       <span>

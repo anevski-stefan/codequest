@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativeDate } from '../../utils/formatDate';
 import type { Comment } from '../../types/comments';
 interface CommentItemProps {
   comment: Comment;
@@ -16,9 +16,7 @@ const CommentItem = memo(({
               {comment.user.login}
             </h4>
             <span className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
-              {formatDistanceToNow(new Date(comment.createdAt), {
-              addSuffix: true
-            })}
+              {formatRelativeDate(comment.createdAt)}
             </span>
           </div>
           <div className="prose prose-sm max-w-none text-gray-800 dark:text-gray-300 break-words whitespace-pre-wrap">
