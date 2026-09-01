@@ -4,7 +4,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import toast from 'react-hot-toast';
 import { api } from '../../services/github';
-type AIService = 'chatgpt' | 'gemini';
+import { isAIService } from '../../hooks/useAIService';
+import type { AIService } from '../../hooks/useAIService';
 const SettingsPage = () => {
   usePageTitle('Settings');
   const {
@@ -19,8 +20,8 @@ const SettingsPage = () => {
   const [configured, setConfigured] = useState<{ chatgpt: boolean; gemini: boolean }>({ chatgpt: false, gemini: false });
   const [toDelete, setToDelete] = useState<Set<AIService>>(new Set());
   useEffect(() => {
-    const savedService = localStorage.getItem('ai_service') as AIService || 'chatgpt';
-    setSelectedService(savedService);
+    const savedService = localStorage.getItem('ai_service');
+    setSelectedService(isAIService(savedService) ? savedService : 'chatgpt');
     api.get('/api/ai-keys').then(r => setConfigured(r.data)).catch(() => {});
   }, []);
   const handleServiceChange = (service: AIService) => {

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { store } from '../store';
 import { logout } from '../features/auth/authSlice';
-import type { IssueParams, IssueResponse, Issue, Label, GithubUser } from '../types/github';
+import type { IssueParams, IssueResponse, Issue, GithubUser } from '../types/github';
 export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -27,47 +27,58 @@ const isProtectedRequest = (url?: string): boolean => {
   const path = url.split('?')[0];
   return path.startsWith('/api/issues/assigned') || path.startsWith('/api/github/user/');
 };
-interface GitHubIssue {
-  id: number;
-  number: number;
-  title: string;
-  body: string | null;
-  state: string;
-  created_at: string;
-  updated_at: string;
-  comments: number;
-  labels: Label[];
-  repository_url: string;
-  html_url: string;
-  user: {
-    login: string;
-    avatar_url: string;
-  };
+interface RawGitHubUser {
+  login?: unknown;
+  avatar_url?: unknown;
 }
-const transformIssue = (item: GitHubIssue): Issue => ({
-  id: item.id,
-  number: item.number,
-  title: item.title,
-  body: item.body,
-  state: item.state,
-  createdAt: item.created_at,
-  updatedAt: item.updated_at,
-  commentsCount: item.comments,
-  labels: item.labels.map(label => ({
-    name: label.name,
-    color: label.color
-  })),
-  repository: {
-    id: item.repository_url.split('/').pop() || '',
-    fullName: item.repository_url.split('/').slice(-2).join('/'),
-    url: item.repository_url
-  },
-  user: {
-    login: item.user.login,
-    avatarUrl: item.user.avatar_url
-  },
-  url: item.html_url
-});
+interface RawGitHubIssue {
+  id?: unknown;
+  number?: unknown;
+  title?: unknown;
+  body?: unknown;
+  state?: unknown;
+  created_at?: unknown;
+  updated_at?: unknown;
+  comments?: unknown;
+  labels?: unknown;
+  repository_url?: unknown;
+  html_url?: unknown;
+  user?: RawGitHubUser;
+}
+const safeString = (value: unknown): string => (typeof value === 'string' ? value : '');
+const safeNumber = (value: unknown): number => (typeof value === 'number' && !Number.isNaN(value) ? value : 0);
+const transformIssue = (item: RawGitHubIssue): Issue => {
+  const user = item.user && typeof item.user === 'object' ? item.user : {};
+  const labels = Array.isArray(item.labels)
+    ? item.labels.filter((l: unknown): l is Record<string, unknown> => Boolean(l) && typeof l === 'object')
+    : [];
+  const repoUrl = safeString(item.repository_url);
+  const repoParts = repoUrl.split('/').filter(Boolean);
+  return {
+    id: safeNumber(item.id),
+    number: safeNumber(item.number),
+    title: safeString(item.title),
+    body: typeof item.body === 'string' ? item.body : null,
+    state: safeString(item.state),
+    createdAt: safeString(item.created_at),
+    updatedAt: safeString(item.updated_at),
+    commentsCount: safeNumber(item.comments),
+    labels: labels.map(label => ({
+      name: safeString(label.name),
+      color: safeString(label.color)
+    })),
+    repository: {
+      id: repoParts[repoParts.length - 1] || '',
+      fullName: repoParts.slice(-2).join('/'),
+      url: repoUrl
+    },
+    user: {
+      login: safeString(user.login),
+      avatarUrl: safeString(user.avatar_url)
+    },
+    url: safeString(item.html_url)
+  };
+};
 // Map UI sort values ('created' | 'created-asc' | 'updated' | 'comments') to a valid GitHub search sort param.
 const toApiSort = (sort: string): string => sort === 'created-asc' ? 'created' : sort;
 // Date field used for the time-frame recency qualifier (only 'created'/'updated' are valid date fields).

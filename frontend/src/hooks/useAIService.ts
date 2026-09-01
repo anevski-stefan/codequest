@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-type AIService = 'chatgpt' | 'gemini';
+export type AIService = 'chatgpt' | 'gemini';
 const AI_SERVICES: AIService[] = ['chatgpt', 'gemini'];
-const isAIService = (value: string | null): value is AIService =>
+export const isAIService = (value: string | null): value is AIService =>
   value !== null && (AI_SERVICES as string[]).includes(value);
 export const useAIService = () => {
   const [selectedService, setSelectedService] = useState<AIService>(() => {
