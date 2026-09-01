@@ -28,7 +28,6 @@ const Dashboard = () => {
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
-  const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const {
@@ -85,8 +84,6 @@ const Dashboard = () => {
       ...prev,
       ...Object.fromEntries(Object.entries(newFilter).filter(([, value]) => value != null))
     }));
-    setIsFilterLoading(true);
-    setInitialFetchComplete(false);
   }, 500), []);
   const {
     data,
@@ -112,17 +109,15 @@ const Dashboard = () => {
     refetchOnWindowFocus: false,
     getNextPageParam: (lastPage, allPages) => lastPage.hasMore ? allPages.length + 1 : undefined
   });
-  const allIssues = data?.pages.flatMap(page => page.issues) ?? [];
+  const allIssues = useMemo(() => data?.pages.flatMap(page => page.issues) ?? [], [data]);
   useEffect(() => {
     if (isPlaceholderData) return;
     if (isError) {
       console.error('Query error:', error);
-      setIsFilterLoading(false);
       setInitialFetchComplete(true);
       return;
     }
     if (data) {
-      setIsFilterLoading(false);
       setInitialFetchComplete(true);
     }
   }, [isPlaceholderData, isError, error, data]);
@@ -163,11 +158,11 @@ const Dashboard = () => {
   const handleLoadMore = () => {
     fetchNextIssuesPage();
   };
-  const handleViewComments = (issue: Issue) => {
+  const handleViewComments = useCallback((issue: Issue) => {
     setSelectedIssueId(issue.number);
     setSelectedRepo(issue.repository.fullName);
     setIsCommentsModalOpen(true);
-  };
+  }, []);
   const handleAddComment = async (comment: string) => {
     if (!selectedIssueId) return;
     return addCommentMutation.mutateAsync({
@@ -284,17 +279,22 @@ const Dashboard = () => {
                   {error.message || 'Failed to load issues'}
                 </div>}
               
-              {!isLoading && !isFilterLoading && !error && allIssues.length === 0 && initialFetchComplete && <div className="text-center p-8">
+              {isPlaceholderData && <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Refreshing results…
+                </div>}
+
+              {!isLoading && !error && allIssues.length === 0 && initialFetchComplete && <div className="text-center p-8">
                   <p className="text-gray-500 dark:text-gray-400">
                     No issues found
                   </p>
                 </div>}
 
-              {!isLoading && !isFilterLoading && allIssues.length > 0 && <div className="bg-white dark:bg-gray-900 shadow rounded-lg">
+              {!isLoading && allIssues.length > 0 && <div className="bg-white dark:bg-gray-900 shadow rounded-lg">
                   <IssueTable issues={allIssues} onViewComments={handleViewComments} />
                 </div>}
 
-              {!isLoading && !isFilterLoading && hasNextIssuesPage && allIssues.length > 0 && <div className="flex justify-center mt-4 md:mt-6">
+              {!isLoading && hasNextIssuesPage && allIssues.length > 0 && <div className="flex justify-center mt-4 md:mt-6">
                   <button onClick={handleLoadMore} disabled={isFetchingNextIssuesPage} className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm md:text-base font-medium shadow-sm">
                     {isFetchingNextIssuesPage ? <span className="inline-flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -303,7 +303,7 @@ const Dashboard = () => {
                   </button>
                 </div>}
 
-              {!isLoading && !isFilterLoading && !hasNextIssuesPage && allIssues.length > 0 && <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8">
+              {!isLoading && !hasNextIssuesPage && allIssues.length > 0 && <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8">
                   No more issues to load
                 </div>}
             </div>}

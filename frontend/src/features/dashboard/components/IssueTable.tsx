@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare, ExternalLink } from 'lucide-react';
 import type { Issue } from '../../../types/github';
@@ -6,7 +7,7 @@ interface IssueTableProps {
   issues: Issue[];
   onViewComments: (issue: Issue) => void;
 }
-const IssueTable = ({
+const IssueTable = memo(({
   issues,
   onViewComments
 }: IssueTableProps) => {
@@ -174,5 +175,6 @@ const IssueTable = ({
           </div>)}
       </div>
     </>;
-};
+});
+IssueTable.displayName = 'IssueTable';
 export default IssueTable;
