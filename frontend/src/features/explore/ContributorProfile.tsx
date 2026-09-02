@@ -8,7 +8,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { motion } from 'framer-motion';
 import StatsModal from '../../components/StatsModal';
 import { ProfileSkeleton } from '../../components/skeletons';
-import ProfilePagination from '../../components/profile/ProfilePagination';
+import { Pagination } from '../../components/ui/Pagination';
 import ProfileStatsCard from '../../components/profile/ProfileStatsCard';
 import ProfileInfoItems from '../../components/profile/ProfileInfoItems';
 import { formatActivityMessage } from '../../components/profile/formatActivityMessage';
@@ -403,7 +403,7 @@ const ContributorProfile = () => {
                               </a>)}
                           </div>}
                       </div>
-                      <ProfilePagination page={page} hasMore={!!repos && Array.isArray(repos) && repos.length >= PER_PAGE} onPageChange={setPage} />
+                      <Pagination currentPage={page} hasMore={!!repos && Array.isArray(repos) && repos.length >= PER_PAGE} onPageChange={setPage} />
                     </>}
                 </div>}
             </div>
