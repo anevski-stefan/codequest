@@ -11,7 +11,8 @@ import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from '.
 import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
 import IssueTable from './components/IssueTable';
-import { CardSkeleton } from '../../components/skeletons';
+import { CardSkeletonList } from '../../components/skeletons';
+import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 const Dashboard = () => {
   usePageTitle('Dashboard');
   const [filter, setFilter] = useState<IssueParams>({
@@ -124,9 +125,11 @@ const Dashboard = () => {
     };
   }, [debouncedSetFilter]);
   if (showLoadingSpinner) {
-    return <div className="mt-[64px] p-4 grid gap-6">
-        {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
-      </div>;
+    return (
+      <div className="mt-[64px] p-4">
+        <CardSkeletonList count={3} />
+      </div>
+    );
   }
   return <div className="flex min-h-screen w-full relative mt-[64px]">
       {}
@@ -219,12 +222,8 @@ const Dashboard = () => {
       {}
       <main className="flex-1 p-4 lg:p-4 w-full lg:ml-0">
         <div className="w-full max-w-[1600px]">
-          {showLoadingSpinner ? <div className="grid gap-6">
-              {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
-            </div> : <div className="w-full">
-              {error instanceof Error && <div className="text-center text-red-600 dark:text-red-400 p-3 md:p-4 mb-4 rounded-lg w-full">
-                  {error.message || 'Failed to load issues'}
-                </div>}
+          {showLoadingSpinner ? <CardSkeletonList count={3} /> : <div className="w-full">
+              {error instanceof Error && <ErrorDisplay title="Failed to load issues" error={error.message || 'An error occurred'} />}
               
               {isPlaceholderData && <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 py-2">
                   <Loader2 className="h-4 w-4 animate-spin" />

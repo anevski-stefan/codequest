@@ -6,7 +6,8 @@ import { MessageCircle } from 'lucide-react';
 import type { Issue } from '../types/github';
 import CommentsModal from './CommentsModal';
 import { usePageTitle } from '../hooks/usePageTitle';
-import { CardSkeleton } from './skeletons';
+import { CardSkeletonList } from './skeletons';
+import { ErrorDisplay } from './ui/ErrorDisplay';
 import { getLabelColors } from '../features/dashboard/utils/filterUtils';
 import useIssueComments from '../hooks/useIssueComments';
 const MyAssignedIssues = () => {
@@ -41,14 +42,18 @@ const MyAssignedIssues = () => {
     })
   });
   if (isLoading) {
-    return <div className="mt-[64px] p-4 grid gap-6">
-        {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
-      </div>;
+    return (
+      <div className="mt-[64px] p-4">
+        <CardSkeletonList count={3} />
+      </div>
+    );
   }
   if (error) {
-    return <div className="mt-[64px] w-full text-center text-red-600 dark:text-red-400 p-4">
-        {error instanceof Error ? error.message : 'Failed to load assigned issues'}
-      </div>;
+    return (
+      <div className="mt-[64px] p-4">
+        <ErrorDisplay title="Failed to load assigned issues" error={error instanceof Error ? error.message : 'An error occurred'} />
+      </div>
+    );
   }
   return <div className="w-full p-4">
       <div className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow">

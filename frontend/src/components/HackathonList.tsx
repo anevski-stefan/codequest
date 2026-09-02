@@ -37,7 +37,7 @@ export default function HackathonList() {
   }, [debouncedSearch, filter]);
   const renderContent = () => {
     if (isError) {
-      return <ErrorDisplay error={error instanceof Error ? error.message : 'An error occurred'} title="Upcoming Hackathons" />;
+      return <ErrorDisplay title="Failed to load hackathons" error={error instanceof Error ? error.message : 'An error occurred'} />;
     }
     if (!data?.hackathons?.length) {
       return <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
