@@ -3,7 +3,8 @@ import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { getSuggestedIssues } from '../../services/github';
 import type { IssueParams } from '../../types/github';
 import CommentsModal from '../../components/CommentsModal';
-import { CardSkeleton } from '../../components/skeletons';
+import { CardSkeletonList } from '../../components/skeletons';
+import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
 import IssueTable from '../dashboard/components/IssueTable';
@@ -74,26 +75,14 @@ const SuggestedIssues = () => {
       </div>
 
       <div className="w-full min-h-[200px]">
-        {showLoadingSpinner && <div className="grid gap-6">
-            <div className="w-full p-4 bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow">
-              <CardSkeleton />
-            </div>
-            <div className="w-full p-4 bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow">
-              <CardSkeleton />
-            </div>
-            <div className="w-full p-4 bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow">
-              <CardSkeleton />
-            </div>
-          </div>}
+        {showLoadingSpinner && <CardSkeletonList count={3} />}
 
-        {!showLoadingSpinner && error instanceof Error && <div className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg p-6 text-center">
-            <p className="text-red-600 dark:text-red-400 mb-2">
-              {isRateLimitError ? 'GitHub API rate limit exceeded' : 'Failed to load issues'}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {isRateLimitError ? 'Please wait a few minutes before trying again.' : error.message}
-            </p>
-          </div>}
+        {!showLoadingSpinner && error instanceof Error && (
+          <ErrorDisplay 
+            title={isRateLimitError ? 'GitHub API rate limit exceeded' : 'Failed to load issues'} 
+            error={isRateLimitError ? 'Please wait a few minutes before trying again.' : error.message} 
+          />
+        )}
         
         {!showLoadingSpinner && allIssues.length === 0 && <div className="text-center p-8">
             <p className="text-gray-500 dark:text-gray-400">

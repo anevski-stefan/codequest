@@ -6,7 +6,8 @@ import { usePageTitle } from '../../hooks/usePageTitle';
 import { useDebounce } from '../../hooks/useDebounce';
 import { api, searchTopContributors } from '../../services/github';
 import type { GithubUser } from '../../types/github';
-import { CardSkeleton } from '../../components/skeletons/CardSkeleton';
+import { CardSkeletonList } from '../../components/skeletons';
+import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 interface Repository {
   id: number;
   full_name: string;
@@ -130,19 +131,11 @@ const Explore = () => {
 
         {showContributors ? <>
             {showContributors && contributorsLoading && allContributors.length === 0 ? <div className="mt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow p-4">
-                      <CardSkeleton />
-                    </div>)}
-                </div>
+                <CardSkeletonList count={6} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" />
               </div> : allContributors.length > 0 && <ContributorsList contributors={allContributors} onLoadMore={handleLoadMoreContributors} hasMore={!!hasNextContributorsPage} isLoading={isFetchingNextContributorsPage || contributorsLoading} />}
           </> : <>
             {debouncedQuery && (isLoading || !data) ? <div className="mt-6">
-                <div className="grid gap-4">
-                  {[1, 2, 3, 4].map(i => <div key={i} className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow p-4">
-                      <CardSkeleton />
-                    </div>)}
-                </div>
+                <CardSkeletonList count={4} className="grid gap-4" />
               </div> : data?.items?.length > 0 && <div className="mt-6 grid gap-4">
                   {data.items.map((repo: Repository) => <div key={repo.id} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleRepositoryClick(repo.full_name)}>
                       <div className="flex items-start justify-between">
@@ -171,14 +164,13 @@ const Explore = () => {
                 </div>}
           </>}
 
-        {error instanceof Error && <div className="mt-6 bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg p-6 text-center">
-            <p className="text-red-600 dark:text-red-400 mb-2">
-              {error.message.includes('rate limit') ? 'GitHub API rate limit exceeded' : 'Failed to load data'}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {error.message.includes('rate limit') ? 'Please wait a few minutes before trying again.' : error.message}
-            </p>
-          </div>}
+        {error instanceof Error && (
+          <ErrorDisplay 
+            className="mt-6"
+            title={error.message.includes('rate limit') ? 'GitHub API rate limit exceeded' : 'Failed to load data'}
+            error={error.message.includes('rate limit') ? 'Please wait a few minutes before trying again.' : error.message}
+          />
+        )}
       </div>
     </div>;
 };

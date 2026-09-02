@@ -18,3 +18,13 @@ export function CardSkeleton() {
       </div>
     </div>;
 }
+
+export function CardSkeletonList({ count = 3, className = "grid gap-6" }: { count?: number; className?: string }) {
+  return (
+    <div className={className}>
+      {Array.from({ length: count }).map((_, i) => (
+        <CardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
