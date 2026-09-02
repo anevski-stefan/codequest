@@ -1,53 +1,38 @@
 const express = require('express');
-const logger = require('../utils/logger');
 const router = express.Router();
 const requireAuth = require('../middleware/requireAuth');
 const aiKeyStore = require('../utils/aiKeyStore');
+const { badRequest, asyncHandler } = require('../utils/httpError');
 
 const SERVICES = ['chatgpt', 'gemini'];
 
-router.get('/', requireAuth, async (req, res) => {
-  try {
-    res.json(await aiKeyStore.hasAiKeys(req.user.id));
-  } catch (e) {
-    logger.error('Failed to read AI keys:', e);
-    res.status(500).json({ error: 'Failed to read API keys' });
-  }
-});
+router.get('/', requireAuth, asyncHandler(async (req, res) => {
+  res.json(await aiKeyStore.hasAiKeys(req.user.id));
+}));
 
-router.put('/:service', requireAuth, async (req, res) => {
+router.put('/:service', requireAuth, asyncHandler(async (req, res) => {
   const service = req.params.service.toLowerCase();
   if (!SERVICES.includes(service)) {
-    return res.status(400).json({ error: 'Invalid AI service' });
+    return badRequest(res, 'Invalid AI service');
   }
   const rawKey = typeof req.body.key === 'string' ? req.body.key.trim() : '';
   if (!rawKey) {
-    return res.status(400).json({ error: 'API key is required' });
+    return badRequest(res, 'API key is required');
   }
   if (rawKey.length > 2000) {
-    return res.status(400).json({ error: 'API key is too long' });
+    return badRequest(res, 'API key is too long');
   }
-  try {
-    await aiKeyStore.setAiKey(req.user.id, service, rawKey);
-    res.json({ ok: true, service });
-  } catch (e) {
-    logger.error('Failed to store AI key:', e);
-    res.status(500).json({ error: 'Failed to store API key' });
-  }
-});
+  await aiKeyStore.setAiKey(req.user.id, service, rawKey);
+  res.json({ ok: true, service });
+}));
 
-router.delete('/:service', requireAuth, async (req, res) => {
+router.delete('/:service', requireAuth, asyncHandler(async (req, res) => {
   const service = req.params.service.toLowerCase();
   if (!SERVICES.includes(service)) {
-    return res.status(400).json({ error: 'Invalid AI service' });
+    return badRequest(res, 'Invalid AI service');
   }
-  try {
-    await aiKeyStore.deleteAiKey(req.user.id, service);
-    res.json({ ok: true, service });
-  } catch (e) {
-    logger.error('Failed to delete AI key:', e);
-    res.status(500).json({ error: 'Failed to delete API key' });
-  }
-});
+  await aiKeyStore.deleteAiKey(req.user.id, service);
+  res.json({ ok: true, service });
+}));
 
 module.exports = router;

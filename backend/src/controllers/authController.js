@@ -1,6 +1,8 @@
 const passport = require('passport');
 const logger = require('../utils/logger');
 const axios = require('axios');
+const { githubErrorResponse } = require('../utils/githubError');
+const { sendError, asyncHandler } = require('../utils/httpError');
 const clientUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
 const githubAuth = passport.authenticate('github', {
   scope: ['read:user', 'user:email'],
@@ -33,11 +35,9 @@ const githubCallback = [passport.authenticate('github', {
     res.redirect(`${clientUrl()}/auth/callback`);
   }
 }];
-const getMe = async (req, res) => {
+const getMe = asyncHandler(async (req, res) => {
   if (!req.user || !req.user.accessToken) {
-    return res.status(401).json({
-      error: 'Unauthorized'
-    });
+    return sendError(res, 401, 'Unauthorized');
   }
   try {
     const {
@@ -54,16 +54,12 @@ const getMe = async (req, res) => {
     });
   } catch (error) {
     if (error.response?.status === 401) {
-      return res.status(401).json({
-        error: 'Unauthorized'
-      });
+      return sendError(res, 401, 'Unauthorized');
     }
     logger.error('getMe error:', error.response?.data || error.message);
-    res.status(500).json({
-      error: 'Failed to fetch user'
-    });
+    return githubErrorResponse(res, error, 'Failed to fetch user');
   }
-};
+});
 const logout = async (req, res) => {
   const accessToken = req.user?.accessToken;
   if (accessToken) {
