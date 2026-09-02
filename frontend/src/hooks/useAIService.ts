@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-export type AIService = 'chatgpt' | 'gemini';
-const AI_SERVICES: AIService[] = ['chatgpt', 'gemini'];
-export const isAIService = (value: string | null): value is AIService =>
-  value !== null && (AI_SERVICES as string[]).includes(value);
+import { getAIService, subscribeAIService, isAIService } from './aiServiceStorage';
+import type { AIService } from './aiServiceStorage';
+export type { AIService };
+export { isAIService };
 export const useAIService = () => {
-  const [selectedService, setSelectedService] = useState<AIService>(() => {
-    const stored = localStorage.getItem('ai_service');
-    return isAIService(stored) ? stored : 'chatgpt';
-  });
+  const [selectedService, setSelectedService] = useState<AIService>(getAIService);
   useEffect(() => {
+    const unsubscribe = subscribeAIService(() => {
+      setSelectedService(getAIService());
+    });
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'ai_service') {
         setSelectedService(isAIService(e.newValue) ? e.newValue : 'chatgpt');
@@ -16,6 +16,7 @@ export const useAIService = () => {
     };
     window.addEventListener('storage', handleStorageChange);
     return () => {
+      unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);

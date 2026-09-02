@@ -5,6 +5,7 @@ import { usePageTitle } from '../../hooks/usePageTitle';
 import toast from 'react-hot-toast';
 import { api } from '../../services/github';
 import { isAIService } from '../../hooks/useAIService';
+import { setAIService } from '../../hooks/aiServiceStorage';
 import type { AIService } from '../../hooks/useAIService';
 const SettingsPage = () => {
   usePageTitle('Settings');
@@ -62,7 +63,7 @@ const SettingsPage = () => {
     setIsSaving(true);
     try {
       setTheme(selectedTheme);
-      localStorage.setItem('ai_service', selectedService);
+      setAIService(selectedService);
       const ops: Promise<unknown>[] = [];
       if (chatgptKey) {
         ops.push(api.put('/api/ai-keys/chatgpt', { key: chatgptKey }));

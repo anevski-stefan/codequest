@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Dialog } from '@headlessui/react';
 import { X } from 'lucide-react';
 import { api } from '../services/github';
 interface FeedbackModalProps {
@@ -32,23 +33,22 @@ export default function FeedbackModal({
       setErrorMessage('Failed to send feedback. Please try again later.');
     }
   };
-  if (!isOpen) return null;
-  return <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center p-4 text-center">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
-        
-        <div className="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+  return <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+      <div className="fixed inset-0 bg-gray-500 bg-opacity-75" aria-hidden="true" />
+
+      <div className="fixed inset-0 flex items-center justify-center p-4 text-center sm:p-0">
+        <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
           <div className="absolute right-0 top-0 pr-4 pt-4">
-            <button onClick={onClose} className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none">
+            <button onClick={onClose} aria-label="Close feedback modal" className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none">
               <X className="h-6 w-6" />
             </button>
           </div>
 
           <div className="sm:flex sm:items-start">
             <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
-              <h3 className="text-lg font-semibold leading-6 text-gray-900 dark:text-white">
+              <Dialog.Title className="text-lg font-semibold leading-6 text-gray-900 dark:text-white">
                 Send Feedback
-              </h3>
+              </Dialog.Title>
               <div className="mt-2">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   We'd love to hear your thoughts about the app. Your feedback helps us improve!
@@ -56,9 +56,11 @@ export default function FeedbackModal({
               </div>
 
               <form onSubmit={handleSubmit} className="mt-4">
-                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white p-4" placeholder="Your feedback..." required />
-                
-                {}
+                <label htmlFor="feedback-message" className="sr-only">
+                  Your feedback
+                </label>
+                <textarea id="feedback-message" value={message} onChange={e => setMessage(e.target.value)} rows={4} className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white p-4" placeholder="Your feedback..." required />
+
                 {(status === 'error' || status === 'success') && <div className={`mt-2 text-sm ${status === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {status === 'success' ? 'Feedback sent successfully!' : errorMessage}
                   </div>}
@@ -74,7 +76,7 @@ export default function FeedbackModal({
               </form>
             </div>
           </div>
-        </div>
+        </Dialog.Panel>
       </div>
-    </div>;
+    </Dialog>;
 }
