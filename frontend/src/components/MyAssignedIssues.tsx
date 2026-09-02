@@ -1,69 +1,28 @@
 import { useState } from 'react';
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAssignedIssues, getIssueComments, addIssueComment } from '../services/github';
+import { useQuery } from '@tanstack/react-query';
+import { getAssignedIssues } from '../services/github';
 import { formatRelativeDate } from '../utils/formatDate';
 import { MessageCircle } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import type { Issue } from '../types/github';
 import CommentsModal from './CommentsModal';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { CardSkeleton } from './skeletons';
 import { getLabelColors } from '../features/dashboard/utils/filterUtils';
+import useIssueComments from '../hooks/useIssueComments';
 const MyAssignedIssues = () => {
   usePageTitle('My Assigned Issues');
   const [issueState, setIssueState] = useState<string>('open');
-  const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
-  const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
-  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
-  const queryClient = useQueryClient();
   const {
-    data: commentsData,
-    isLoading: isLoadingComments,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage
-  } = useInfiniteQuery({
-    queryKey: ['assignedComments', selectedIssueId, selectedRepo],
-    queryFn: async ({
-      pageParam = 1
-    }) => {
-      if (selectedIssueId && selectedRepo) {
-        const result = await getIssueComments(selectedIssueId, selectedRepo, pageParam);
-        return result;
-      }
-      return null;
-    },
-    initialPageParam: 1,
-    enabled: !!selectedIssueId && !!selectedRepo,
-    getNextPageParam: lastPage => {
-      if (!lastPage) return undefined;
-      return lastPage.hasMore ? lastPage.nextPage : undefined;
-    }
-  });
-  const allComments = commentsData?.pages?.flatMap(page => page?.comments ?? []) ?? [];
-  const addCommentMutation = useMutation({
-    mutationFn: ({
-      issueId,
-      comment
-    }: {
-      issueId: number;
-      comment: string;
-    }) => {
-      if (!selectedRepo) {
-        throw new Error('No repository selected');
-      }
-      return addIssueComment(issueId, selectedRepo, comment);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assignedComments', selectedIssueId, selectedRepo] });
-      toast.success('Comment added');
-    },
-    onError: error => {
-      console.error('Error in add comment mutation:', error);
-      const message = error instanceof Error ? error.message : 'Failed to add comment';
-      toast.error(message || 'Failed to add comment');
-    }
-  });
+    isCommentsModalOpen,
+    allComments,
+    isLoadingComments,
+    hasMoreComments,
+    isLoadingMore,
+    onLoadMore,
+    handleViewComments,
+    handleCloseComments,
+    handleAddComment
+  } = useIssueComments();
   const {
     data,
     isLoading,
@@ -81,23 +40,6 @@ const MyAssignedIssues = () => {
       hasMore: false
     })
   });
-  const handleOpenComments = (issue: Issue) => {
-    setSelectedIssueId(issue.number);
-    setSelectedRepo(issue.repository.fullName);
-    setIsCommentsModalOpen(true);
-  };
-  const handleAddComment = async (comment: string) => {
-    if (!selectedIssueId) return;
-    await addCommentMutation.mutateAsync({
-      issueId: selectedIssueId,
-      comment
-    });
-  };
-  const closeComments = () => {
-    setIsCommentsModalOpen(false);
-    setSelectedIssueId(null);
-    setSelectedRepo(null);
-  };
   if (isLoading) {
     return <div className="mt-[64px] p-4 grid gap-6">
         {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
@@ -152,7 +94,7 @@ const MyAssignedIssues = () => {
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <button onClick={() => handleOpenComments(issue)} className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
+                      <button onClick={() => handleViewComments(issue)} className="flex-1 sm:flex-none inline-flex items-center justify-center px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-md transition-colors">
                         <MessageCircle size={14} className="mr-1.5" />
                         View Comments
                       </button>
@@ -169,9 +111,7 @@ const MyAssignedIssues = () => {
             </p>
           </div>}
 
-{selectedIssueId && <CommentsModal isOpen={isCommentsModalOpen} onClose={() => {
-        closeComments();
-      }} comments={allComments} isLoading={isLoadingComments} onAddComment={handleAddComment} onLoadMore={() => fetchNextPage()} hasMoreComments={!!hasNextPage} isLoadingMore={isFetchingNextPage} />}
+{isCommentsModalOpen && <CommentsModal isOpen={isCommentsModalOpen} onClose={handleCloseComments} comments={allComments} isLoading={isLoadingComments} onAddComment={handleAddComment} onLoadMore={onLoadMore} hasMoreComments={hasMoreComments} isLoadingMore={isLoadingMore} />}
       </div>
     </div>;
 };
