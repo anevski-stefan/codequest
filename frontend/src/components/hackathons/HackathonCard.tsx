@@ -15,7 +15,7 @@ export const HackathonCard = memo(function HackathonCard({
     try {
       const parsed = new URL(url);
       return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch (error) {
+    } catch {
       return false;
     }
   };
