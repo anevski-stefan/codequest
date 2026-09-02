@@ -51,7 +51,6 @@ class HackathonService {
     this.hackathons = new Map();
     this.isInitialCrawlComplete = false;
     this.crawlPromise = null;
-    this._queue = Promise.resolve();
     this.axiosConfig = {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -223,29 +222,21 @@ class HackathonService {
     }
   }
 
-  _enqueue(fn) {
-    const run = this._queue.then(() => fn());
-    this._queue = run.catch(() => {});
-    return run;
-  }
-
   async hydrateFromDb() {
-    return this._enqueue(async () => {
-      const supabase = await this.getSupabaseClient();
-      if (!supabase) return;
-      try {
-        const { data, error } = await supabase
-          .from(HACKATHONS_TABLE)
-          .select('*')
-          .limit(500);
-        if (error) throw error;
-        if (data) {
-          this.replaceAll(data.map(fromDbRow));
-        }
-      } catch (error) {
-        logger.error('Failed to hydrate hackathons from DB:', error);
+    const supabase = await this.getSupabaseClient();
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from(HACKATHONS_TABLE)
+        .select('*')
+        .limit(500);
+      if (error) throw error;
+      if (data) {
+        this.replaceAll(data.map(fromDbRow));
       }
-    });
+    } catch (error) {
+      logger.error('Failed to hydrate hackathons from DB:', error);
+    }
   }
 
   async persistDevpost(hackathons) {
@@ -264,34 +255,31 @@ class HackathonService {
 
   async crawlAll() {
     if (this.crawlPromise) return this.crawlPromise;
-    return this._enqueue(async () => {
-      if (this.crawlPromise) return this.crawlPromise;
-      this.crawlPromise = (async () => {
-        try {
-          const hackathons = await this.crawlDevpost();
-          hackathons.forEach(h => {
-            h.id = this.generateId(h);
-          });
-          await this.persistDevpost(hackathons);
-          const merged = new Map();
-          for (const h of this.hackathons.values()) {
-            if (h.source !== 'devpost') {
-              merged.set(h.id, h);
-            }
+    this.crawlPromise = (async () => {
+      try {
+        const hackathons = await this.crawlDevpost();
+        hackathons.forEach(h => {
+          h.id = this.generateId(h);
+        });
+        await this.persistDevpost(hackathons);
+        const merged = new Map();
+        for (const h of this.hackathons.values()) {
+          if (h.source !== 'devpost') {
+            merged.set(h.id, h);
           }
-          hackathons.forEach(h => merged.set(h.id, h));
-          this.replaceAll(Array.from(merged.values()));
-          this.isInitialCrawlComplete = true;
-          return hackathons;
-        } catch (error) {
-          logger.error('Error in crawlAll:', error);
-          throw error;
-        } finally {
-          this.crawlPromise = null;
         }
-      })();
-      return this.crawlPromise;
-    });
+        hackathons.forEach(h => merged.set(h.id, h));
+        this.replaceAll(Array.from(merged.values()));
+        this.isInitialCrawlComplete = true;
+        return hackathons;
+      } catch (error) {
+        logger.error('Error in crawlAll:', error);
+        throw error;
+      } finally {
+        this.crawlPromise = null;
+      }
+    })();
+    return this.crawlPromise;
   }
 
   replaceAll(hackathons) {
@@ -337,61 +325,55 @@ class HackathonService {
   }
 
   async createHackathon(data) {
-    return this._enqueue(async () => {
-      const hackathon = { ...data };
-      if (!hackathon.id) {
-        hackathon.id = this.generateId(hackathon);
+    const hackathon = { ...data };
+    if (!hackathon.id) {
+      hackathon.id = this.generateId(hackathon);
+    }
+    const row = toDbRow(hackathon);
+    const supabase = await this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from(HACKATHONS_TABLE).insert(row);
+        if (error) throw error;
+      } catch (error) {
+        logger.error('Failed to persist new hackathon:', error);
       }
-      const row = toDbRow(hackathon);
-      const supabase = await this.getSupabaseClient();
-      if (supabase) {
-        try {
-          const { error } = await supabase.from(HACKATHONS_TABLE).insert(row);
-          if (error) throw error;
-        } catch (error) {
-          logger.error('Failed to persist new hackathon:', error);
-        }
-      }
-      this.hackathons.set(hackathon.id, hackathon);
-      return hackathon;
-    });
+    }
+    this.hackathons.set(hackathon.id, hackathon);
+    return hackathon;
   }
 
   async updateHackathon(id, data) {
-    return this._enqueue(async () => {
-      const existing = this.hackathons.get(id);
-      if (!existing) return null;
-      const updated = { ...existing, ...data, id };
-      const supabase = await this.getSupabaseClient();
-      if (supabase) {
-        try {
-          const { error } = await supabase
-            .from(HACKATHONS_TABLE)
-            .update(toDbRow(updated))
-            .eq('id', id);
-          if (error) throw error;
-        } catch (error) {
-          logger.error('Failed to persist hackathon update:', error);
-        }
+    const existing = this.hackathons.get(id);
+    if (!existing) return null;
+    const updated = { ...existing, ...data, id };
+    const supabase = await this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from(HACKATHONS_TABLE)
+          .update(toDbRow(updated))
+          .eq('id', id);
+        if (error) throw error;
+      } catch (error) {
+        logger.error('Failed to persist hackathon update:', error);
       }
-      this.hackathons.set(id, updated);
-      return updated;
-    });
+    }
+    this.hackathons.set(id, updated);
+    return updated;
   }
 
   async deleteHackathon(id) {
-    return this._enqueue(async () => {
-      const supabase = await this.getSupabaseClient();
-      if (supabase) {
-        try {
-          const { error } = await supabase.from(HACKATHONS_TABLE).delete().eq('id', id);
-          if (error) throw error;
-        } catch (error) {
-          logger.error('Failed to delete hackathon from DB:', error);
-        }
+    const supabase = await this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from(HACKATHONS_TABLE).delete().eq('id', id);
+        if (error) throw error;
+      } catch (error) {
+        logger.error('Failed to delete hackathon from DB:', error);
       }
-      return this.hackathons.delete(id);
-    });
+    }
+    return this.hackathons.delete(id);
   }
 }
 
