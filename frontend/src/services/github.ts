@@ -100,6 +100,26 @@ const toApiSort = (sort: string): string => sort === 'created-asc' ? 'created' :
 // Date field used for the time-frame recency qualifier (only 'created'/'updated' are valid date fields).
 const toDateField = (sort: string): string => sort === 'updated' ? 'updated' : 'created';
 const isAuthenticated = () => store.getState().auth.isAuthenticated;
+const fetchIssues = async (searchQuery: string, sort: string, direction?: string, page?: number): Promise<IssueResponse> => {
+  const queryParams = new URLSearchParams({
+    q: searchQuery.trim(),
+    sort: toApiSort(sort),
+    order: direction || 'desc',
+    per_page: '100',
+    page: page?.toString() || '1'
+  });
+  const { data } = await api.get('/api/github/search/issues', { params: queryParams });
+  if (!data?.items) {
+    throw new Error('No data received from API');
+  }
+  return {
+    issues: data.items.map(transformIssue),
+    totalCount: data.total_count,
+    hasMore: data.total_count > (page || 1) * 100,
+    currentPage: parseInt(page?.toString() || '1')
+  };
+};
+
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   let searchQuery = 'is:issue is:unlocked ';
   let startDate: string | undefined;
@@ -170,25 +190,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   if (params.unassigned === true) {
     searchQuery += 'no:assignee ';
   }
-  const queryParams = new URLSearchParams({
-    q: searchQuery.trim(),
-    sort: toApiSort(params.sort),
-    order: params.direction || 'desc',
-    per_page: '100',
-    page: params.page?.toString() || '1'
-  });
-  const {
-    data
-  } = await api.get('/api/github/search/issues', {
-    params: queryParams
-  });
-  const transformedIssues = data.items.map(transformIssue);
-  return {
-    issues: transformedIssues,
-    totalCount: data.total_count,
-    hasMore: data.total_count > (params.page || 1) * 100,
-    currentPage: parseInt(params.page?.toString() || '1')
-  };
+  return fetchIssues(searchQuery, params.sort, params.direction, params.page);
 };
 export const getActivity = async () => {
   const {
@@ -259,28 +261,7 @@ export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResp
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     searchQuery += `created:>=${since} `;
   }
-  const queryParams = new URLSearchParams({
-    q: searchQuery.trim(),
-    sort: toApiSort(params.sort),
-    order: params.direction || 'desc',
-    per_page: '100',
-    page: params.page?.toString() || '1'
-  });
-  const {
-    data
-  } = await api.get('/api/github/search/issues', {
-    params: queryParams
-  });
-  if (!data) {
-    throw new Error('No data received from API');
-  }
-  const result = {
-    issues: data.items.map(transformIssue),
-    totalCount: data.total_count,
-    hasMore: data.total_count > (params.page || 1) * 100,
-    currentPage: parseInt(params.page?.toString() || '1')
-  };
-  return result;
+  return fetchIssues(searchQuery, params.sort, params.direction, params.page);
 };
 export const getRepositoryDetails = async (owner: string, repo: string) => {
   const {
