@@ -5,8 +5,7 @@ const logger = require('../utils/logger');
 
 const {
   encrypt,
-  decrypt,
-  decryptAndUpgrade
+  decryptWithUpgrade
 } = require('./crypto');
 
 async function setAiKey(userId, service, rawKey) {
@@ -27,21 +26,13 @@ async function getAiKey(userId, service) {
     if (error.code === 'PGRST116') return null;
     throw error;
   }
-  let plain;
-  try {
-    const result = decryptAndUpgrade(JSON.parse(data.encrypted_key));
-    plain = result.plain;
-    if (result.upgraded) {
-      getSupabase().from('ai_keys')
-        .update({ encrypted_key: JSON.stringify(result.upgraded) })
-        .eq('user_id', String(userId))
-        .eq('service', service)
-        .catch(error => logger.error('Failed to upgrade ai_key ciphertext:', error));
-    }
-  } catch (e) {
-    return null;
-  }
-  return plain;
+  return decryptWithUpgrade(data.encrypted_key, upgradedCiphertext => {
+    getSupabase().from('ai_keys')
+      .update({ encrypted_key: upgradedCiphertext })
+      .eq('user_id', String(userId))
+      .eq('service', service)
+      .catch(error => logger.error('Failed to upgrade ai_key ciphertext:', error));
+  });
 }
 
 async function deleteAiKey(userId, service) {

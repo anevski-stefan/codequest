@@ -66,8 +66,25 @@ function decryptAndUpgrade(record) {
   };
 }
 
+// Reads a stored ciphertext (JSON string), decrypts it, and if it was a legacy
+// (pre-random-salt) record, hands the upgraded ciphertext to `persistUpgraded`
+// so the caller can re-persist it. Returns the plaintext, or null if the record
+// could not be parsed/decrypted.
+function decryptWithUpgrade(encryptedJson, persistUpgraded) {
+  let result;
+  try {
+    result = decryptAndUpgrade(JSON.parse(encryptedJson));
+  } catch (error) {
+    return null;
+  }
+  if (result.upgraded && typeof persistUpgraded === 'function') {
+    persistUpgraded(JSON.stringify(result.upgraded));
+  }
+  return result.plain;
+}
+
 module.exports = {
   encrypt,
   decrypt,
-  decryptAndUpgrade
+  decryptWithUpgrade
 };
