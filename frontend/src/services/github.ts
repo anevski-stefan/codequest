@@ -192,12 +192,7 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   }
   return fetchIssues(searchQuery, params.sort, params.direction, params.page);
 };
-export const getActivity = async () => {
-  const {
-    data
-  } = await api.get('/api/activity');
-  return data;
-};
+
 export const getIssueComments = async (issueNumber: number, repoFullName: string, page = 1) => {
   const [owner, repo] = repoFullName.split('/');
   const response = await api.get(`/api/issues/${issueNumber}/comments`, {
