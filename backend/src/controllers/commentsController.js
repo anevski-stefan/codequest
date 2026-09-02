@@ -44,7 +44,7 @@ exports.getIssueComments = async (req, res) => {
     const hasMore = hasNextPage(response.headers.link);
     res.json({
       comments,
-      pageCount: comments.length,
+      count: comments.length,
       hasMore,
       nextPage: hasMore ? pageNum + 1 : null
     });

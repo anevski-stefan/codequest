@@ -95,7 +95,7 @@ const SettingsPage = () => {
         {}
         <div className="mb-8">
           <h4 className="text-md font-medium mb-4 text-gray-900 dark:text-white">Theme</h4>
-          <select value={selectedTheme} onChange={e => setSelectedTheme(e.target.value as 'light' | 'dark' | 'system')} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm rounded-lg bg-white dark:bg-[#0B1222] text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+          <select aria-label="Theme" value={selectedTheme} onChange={e => setSelectedTheme(e.target.value as 'light' | 'dark' | 'system')} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm rounded-lg bg-white dark:bg-[#0B1222] text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
             <option value="light" className="bg-white dark:bg-[#0B1222]">Light</option>
             <option value="dark" className="bg-white dark:bg-[#0B1222]">Dark</option>
             <option value="system" className="bg-white dark:bg-[#0B1222]">System</option>

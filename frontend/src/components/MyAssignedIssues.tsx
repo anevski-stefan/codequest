@@ -112,7 +112,7 @@ const MyAssignedIssues = () => {
       <div className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow">
         <div className="flex justify-between items-center mb-6 p-6 border-b border-gray-200 dark:border-white/10">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">My Assigned Issues</h1>
-          <select value={issueState} onChange={e => setIssueState(e.target.value)} className="px-3 py-1.5 text-sm border rounded-md bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg text-gray-900 dark:text-white border-gray-200 dark:border-white/10 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <select aria-label="Issue state" value={issueState} onChange={e => setIssueState(e.target.value)} className="px-3 py-1.5 text-sm border rounded-md bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg text-gray-900 dark:text-white border-gray-200 dark:border-white/10 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="open">Open</option>
             <option value="closed">Closed</option>
           </select>
