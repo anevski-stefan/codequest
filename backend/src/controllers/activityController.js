@@ -1,5 +1,7 @@
 const githubService = require('../services/githubService');
 const logger = require('../utils/logger');
+const { githubErrorResponse } = require('../utils/githubError');
+const { asyncHandler } = require('../utils/httpError');
 
 const PAYLOAD_WHITELIST = new Set(['action', 'ref_type']);
 
@@ -14,7 +16,7 @@ function trimPayload(payload) {
   return trimmed;
 }
 
-exports.getActivity = async (req, res) => {
+exports.getActivity = asyncHandler(async (req, res) => {
   try {
     const activities = (await githubService.request(req.user.accessToken, 'GET', '/user/events')).slice(0, 30).map(event => ({
       id: event.id,
@@ -26,8 +28,6 @@ exports.getActivity = async (req, res) => {
     res.json(activities);
   } catch (error) {
     logger.error('Error fetching activity:', error.response?.data);
-    res.status(500).json({
-      error: 'Failed to fetch activity'
-    });
+    return githubErrorResponse(res, error, 'Failed to fetch activity');
   }
-};
+});

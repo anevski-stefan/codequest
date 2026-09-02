@@ -2,6 +2,7 @@ const githubService = require('../services/githubService');
 const logger = require('../utils/logger');
 const { isValidOwner, isValidRepo, isValidNumber } = require('../utils/validateParams');
 const { githubErrorResponse } = require('../utils/githubError');
+const { badRequest, asyncHandler } = require('../utils/httpError');
 
 const PER_PAGE = 30;
 const MAX_PAGE = 10000;
@@ -11,22 +12,20 @@ function hasNextPage(linkHeader) {
   return /rel="?next"?/.test(linkHeader);
 }
 
-exports.getIssueComments = async (req, res) => {
+exports.getIssueComments = asyncHandler(async (req, res) => {
+  const {
+    issueNumber
+  } = req.params;
+  const {
+    owner,
+    repo,
+    page = '1'
+  } = req.query;
+  if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(issueNumber)) {
+    return badRequest(res, 'Invalid owner, repo or issue number');
+  }
+  const pageNum = Math.min(Math.max(parseInt(page, 10) || 1, 1), MAX_PAGE);
   try {
-    const {
-      issueNumber
-    } = req.params;
-    const {
-      owner,
-      repo,
-      page = '1'
-    } = req.query;
-    if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(issueNumber)) {
-      return res.status(400).json({
-        error: 'Invalid owner, repo or issue number'
-      });
-    }
-    const pageNum = Math.min(Math.max(parseInt(page, 10) || 1, 1), MAX_PAGE);
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
       params: { page: pageNum, per_page: PER_PAGE },
       fullResponse: true
@@ -52,4 +51,4 @@ exports.getIssueComments = async (req, res) => {
     logger.error('Error fetching comments:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch comments');
   }
-};
+});

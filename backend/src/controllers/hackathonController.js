@@ -1,158 +1,111 @@
 const HackathonService = require('../services/hackathonService');
-const logger = require('../utils/logger');
+const { badRequest, notFound, asyncHandler } = require('../utils/httpError');
 const hackathonService = new HackathonService();
 const MAX_PAGE_SIZE = 50;
-exports.getHackathons = async (req, res) => {
-  try {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      source,
-      filter = 'all'
-    } = req.query;
-    const parsedPage = Math.max(1, parseInt(page) || 1);
-    const parsedLimit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(limit) || 10));
-    let hackathons = await hackathonService.getAllHackathons();
-    const now = new Date();
-    if (search) {
-      const searchLower = search.toLowerCase();
-      hackathons = hackathons.filter(h => h.title?.toLowerCase().includes(searchLower) || h.description?.toLowerCase().includes(searchLower));
-    }
-    if (source) {
-      hackathons = hackathons.filter(h => h.source === source);
-    }
-    switch (filter) {
-      case 'active':
-        hackathons = hackathons.filter(h => {
-          const startDate = new Date(h.startDate);
-          const endDate = new Date(h.endDate);
-          return startDate <= now && endDate >= now;
-        });
-        break;
-      case 'upcoming':
-          hackathons = hackathons.filter(h => {
-            const startDate = new Date(h.startDate);
-            return startDate > now;
-          });
-          break;
-      case 'past':
-        hackathons = hackathons.filter(h => {
-          const endDate = new Date(h.endDate);
-          return endDate < now;
-        });
-        break;
-    }
-    hackathons.sort((a, b) => {
-      const dateA = new Date(a.startDate);
-      const dateB = new Date(b.startDate);
-      return dateA - dateB;
-    });
-    const start = (parsedPage - 1) * parsedLimit;
-    const paginatedHackathons = hackathons.slice(start, start + parsedLimit);
-    return res.json({
-      hackathons: paginatedHackathons,
-      totalPages: Math.ceil(hackathons.length / parsedLimit),
-      currentPage: parsedPage,
-      totalHackathons: hackathons.length
-    });
-  } catch (error) {
-    logger.error('Error in /api/hackathons:', error);
-    return res.status(500).json({
-      error: 'Failed to fetch hackathons',
-      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      hackathons: []
-    });
+exports.getHackathons = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    search,
+    source,
+    filter = 'all'
+  } = req.query;
+  const parsedPage = Math.max(1, parseInt(page) || 1);
+  const parsedLimit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(limit) || 10));
+  let hackathons = await hackathonService.getAllHackathons();
+  const now = new Date();
+  if (search) {
+    const searchLower = search.toLowerCase();
+    hackathons = hackathons.filter(h => h.title?.toLowerCase().includes(searchLower) || h.description?.toLowerCase().includes(searchLower));
   }
-};
-exports.getHackathonById = async (req, res) => {
-  try {
-    const {
-      id
-    } = req.params;
-    const hackathon = await hackathonService.getHackathonById(id);
-    if (!hackathon) {
-      return res.status(404).json({
-        error: 'Hackathon not found'
-      });
-    }
-    res.json(hackathon);
-  } catch (error) {
-    logger.error('Error fetching hackathon:', error);
-    res.status(500).json({
-      error: 'Failed to fetch hackathon'
-    });
+  if (source) {
+    hackathons = hackathons.filter(h => h.source === source);
   }
-};
-exports.createHackathon = async (req, res) => {
-  try {
-    const sanitized = sanitizeHackathonData(req.body);
-    if (sanitized === null) {
-      return res.status(400).json({
-        error: 'Invalid hackathon data'
+  switch (filter) {
+    case 'active':
+      hackathons = hackathons.filter(h => {
+        const startDate = new Date(h.startDate);
+        const endDate = new Date(h.endDate);
+        return startDate <= now && endDate >= now;
       });
-    }
-    const hackathonData = {
-      ...sanitized,
-      source: 'manual',
-      created_at: new Date().toISOString()
-    };
-    const newHackathon = await hackathonService.createHackathon(hackathonData);
-    res.status(201).json(newHackathon);
-  } catch (error) {
-    logger.error('Error creating hackathon:', error);
-    res.status(500).json({
-      error: 'Failed to create hackathon'
-    });
+      break;
+    case 'upcoming':
+      hackathons = hackathons.filter(h => {
+        const startDate = new Date(h.startDate);
+        return startDate > now;
+      });
+      break;
+    case 'past':
+      hackathons = hackathons.filter(h => {
+        const endDate = new Date(h.endDate);
+        return endDate < now;
+      });
+      break;
   }
-};
-exports.updateHackathon = async (req, res) => {
-  try {
-    const {
-      id
-    } = req.params;
-    const sanitized = sanitizeHackathonData(req.body);
-    if (sanitized === null) {
-      return res.status(400).json({
-        error: 'Invalid hackathon data'
-      });
-    }
-    const updatedHackathon = await hackathonService.updateHackathon(id, {
-      ...sanitized,
-      updated_at: new Date().toISOString()
-    });
-    if (!updatedHackathon) {
-      return res.status(404).json({
-        error: 'Hackathon not found'
-      });
-    }
-    res.json(updatedHackathon);
-  } catch (error) {
-    logger.error('Error updating hackathon:', error);
-    res.status(500).json({
-      error: 'Failed to update hackathon'
-    });
+  hackathons.sort((a, b) => {
+    const dateA = new Date(a.startDate);
+    const dateB = new Date(b.startDate);
+    return dateA - dateB;
+  });
+  const start = (parsedPage - 1) * parsedLimit;
+  const paginatedHackathons = hackathons.slice(start, start + parsedLimit);
+  return res.json({
+    hackathons: paginatedHackathons,
+    totalPages: Math.ceil(hackathons.length / parsedLimit),
+    currentPage: parsedPage,
+    totalHackathons: hackathons.length
+  });
+});
+exports.getHackathonById = asyncHandler(async (req, res) => {
+  const {
+    id
+  } = req.params;
+  const hackathon = await hackathonService.getHackathonById(id);
+  if (!hackathon) {
+    return notFound(res, 'Hackathon not found');
   }
-};
-exports.deleteHackathon = async (req, res) => {
-  try {
-    const {
-      id
-    } = req.params;
-    const success = await hackathonService.deleteHackathon(id);
-    if (!success) {
-      return res.status(404).json({
-        error: 'Hackathon not found'
-      });
-    }
-    res.status(204).send();
-  } catch (error) {
-    logger.error('Error deleting hackathon:', error);
-    res.status(500).json({
-      error: 'Failed to delete hackathon'
-    });
+  res.json(hackathon);
+});
+exports.createHackathon = asyncHandler(async (req, res) => {
+  const sanitized = sanitizeHackathonData(req.body);
+  if (sanitized === null) {
+    return badRequest(res, 'Invalid hackathon data');
   }
-};
+  const hackathonData = {
+    ...sanitized,
+    source: 'manual',
+    created_at: new Date().toISOString()
+  };
+  const newHackathon = await hackathonService.createHackathon(hackathonData);
+  res.status(201).json(newHackathon);
+});
+exports.updateHackathon = asyncHandler(async (req, res) => {
+  const {
+    id
+  } = req.params;
+  const sanitized = sanitizeHackathonData(req.body);
+  if (sanitized === null) {
+    return badRequest(res, 'Invalid hackathon data');
+  }
+  const updatedHackathon = await hackathonService.updateHackathon(id, {
+    ...sanitized,
+    updated_at: new Date().toISOString()
+  });
+  if (!updatedHackathon) {
+    return notFound(res, 'Hackathon not found');
+  }
+  res.json(updatedHackathon);
+});
+exports.deleteHackathon = asyncHandler(async (req, res) => {
+  const {
+    id
+  } = req.params;
+  const success = await hackathonService.deleteHackathon(id);
+  if (!success) {
+    return notFound(res, 'Hackathon not found');
+  }
+  res.status(204).send();
+});
 const STRING_FIELDS = ['title', 'description', 'startDate', 'endDate', 'url', 'location', 'prize', 'submissionPeriod'];
 const MAX_FIELD_LENGTH = {
   title: 200,

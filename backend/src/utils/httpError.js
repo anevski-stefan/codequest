@@ -33,8 +33,18 @@ function conflict(res, message, details) {
   return sendError(res, 409, message, details);
 }
 
-function internal(res, message, details) {
-  return sendError(res, 500, message, details);
+class HttpError extends Error {
+  constructor(status, message, details) {
+    super(message);
+    this.status = status;
+    if (details !== undefined) this.details = details;
+  }
+}
+
+function asyncHandler(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 }
 
 module.exports = {
@@ -45,5 +55,6 @@ module.exports = {
   forbidden,
   notFound,
   conflict,
-  internal
+  HttpError,
+  asyncHandler
 };

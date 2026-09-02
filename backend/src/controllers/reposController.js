@@ -1,49 +1,43 @@
 const githubService = require('../services/githubService');
 const logger = require('../utils/logger');
 const { githubErrorResponse } = require('../utils/githubError');
-const { badRequest, notFound, forbidden, sendError } = require('../utils/httpError');
+const { badRequest, notFound, forbidden, sendError, asyncHandler } = require('../utils/httpError');
 const { isValidOwner, isValidRepo, isValidNumber, isValidState } = require('../utils/validateParams');
 const MAX_COMMENT_BODY_LENGTH = 65536;
-exports.createComment = async (req, res) => {
+exports.createComment = asyncHandler(async (req, res) => {
+  const {
+    owner,
+    repo,
+    number
+  } = req.params;
+  if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(number)) {
+    return badRequest(res, 'Invalid owner, repo or issue number');
+  }
+  const {
+    body
+  } = req.body;
+  if (!body) {
+    return sendError(res, 422, 'Validation Failed', [{
+      resource: 'IssueComment',
+      field: 'body',
+      code: 'missing_field'
+    }]);
+  }
+  if (typeof body !== 'string' || body.length > MAX_COMMENT_BODY_LENGTH) {
+    return sendError(res, 422, 'Validation Failed', [{
+      resource: 'IssueComment',
+      field: 'body',
+      code: 'too_long'
+    }]);
+  }
   try {
-    const {
-      owner,
-      repo,
-      number
-    } = req.params;
-    if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(number)) {
-      return badRequest(res, 'Invalid owner, repo or issue number');
-    }
-    const {
-      body
-    } = req.body;
-    if (!body) {
-      return sendError(res, 422, 'Validation Failed', [{
-        resource: 'IssueComment',
-        field: 'body',
-        code: 'missing_field'
-      }]);
-    }
-    if (typeof body !== 'string' || body.length > MAX_COMMENT_BODY_LENGTH) {
-      return sendError(res, 422, 'Validation Failed', [{
-        resource: 'IssueComment',
-        field: 'body',
-        code: 'too_long'
-      }]);
-    }
     const response = await githubService.request(req.user.accessToken, 'POST', `/repos/${owner}/${repo}/issues/${number}/comments`, {
       data: { body },
       contentType: 'application/json'
     });
     res.status(201).json(response);
   } catch (error) {
-    logger.error('Error creating comment:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      url: error.config?.url,
-      method: error.config?.method
-    });
+    logger.error('Error creating comment:', error.response?.data || error.message);
     if (error.response?.status === 404) {
       return notFound(res, 'Issue not found');
     }
@@ -53,40 +47,34 @@ exports.createComment = async (req, res) => {
     if (error.response?.status === 422) {
       return sendError(res, 422, 'Could not create comment');
     }
-    res.status(500).json({
-      error: 'Failed to create comment'
-    });
+    return sendError(res, 500, 'Failed to create comment');
   }
-};
-exports.getRepoDetails = async (req, res) => {
+});
+exports.getRepoDetails = asyncHandler(async (req, res) => {
+  const {
+    owner,
+    repo
+  } = req.params;
+  if (!isValidOwner(owner) || !isValidRepo(repo)) {
+    return badRequest(res, 'Invalid owner or repo');
+  }
   try {
-    const {
-      owner,
-      repo
-    } = req.params;
-    if (!isValidOwner(owner) || !isValidRepo(repo)) {
-      return res.status(400).json({
-        error: 'Invalid owner or repo'
-      });
-    }
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}`);
     res.json(response);
   } catch (error) {
     logger.error('Error fetching repository:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch repository');
   }
-};
-exports.getRepoContributors = async (req, res) => {
+});
+exports.getRepoContributors = asyncHandler(async (req, res) => {
+  const {
+    owner,
+    repo
+  } = req.params;
+  if (!isValidOwner(owner) || !isValidRepo(repo)) {
+    return badRequest(res, 'Invalid owner or repo');
+  }
   try {
-    const {
-      owner,
-      repo
-    } = req.params;
-    if (!isValidOwner(owner) || !isValidRepo(repo)) {
-      return res.status(400).json({
-        error: 'Invalid owner or repo'
-      });
-    }
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/stats/contributors`);
     const contributors = response.map(contributor => ({
       login: contributor.author.login,
@@ -101,18 +89,16 @@ exports.getRepoContributors = async (req, res) => {
     logger.error('Error fetching contributors:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch contributors');
   }
-};
-exports.getLotteryContributors = async (req, res) => {
+});
+exports.getLotteryContributors = asyncHandler(async (req, res) => {
+  const {
+    owner,
+    repo
+  } = req.params;
+  if (!isValidOwner(owner) || !isValidRepo(repo)) {
+    return badRequest(res, 'Invalid owner or repo');
+  }
   try {
-    const {
-      owner,
-      repo
-    } = req.params;
-    if (!isValidOwner(owner) || !isValidRepo(repo)) {
-      return res.status(400).json({
-        error: 'Invalid owner or repo'
-      });
-    }
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls`, {
       params: { state: 'all', per_page: 100 }
     });
@@ -141,18 +127,16 @@ exports.getLotteryContributors = async (req, res) => {
     logger.error('Error fetching lottery contributors:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch lottery contributors');
   }
-};
-exports.getContributorConfidence = async (req, res) => {
+});
+exports.getContributorConfidence = asyncHandler(async (req, res) => {
+  const {
+    owner,
+    repo
+  } = req.params;
+  if (!isValidOwner(owner) || !isValidRepo(repo)) {
+    return badRequest(res, 'Invalid owner or repo');
+  }
   try {
-    const {
-      owner,
-      repo
-    } = req.params;
-    if (!isValidOwner(owner) || !isValidRepo(repo)) {
-      return res.status(400).json({
-        error: 'Invalid owner or repo'
-      });
-    }
     const [contributorsResponse, commitsResponse, prResponse] = await Promise.all([
       githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/contributors`, { params: { per_page: 100 } }),
       githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/commits`, { params: { per_page: 100 } }),
@@ -198,27 +182,23 @@ exports.getContributorConfidence = async (req, res) => {
     logger.error('Error calculating contributor confidence:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to calculate contributor confidence');
   }
-};
-exports.getPulls = async (req, res) => {
+});
+exports.getPulls = asyncHandler(async (req, res) => {
+  const {
+    owner,
+    repo
+  } = req.params;
+  const {
+    state = 'open',
+    page = 1
+  } = req.query;
+  if (!isValidOwner(owner) || !isValidRepo(repo)) {
+    return badRequest(res, 'Invalid owner or repo');
+  }
+  if (!isValidState(state)) {
+    return badRequest(res, 'Invalid state; must be open, closed or all');
+  }
   try {
-    const {
-      owner,
-      repo
-    } = req.params;
-    const {
-      state = 'open',
-      page = 1
-    } = req.query;
-    if (!isValidOwner(owner) || !isValidRepo(repo)) {
-      return res.status(400).json({
-        error: 'Invalid owner or repo'
-      });
-    }
-    if (!isValidState(state)) {
-      return res.status(400).json({
-        error: 'Invalid state; must be open, closed or all'
-      });
-    }
     const perPage = 30;
     const searchResponse = await githubService.request(req.user.accessToken, 'GET', `/search/issues?q=repo:${owner}/${repo}+is:pr+state:${state}`);
     const totalCount = searchResponse.total_count;
@@ -269,19 +249,17 @@ exports.getPulls = async (req, res) => {
     logger.error('Error fetching pull requests:', error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch pull requests');
   }
-};
-exports.getPullDetails = async (req, res) => {
+});
+exports.getPullDetails = asyncHandler(async (req, res) => {
+  const {
+    owner,
+    repo,
+    pullNumber
+  } = req.params;
+  if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(pullNumber)) {
+    return badRequest(res, 'Invalid owner, repo or pull request number');
+  }
   try {
-    const {
-      owner,
-      repo,
-      pullNumber
-    } = req.params;
-    if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(pullNumber)) {
-      return res.status(400).json({
-        error: 'Invalid owner, repo or pull request number'
-      });
-    }
     const [response, filesResponse, commitsResponse] = await Promise.all([
       githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}`),
       githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}/files`),
@@ -330,4 +308,4 @@ exports.getPullDetails = async (req, res) => {
     logger.error('Error fetching pull request details:', error.message, error.response?.data);
     return githubErrorResponse(res, error, 'Failed to fetch pull request details');
   }
-};
+});
