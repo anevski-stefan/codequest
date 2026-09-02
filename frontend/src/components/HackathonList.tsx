@@ -65,7 +65,7 @@ export default function HackathonList() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <select value={filter} onChange={e => setFilter(e.target.value)} className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select aria-label="Filter hackathons" value={filter} onChange={e => setFilter(e.target.value)} className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="all">All Hackathons</option>
               <option value="active">Active</option>
               <option value="upcoming">Upcoming</option>

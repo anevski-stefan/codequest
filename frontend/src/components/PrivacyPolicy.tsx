@@ -1,10 +1,8 @@
 import { usePageTitle } from '../hooks/usePageTitle';
 import { Link } from 'react-router-dom';
-import Layout from './Layout';
 const PrivacyPolicy: React.FC = () => {
   usePageTitle('Privacy Policy');
-  return <Layout>
-      <div className="pt-4 px-4 sm:px-6 lg:px-8">
+  return <div className="pt-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <nav className="mb-2">
             <Link to="/" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
@@ -85,7 +83,6 @@ const PrivacyPolicy: React.FC = () => {
             </section>
           </div>
         </div>
-      </div>
-    </Layout>;
+      </div>;
 };
 export default PrivacyPolicy;
