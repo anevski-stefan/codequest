@@ -85,6 +85,5 @@ function decryptWithUpgrade(encryptedJson, persistUpgraded) {
 
 module.exports = {
   encrypt,
-  decrypt,
   decryptWithUpgrade
 };
