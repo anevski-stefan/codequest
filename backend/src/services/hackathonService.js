@@ -222,20 +222,26 @@ class HackathonService {
     }
   }
 
+  async executeDb(promise, errorMessage) {
+    try {
+      const { data, error } = await promise;
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      logger.error(errorMessage, error);
+      return null;
+    }
+  }
+
   async hydrateFromDb() {
     const supabase = await this.getSupabaseClient();
     if (!supabase) return;
-    try {
-      const { data, error } = await supabase
-        .from(HACKATHONS_TABLE)
-        .select('*')
-        .limit(500);
-      if (error) throw error;
-      if (data) {
-        this.replaceAll(data.map(fromDbRow));
-      }
-    } catch (error) {
-      logger.error('Failed to hydrate hackathons from DB:', error);
+    const data = await this.executeDb(
+      supabase.from(HACKATHONS_TABLE).select('*').limit(500),
+      'Failed to hydrate hackathons from DB:'
+    );
+    if (data) {
+      this.replaceAll(data.map(fromDbRow));
     }
   }
 
@@ -243,14 +249,10 @@ class HackathonService {
     const supabase = await this.getSupabaseClient();
     if (!supabase || hackathons.length === 0) return;
     const rows = hackathons.map(h => toDbRow({ ...h, updated_at: new Date().toISOString() }));
-    try {
-      const { error } = await supabase
-        .from(HACKATHONS_TABLE)
-        .upsert(rows, { onConflict: 'id' });
-      if (error) throw error;
-    } catch (error) {
-      logger.error('Failed to persist hackathons to DB:', error);
-    }
+    await this.executeDb(
+      supabase.from(HACKATHONS_TABLE).upsert(rows, { onConflict: 'id' }),
+      'Failed to persist hackathons to DB:'
+    );
   }
 
   async crawlAll() {
@@ -332,12 +334,10 @@ class HackathonService {
     const row = toDbRow(hackathon);
     const supabase = await this.getSupabaseClient();
     if (supabase) {
-      try {
-        const { error } = await supabase.from(HACKATHONS_TABLE).insert(row);
-        if (error) throw error;
-      } catch (error) {
-        logger.error('Failed to persist new hackathon:', error);
-      }
+      await this.executeDb(
+        supabase.from(HACKATHONS_TABLE).insert(row),
+        'Failed to persist new hackathon:'
+      );
     }
     this.hackathons.set(hackathon.id, hackathon);
     return hackathon;
@@ -349,15 +349,10 @@ class HackathonService {
     const updated = { ...existing, ...data, id };
     const supabase = await this.getSupabaseClient();
     if (supabase) {
-      try {
-        const { error } = await supabase
-          .from(HACKATHONS_TABLE)
-          .update(toDbRow(updated))
-          .eq('id', id);
-        if (error) throw error;
-      } catch (error) {
-        logger.error('Failed to persist hackathon update:', error);
-      }
+      await this.executeDb(
+        supabase.from(HACKATHONS_TABLE).update(toDbRow(updated)).eq('id', id),
+        'Failed to persist hackathon update:'
+      );
     }
     this.hackathons.set(id, updated);
     return updated;
@@ -366,12 +361,10 @@ class HackathonService {
   async deleteHackathon(id) {
     const supabase = await this.getSupabaseClient();
     if (supabase) {
-      try {
-        const { error } = await supabase.from(HACKATHONS_TABLE).delete().eq('id', id);
-        if (error) throw error;
-      } catch (error) {
-        logger.error('Failed to delete hackathon from DB:', error);
-      }
+      await this.executeDb(
+        supabase.from(HACKATHONS_TABLE).delete().eq('id', id),
+        'Failed to delete hackathon from DB:'
+      );
     }
     return this.hackathons.delete(id);
   }
