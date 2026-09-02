@@ -1,10 +1,11 @@
 import { AxiosError } from 'axios';
 import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
-import { Send, Bot, Minimize2, User, StopCircle, History, X, TrashIcon, Eraser } from 'lucide-react';
+import { Send, Bot, User, StopCircle, History, X, TrashIcon, Eraser } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/github';
 import ReactMarkdown from 'react-markdown';
 import { useAIService } from '../hooks/useAIService';
+import { setAIService, getAIService } from '../hooks/aiServiceStorage';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import type { Components } from 'react-markdown';
@@ -47,32 +48,22 @@ const TypingMarkdown = ({
   onTextChange: (text: string) => void;
 }) => {
   const [currentText, setCurrentText] = useState('');
-  const intervalRef = useRef<NodeJS.Timeout>();
-  const onCompleteRef = useRef(onComplete);
-  const onTextChangeRef = useRef(onTextChange);
-  useEffect(() => {
-    onCompleteRef.current = onComplete;
-    onTextChangeRef.current = onTextChange;
-  });
   useEffect(() => {
     let index = 0;
     setCurrentText('');
-    intervalRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       if (index <= text.length) {
         const newText = text.slice(0, index);
         setCurrentText(newText);
-        onTextChangeRef.current(newText);
+        onTextChange(newText);
         index++;
       } else {
-        clearInterval(intervalRef.current);
-        onCompleteRef.current();
+        clearInterval(interval);
+        onComplete();
       }
     }, 15);
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
   return <ReactMarkdown className="prose prose-xs dark:prose-invert max-w-none prose-headings:text-base prose-p:text-sm" components={markdownComponents}>
       {currentText}
@@ -83,10 +74,6 @@ const ThinkingAnimation = () => <div className="font-mono text-sm text-blue-500 
   </div>;
 const CodeBuddy = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const messagesRef = useRef<Message[]>([]);
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
   const [input, setInput] = useState('');
   const [context] = useState<ChatContext>({});
   const [isExpanded, setIsExpanded] = useState(() => {
@@ -189,16 +176,16 @@ const CodeBuddy = () => {
       if (!status[currentService]) {
         if (currentService === 'chatgpt' && status.gemini) {
           currentService = 'gemini';
-          localStorage.setItem('ai_service', 'gemini');
+          setAIService('gemini');
         } else if (currentService === 'gemini' && status.chatgpt) {
           currentService = 'chatgpt';
-          localStorage.setItem('ai_service', 'chatgpt');
+          setAIService('chatgpt');
         }
       }
       if (!status[currentService]) {
         throw new Error('Please set up your API key in Settings to use CodeBuddy');
       }
-      const formattedMessages = messagesRef.current.slice(-5).map(msg => ({
+      const formattedMessages = messages.slice(-5).map(msg => ({
         role: msg.role,
         content: msg.content,
         timestamp: msg.timestamp
@@ -236,7 +223,6 @@ const CodeBuddy = () => {
       setIsThinking(false);
       setIsTyping(true);
       setCurrentTypingMessage(data.message);
-      setMessages(prev => [...prev]);
     },
     onError: (error: Error) => {
       setIsThinking(false);
@@ -250,7 +236,7 @@ const CodeBuddy = () => {
         content: `Error: ${error.message}. Please try again.`
       } : msg));
       if (error.message.includes('API key')) {
-        const currentService = localStorage.getItem('ai_service') || 'chatgpt';
+        const currentService = getAIService();
         const otherService = currentService === 'chatgpt' ? 'Gemini' : 'ChatGPT';
         setMessages(prev => [...prev, {
           role: 'assistant',
@@ -262,14 +248,13 @@ const CodeBuddy = () => {
   });
   const handleSend = useCallback(async () => {
     if (!input.trim() || isTyping) return;
-    const baseMessages = messagesRef.current;
+    const baseMessages = messages;
     const userMessage = {
       role: 'user' as const,
       content: input,
       timestamp: new Date()
     };
-    setMessages(prev => [...prev, userMessage]);
-    setMessages(prev => [...prev, {
+    setMessages(prev => [...prev, userMessage, {
       role: 'assistant',
       content: '',
       timestamp: new Date()
@@ -305,7 +290,7 @@ const CodeBuddy = () => {
         console.error('Chat error:', error);
       }
     }
-  }, [input, context, chatMutation, isTyping, isAuthenticated, user?.id, queryClient]);
+  }, [input, context, chatMutation, isTyping, isAuthenticated, user?.id, queryClient, messages]);
   const handleStop = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -448,9 +433,6 @@ const CodeBuddy = () => {
             }} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" title="Chat History">
                   <History className="w-5 h-5" />
                 </button>
-                <div className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-                  <Minimize2 className="w-5 h-5" />
-                </div>
               </div>
             </> : <div className="w-full h-full flex items-center justify-center">
               <Bot className="w-8 h-8 text-blue-500" />
