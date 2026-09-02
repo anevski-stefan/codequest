@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { getIssues } from '../../services/github';
 import type { IssueParams, Language, IssueResponse } from '../../types/github';
-import debounce from 'lodash/debounce';
+import debounce from '../../utils/debounce';
 import { SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import CommentsModal from '../../components/CommentsModal';
 import LabelsFilter from '../../components/LabelsFilter';
