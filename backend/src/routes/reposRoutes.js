@@ -9,6 +9,8 @@ const {
   getPulls,
   getPullDetails
 } = require('../controllers/reposController');
+const requireAuth = require('../middleware/requireAuth');
+router.use(requireAuth);
 router.get('/:owner/:repo', getRepoDetails);
 router.get('/:owner/:repo/contributors/stats', getRepoContributors);
 router.get('/:owner/:repo/lottery-contributors', getLotteryContributors);

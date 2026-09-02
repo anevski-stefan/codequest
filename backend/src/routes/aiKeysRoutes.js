@@ -6,11 +6,13 @@ const { badRequest, asyncHandler } = require('../utils/httpError');
 
 const SERVICES = ['chatgpt', 'gemini'];
 
-router.get('/', requireAuth, asyncHandler(async (req, res) => {
+router.use(requireAuth);
+
+router.get('/', asyncHandler(async (req, res) => {
   res.json(await aiKeyStore.hasAiKeys(req.user.id));
 }));
 
-router.put('/:service', requireAuth, asyncHandler(async (req, res) => {
+router.put('/:service', asyncHandler(async (req, res) => {
   const service = req.params.service.toLowerCase();
   if (!SERVICES.includes(service)) {
     return badRequest(res, 'Invalid AI service');
@@ -26,7 +28,7 @@ router.put('/:service', requireAuth, asyncHandler(async (req, res) => {
   res.json({ ok: true, service });
 }));
 
-router.delete('/:service', requireAuth, asyncHandler(async (req, res) => {
+router.delete('/:service', asyncHandler(async (req, res) => {
   const service = req.params.service.toLowerCase();
   if (!SERVICES.includes(service)) {
     return badRequest(res, 'Invalid AI service');

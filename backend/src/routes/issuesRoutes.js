@@ -6,6 +6,8 @@ const {
 const {
   getIssueComments
 } = require('../controllers/commentsController');
+const requireAuth = require('../middleware/requireAuth');
+router.use(requireAuth);
 router.get('/assigned', getAssignedIssues);
 router.get('/:issueNumber/comments', getIssueComments);
 module.exports = router;

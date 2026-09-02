@@ -19,7 +19,6 @@ const reposRoutes = require('./routes/reposRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const codeBuddyRoutes = require('./routes/codeBuddyRoutes');
 const githubProxyRoutes = require('./routes/githubProxyRoutes');
-const requireAuth = require('./middleware/requireAuth');
 const limiter = require('./middleware/rateLimiter');
 const {
   newsletterLimiter,
@@ -124,17 +123,17 @@ app.get('/health', (req, res) => {
 });
 app.use(limiter);
 app.use(csrfGuard);
-app.use('/api/activity', requireAuth, activityRoutes);
-app.use('/api/issues', requireAuth, issuesRoutes);
-app.use('/api/repos', requireAuth, reposRoutes);
-app.use('/api/code-buddy', requireAuth, aiChatLimiter, codeBuddyRoutes);
-app.use('/api/chats', requireAuth, aiChatLimiter, chatRoutes);
+app.use('/api/activity', activityRoutes);
+app.use('/api/issues', issuesRoutes);
+app.use('/api/repos', reposRoutes);
+app.use('/api/code-buddy', aiChatLimiter, codeBuddyRoutes);
+app.use('/api/chats', aiChatLimiter, chatRoutes);
 app.use('/api/github', githubProxyRoutes);
 app.use('/auth', authRoutes);
 app.use('/api/hackathons', hackathonRoutes);
 app.use('/api/newsletter', newsletterLimiter, newsletterRoutes);
 app.use('/api/feedback', feedbackLimiter, feedbackRoutes);
-app.use('/api/ai-keys', requireAuth, aiKeysLimiter, aiKeysRoutes);
+app.use('/api/ai-keys', aiKeysLimiter, aiKeysRoutes);
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not found'
