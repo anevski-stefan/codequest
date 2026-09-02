@@ -361,8 +361,11 @@ export const getUserActivities = async (username: string) => {
   } = await api.get(`/api/github/users/${username}/events/public`);
   return data;
 };
-export const getUserStarredCount = async () => {
-  const response = await api.get('/api/github/user/starred', {
+export const getUserStarredCount = async (username?: string) => {
+  const url = username
+    ? `/api/github/users/${username}/starred`
+    : '/api/github/user/starred';
+  const response = await api.get(url, {
     params: {
       per_page: 1
     }
