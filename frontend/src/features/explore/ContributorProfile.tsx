@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import axios from 'axios';
@@ -206,8 +206,11 @@ const ContributorProfile = () => {
       </div>;
   }
   if (!user) return <div>User not found</div>;
+  const allFollowers = useMemo(() => followers?.pages.flatMap(page => page.data) ?? [], [followers]);
+  const allFollowing = useMemo(() => following?.pages.flatMap(page => page.data) ?? [], [following]);
+
   return <div className="flex flex-col md:flex-row flex-1 dark:bg-[#0B1222] mt-8 gap-6 p-4 md:p-6">
-      {}
+      {/* existing code */}
       <div className="md:w-80 shrink-0">
         <div className="sticky top-8">
           <motion.div initial={{
@@ -282,10 +285,10 @@ const ContributorProfile = () => {
           </motion.div>}
       </div>
 
-      {}
+      {/* */}
       <div className="flex-1 min-w-0">
         <div className="space-y-6">
-          {}
+          {/* */}
           <motion.div initial={{
           opacity: 0,
           y: 20
@@ -327,7 +330,7 @@ const ContributorProfile = () => {
               </div>}
           </motion.div>
 
-          {}
+          {/* */}
           <div className="bg-white dark:bg-[#0B1222] rounded-xl shadow-sm border border-gray-200 dark:border-white/10">
             <div className="border-b border-gray-200 dark:border-gray-700">
               <nav className="flex space-x-8 px-6" aria-label="Tabs">
@@ -408,9 +411,9 @@ const ContributorProfile = () => {
         </div>
       </div>
 
-      <StatsModal isOpen={activeModal === 'followers'} onClose={() => setActiveModal(null)} title="Followers" data={followers?.pages.flatMap(page => page.data)} isLoading={followersLoading} hasMore={hasMoreFollowers} onLoadMore={() => fetchMoreFollowers()} isLoadingMore={isLoadingMoreFollowers} />
+      <StatsModal isOpen={activeModal === 'followers'} onClose={() => setActiveModal(null)} title="Followers" data={allFollowers} isLoading={followersLoading} hasMore={hasMoreFollowers} onLoadMore={() => fetchMoreFollowers()} isLoadingMore={isLoadingMoreFollowers} />
 
-      <StatsModal isOpen={activeModal === 'following'} onClose={() => setActiveModal(null)} title="Following" data={following?.pages.flatMap(page => page.data)} isLoading={followingLoading} hasMore={hasMoreFollowing} onLoadMore={() => fetchMoreFollowing()} isLoadingMore={isLoadingMoreFollowing} />
+      <StatsModal isOpen={activeModal === 'following'} onClose={() => setActiveModal(null)} title="Following" data={allFollowing} isLoading={followingLoading} hasMore={hasMoreFollowing} onLoadMore={() => fetchMoreFollowing()} isLoadingMore={isLoadingMoreFollowing} />
 
       <StatsModal isOpen={activeModal === 'repos'} onClose={() => setActiveModal(null)} title="Repositories" data={repos} isLoading={reposLoading} hasMore={repos && Array.isArray(repos) && repos.length > 0} onLoadMore={() => {}} isLoadingMore={false} />
     </div>;

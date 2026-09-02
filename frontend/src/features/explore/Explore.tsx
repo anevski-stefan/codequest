@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Search, Users } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -58,8 +58,7 @@ const Explore = () => {
   const debouncedQuery = useDebounce(searchQuery, 500);
   const [showContributors, setShowContributors] = useState(false);
   const [contributorQuery, setContributorQuery] = useState('');
-  const [contributorsPage, setContributorsPage] = useState(1);
-  const [allContributors, setAllContributors] = useState<GithubUser[]>([]);
+
   const {
     data,
     isLoading,
@@ -79,29 +78,23 @@ const Explore = () => {
     },
     enabled: !!debouncedQuery
   });
+
   const {
     data: contributorsData,
-    isLoading: contributorsLoading
-  } = useQuery({
-    queryKey: ['contributors', contributorQuery, contributorsPage],
-    queryFn: () => searchTopContributors(contributorQuery || 'followers:>1000', contributorsPage),
+    isLoading: contributorsLoading,
+    fetchNextPage: fetchNextContributorsPage,
+    hasNextPage: hasNextContributorsPage,
+    isFetchingNextPage: isFetchingNextContributorsPage
+  } = useInfiniteQuery({
+    queryKey: ['contributors', contributorQuery],
+    queryFn: ({ pageParam = 1 }) => searchTopContributors(contributorQuery || 'followers:>1000', pageParam as number),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => lastPage.hasMore ? allPages.length + 1 : undefined,
     enabled: showContributors
   });
-  useEffect(() => {
-    if (!contributorsData) return;
-    setAllContributors(prev => {
-      if (contributorsPage === 1) {
-        return contributorsData.users;
-      }
-      const existingIds = new Set(prev.map(u => u.id));
-      const newUsers = contributorsData.users.filter(u => !existingIds.has(u.id));
-      return [...prev, ...newUsers];
-    });
-  }, [contributorsData, contributorsPage, contributorQuery]);
-  useEffect(() => {
-    setContributorsPage(1);
-    setAllContributors([]);
-  }, [contributorQuery]);
+
+  const allContributors = useMemo(() => contributorsData?.pages.flatMap(page => page.users) ?? [], [contributorsData]);
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
@@ -110,7 +103,7 @@ const Explore = () => {
     navigate(`/explore/${owner}/${repo}`);
   };
   const handleLoadMoreContributors = () => {
-    setContributorsPage(prev => prev + 1);
+    fetchNextContributorsPage();
   };
   return <div className="flex items-center justify-center min-h-[calc(100vh-64px)] mt-[64px]">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -136,13 +129,13 @@ const Explore = () => {
         </div>
 
         {showContributors ? <>
-            {showContributors && contributorsLoading && contributorsPage === 1 ? <div className="mt-6">
+            {showContributors && contributorsLoading && allContributors.length === 0 ? <div className="mt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="bg-white/80 dark:bg-[#0B1222]/80 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-lg shadow p-4">
                       <CardSkeleton />
                     </div>)}
                 </div>
-              </div> : allContributors.length > 0 && <ContributorsList contributors={allContributors} onLoadMore={handleLoadMoreContributors} hasMore={!!contributorsData?.hasMore} isLoading={contributorsLoading} />}
+              </div> : allContributors.length > 0 && <ContributorsList contributors={allContributors} onLoadMore={handleLoadMoreContributors} hasMore={!!hasNextContributorsPage} isLoading={isFetchingNextContributorsPage || contributorsLoading} />}
           </> : <>
             {debouncedQuery && (isLoading || !data) ? <div className="mt-6">
                 <div className="grid gap-4">

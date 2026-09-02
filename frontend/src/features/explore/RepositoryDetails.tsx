@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { GitFork, GitPullRequest, MessageSquare, GitCommit, Plus, Minus, FileText } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails } from '../../services/github';
 import { getLabelColors, isHexColor } from '../dashboard/utils/filterUtils';
 import PullRequestDetailsModal, { PullRequestDetails } from '../../components/PullRequestDetailsModal';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { RepositorySkeleton } from '../../components/skeletons';
 interface Repository {
   id: number;
@@ -136,58 +136,46 @@ const RepositoryDetails = () => {
     staleTime: 15 * 60 * 1000,
     gcTime: 60 * 60 * 1000
   });
-  const [allPullRequests, setAllPullRequests] = useState<PullRequest[]>([]);
-  const [page, setPage] = useState(1);
   const [prState, setPrState] = useState<'open' | 'closed'>('open');
   const [isSwitching, setIsSwitching] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [prDetails, setPrDetails] = useState<PullRequestDetails | undefined>(undefined);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  
   const {
     data: pullRequestsData,
     isLoading: prsLoading,
-    isPlaceholderData: prsPlaceholder
-  } = useQuery<{
-    pullRequests: PullRequest[];
-    hasMore: boolean;
-    totalCount: number;
-  }>({
-    queryKey: ['pull-requests', owner, repo, prState, page],
-    queryFn: () => getRepositoryPullRequests(owner!, repo!, prState, page),
+    fetchNextPage: fetchNextPrs,
+    hasNextPage: hasNextPrs,
+    isFetchingNextPage: isFetchingNextPrs
+  } = useInfiniteQuery({
+    queryKey: ['pull-requests', owner, repo, prState],
+    queryFn: ({ pageParam = 1 }) => getRepositoryPullRequests(owner!, repo!, prState, pageParam as number),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => lastPage.hasMore ? allPages.length + 1 : undefined,
     enabled: !!owner && !!repo,
     placeholderData: keepPreviousData,
     staleTime: 2 * 60 * 1000
   });
+
+  const allPullRequests = useMemo(() => pullRequestsData?.pages.flatMap(page => page.pullRequests) ?? [], [pullRequestsData]);
+  const currentTotalCount = pullRequestsData?.pages[0]?.totalCount || 0;
+
   useEffect(() => {
-    if (prsPlaceholder || !pullRequestsData) return;
-    if (pullRequestsData.hasMore) {
-      queryClient.prefetchQuery({
-        queryKey: ['pull-requests', owner, repo, prState, page + 1],
-        queryFn: () => getRepositoryPullRequests(owner!, repo!, prState, page + 1)
-      });
-    }
-    if (page === 1) {
-      setAllPullRequests(pullRequestsData.pullRequests);
-    } else {
-      setAllPullRequests(prev => {
-        const existingIds = new Set(prev.map(pr => pr.id));
-        const newUniquePRs = pullRequestsData.pullRequests.filter(pr => !existingIds.has(pr.id));
-        return [...prev, ...newUniquePRs];
-      });
-    }
     setIsSwitching(false);
-  }, [prsPlaceholder, pullRequestsData, queryClient, owner, repo, prState, page]);
+  }, [prState]);
+
   const {
     data: prCounts
   } = useQuery<PullRequestCounts>({
     queryKey: ['pull-request-counts', owner, repo],
     queryFn: async () => {
-      const openData = queryClient.getQueryData(['pull-requests', owner, repo, 'open', 1]) as PullRequestsResult | undefined;
-      const closedData = queryClient.getQueryData(['pull-requests', owner, repo, 'closed', 1]) as PullRequestsResult | undefined;
+      const openData = queryClient.getQueryData(['pull-requests', owner, repo, 'open']) as { pages: PullRequestsResult[] } | undefined;
+      const closedData = queryClient.getQueryData(['pull-requests', owner, repo, 'closed']) as { pages: PullRequestsResult[] } | undefined;
       if (openData && closedData) {
         return {
-          open: openData.totalCount,
-          closed: closedData.totalCount
+          open: openData.pages[0]?.totalCount || 0,
+          closed: closedData.pages[0]?.totalCount || 0
         };
       }
       const [newOpenData, newClosedData] = await Promise.all([getRepositoryPullRequests(owner!, repo!, 'open', 1), getRepositoryPullRequests(owner!, repo!, 'closed', 1)]);
@@ -211,18 +199,16 @@ const RepositoryDetails = () => {
     if (prState !== 'open') {
       setIsSwitching(true);
       setPrState('open');
-      setPage(1);
     }
   };
   const handleClosedClick = () => {
     if (prState !== 'closed') {
       setIsSwitching(true);
       setPrState('closed');
-      setPage(1);
     }
   };
   const handleLoadMore = () => {
-    setPage(prev => prev + 1);
+    fetchNextPrs();
   };
   const handleViewPullRequest = async (prNumber: number) => {
     try {
@@ -418,13 +404,11 @@ const RepositoryDetails = () => {
                   Pull Requests
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {pullRequestsData?.totalCount || 0} {prState} pull requests
+                  {currentTotalCount} {prState} pull requests
                 </p>
               </div>
               <select value={prState} onChange={e => {
               setPrState(e.target.value as 'open' | 'closed');
-              setPage(1);
-              setAllPullRequests([]);
             }} className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm">
                 <option value="open">Open</option>
                 <option value="closed">Closed</option>
@@ -443,7 +427,7 @@ const RepositoryDetails = () => {
                 </div>
               </div>
 
-              {isSwitching || prsLoading && page === 1 ? <div className="flex justify-center py-8">
+              {isSwitching || (prsLoading && allPullRequests.length === 0) ? <div className="flex justify-center py-8">
                   <LoadingSpinner />
                 </div> : allPullRequests.length === 0 ? <div className="text-center text-gray-600 dark:text-gray-400 py-8">
                   No {prState} pull requests found
@@ -455,7 +439,7 @@ const RepositoryDetails = () => {
                 opacity: 1,
                 y: 0
               }} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6 border border-gray-200 dark:border-gray-700">
-                      {}
+                      {/* */}
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div className="flex items-start space-x-3">
                           <img src={pr.user.avatar_url} alt={pr.user.login} width={40} height={40} loading="lazy" decoding="async" className="w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0" />
@@ -482,7 +466,7 @@ const RepositoryDetails = () => {
                         </div>
                       </div>
 
-                      {}
+                      {/* */}
                       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs md:text-sm">
                         <div className="flex items-center gap-1.5">
                           <div className="flex items-center gap-1 text-gray-500">
@@ -522,9 +506,9 @@ const RepositoryDetails = () => {
                         </div>
                       </div>
 
-                      {}
+                      {/* */}
                       {pr.labels.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">
-                          {pr.labels.map(label => {
+                          {pr.labels.map((label: any) => {
                             const normalizedColor = label.color.trim();
                             const isSafeColor = isHexColor(normalizedColor);
                             return <span key={label.name} className="px-2 py-0.5 rounded-full text-xs font-medium" style={{
@@ -536,15 +520,15 @@ const RepositoryDetails = () => {
                           })}
                         </div>}
 
-                      {}
+                      {/* */}
                       {pr.requested_reviewers.length > 0 && <div className="mt-3">
                           <div className="text-xs md:text-sm text-gray-500 mb-1.5">Reviewers</div>
                           <div className="flex -space-x-2">
-                            {pr.requested_reviewers.map(reviewer => <img key={reviewer.login} src={reviewer.avatar_url} alt={reviewer.login} title={reviewer.login} width={32} height={32} loading="lazy" decoding="async" className="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-white dark:border-gray-800" />)}
+                            {pr.requested_reviewers.map((reviewer: any) => <img key={reviewer.login} src={reviewer.avatar_url} alt={reviewer.login} title={reviewer.login} width={32} height={32} loading="lazy" decoding="async" className="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-white dark:border-gray-800" />)}
                           </div>
                         </div>}
 
-                      {}
+                      {/* */}
                       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs md:text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <MessageSquare className="w-4 h-4" />
@@ -570,14 +554,14 @@ const RepositoryDetails = () => {
                       </div>
                     </motion.div>)}
                   
-                  {pullRequestsData?.hasMore && <div className="flex justify-center mt-4 md:mt-6">
-                      <button onClick={handleLoadMore} disabled={prsLoading} className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                        {prsLoading ? 'Loading...' : `Load More (${allPullRequests.length} of ${pullRequestsData?.totalCount || 0})`}
+                  {hasNextPrs && <div className="flex justify-center mt-4 md:mt-6">
+                      <button onClick={handleLoadMore} disabled={isFetchingNextPrs} className="w-full md:w-auto px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors text-sm md:text-base font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        {isFetchingNextPrs ? 'Loading...' : `Load More (${allPullRequests.length} of ${currentTotalCount})`}
                       </button>
                     </div>}
 
-                  {!pullRequestsData?.hasMore && allPullRequests.length > 0 && <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8">
-                      Showing {allPullRequests.length} of {pullRequestsData?.totalCount || 0} pull requests
+                  {!hasNextPrs && allPullRequests.length > 0 && <div className="text-center text-gray-600 dark:text-gray-400 py-4 md:py-8">
+                      Showing {allPullRequests.length} of {currentTotalCount} pull requests
                     </div>}
                 </>}
             </div>
