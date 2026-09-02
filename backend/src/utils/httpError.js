@@ -43,6 +43,16 @@ function devDetails(details) {
   return process.env.NODE_ENV !== 'production' ? details : undefined;
 }
 
+class GitHubApiError extends Error {
+  constructor(message, originalError) {
+    super(message);
+    this.name = 'GitHubApiError';
+    this.originalError = originalError;
+    this.status = originalError?.response?.status || 500;
+    this.details = devDetails(originalError?.response?.data?.message);
+  }
+}
+
 function githubErrorResponse(res, error, fallbackMessage) {
   const status = error.response?.status || 500;
   const details = devDetails(error.response?.data?.message);
@@ -58,5 +68,6 @@ module.exports = {
   HttpError,
   asyncHandler,
   devDetails,
-  githubErrorResponse
+  githubErrorResponse,
+  GitHubApiError
 };

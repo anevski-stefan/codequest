@@ -40,7 +40,7 @@ class GitHubService {
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
-    throw lastError;
+    throw new (require('../utils/httpError').GitHubApiError)('GitHub API request failed', lastError);
   }
 
   static async validateToken(token) {

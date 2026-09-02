@@ -1,7 +1,6 @@
 const GitHubService = require('../services/githubService');
-const logger = require('../utils/logger');
 const supabaseService = require('../services/supabaseService');
-const { badRequest, forbidden, sendError, asyncHandler, githubErrorResponse } = require('../utils/httpError');
+const { badRequest, forbidden, sendError, asyncHandler } = require('../utils/httpError');
 const ALLOWED_ROUTES = [{
   pattern: /^\/search\/issues$/,
   params: ['q', 'sort', 'order', 'per_page', 'page']
@@ -87,28 +86,12 @@ const proxy = asyncHandler(async (req, res) => {
   if (!params) {
     return badRequest(res, 'Invalid query parameters');
   }
-  try {
-    const response = await GitHubService.request(req.user.accessToken, 'GET', path, {
-      params,
-      fullResponse: true
-    });
-    forwardHeaders(response, res);
-    res.status(response.status).json(response.data);
-  } catch (error) {
-    if (error.response?.status === 304) {
-      const { headers, status } = error.response;
-      return forwardHeaders({ headers }, res).status(status).end();
-    }
-    if (error.response?.status === 401) {
-      if (req.user?.id) {
-        supabaseService.invalidateAccessToken(req.user.id).catch(err => logger.error('Failed to invalidate token on GitHub 401:', err.message));
-      }
-      req.logout?.(() => {});
-      return sendError(res, 401, 'Unauthorized');
-    }
-    logger.error('GitHub proxy error:', error.response?.data || error.message);
-    return githubErrorResponse(res, error, 'GitHub request failed');
-  }
+  const response = await GitHubService.request(req.user.accessToken, 'GET', path, {
+    params,
+    fullResponse: true
+  });
+  forwardHeaders(response, res);
+  res.status(response.status).json(response.data);
 });
 module.exports = {
   proxy
