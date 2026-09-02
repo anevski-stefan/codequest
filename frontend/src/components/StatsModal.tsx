@@ -57,7 +57,7 @@ export default function StatsModal({
               </div> : <>
                 <div className="space-y-4">
                   {data?.map(item => isUserData(item) ? <a key={item.id} href={item.html_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <img src={item.avatar_url} alt={item.login} className="w-10 h-10 rounded-full" />
+                        <img src={item.avatar_url} alt={item.login} width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full" />
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
                           {item.login}
                         </span>

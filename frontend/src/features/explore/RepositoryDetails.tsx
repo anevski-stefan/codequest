@@ -245,7 +245,7 @@ const RepositoryDetails = () => {
   return <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {}
       <div className="flex items-center gap-4 mb-8">
-        <img src={repository.owner.avatar_url} alt="" className="w-16 h-16 rounded" />
+        <img src={repository.owner.avatar_url} alt="" width={64} height={64} loading="lazy" decoding="async" className="w-16 h-16 rounded" />
         <div>
           <a href={repository.html_url} target="_blank" rel="noopener noreferrer" className="text-2xl font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
             {repository.full_name}
@@ -396,7 +396,7 @@ const RepositoryDetails = () => {
                   <div className="space-y-3">
                     {lotteryContributors?.map(contributor => <div key={contributor.login} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <img src={contributor.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                          <img src={contributor.avatar_url} alt="" width={24} height={24} loading="lazy" decoding="async" className="w-6 h-6 rounded-full" />
                           <span className="text-sm text-gray-900 dark:text-white">{contributor.login}</span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -458,7 +458,7 @@ const RepositoryDetails = () => {
                       {}
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div className="flex items-start space-x-3">
-                          <img src={pr.user.avatar_url} alt={pr.user.login} className="w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0" />
+                          <img src={pr.user.avatar_url} alt={pr.user.login} width={40} height={40} loading="lazy" decoding="async" className="w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0" />
                           <div className="min-w-0 flex-1">
                             <h3 onClick={() => handleViewPullRequest(pr.number)} onMouseEnter={() => prefetchPRDetails(pr)} className="text-base md:text-lg font-medium text-gray-900 dark:text-white truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">
                               {pr.title}
@@ -540,7 +540,7 @@ const RepositoryDetails = () => {
                       {pr.requested_reviewers.length > 0 && <div className="mt-3">
                           <div className="text-xs md:text-sm text-gray-500 mb-1.5">Reviewers</div>
                           <div className="flex -space-x-2">
-                            {pr.requested_reviewers.map(reviewer => <img key={reviewer.login} src={reviewer.avatar_url} alt={reviewer.login} title={reviewer.login} className="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-white dark:border-gray-800" />)}
+                            {pr.requested_reviewers.map(reviewer => <img key={reviewer.login} src={reviewer.avatar_url} alt={reviewer.login} title={reviewer.login} width={32} height={32} loading="lazy" decoding="async" className="w-6 h-6 md:w-8 md:h-8 rounded-full border-2 border-white dark:border-gray-800" />)}
                           </div>
                         </div>}
 
@@ -620,7 +620,7 @@ const RepositoryDetails = () => {
             <div className="space-y-4">
               {topContributors?.map(contributor => <div key={contributor.login} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
                   <div className="flex items-center gap-3">
-                    <img src={contributor.avatar_url} alt={`${contributor.login}'s avatar`} className="w-8 h-8 rounded-full" />
+                    <img src={contributor.avatar_url} alt={`${contributor.login}'s avatar`} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full" />
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 dark:text-white">
                         {contributor.login}
