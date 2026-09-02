@@ -36,13 +36,14 @@ class SupabaseService {
     };
     let accessToken;
     try {
-      const { plain, upgraded } = decryptAndUpgrade(JSON.parse(data.github_token));
-      if (upgraded) {
-        await getSupabase().from('users')
-          .update({ github_token: JSON.stringify(upgraded) })
-          .eq('github_id', userId);
+      const result = decryptAndUpgrade(JSON.parse(data.github_token));
+      accessToken = result.plain;
+      if (result.upgraded) {
+        getSupabase().from('users')
+          .update({ github_token: JSON.stringify(result.upgraded) })
+          .eq('github_id', userId)
+          .catch(error => logger.error('Failed to upgrade github token ciphertext:', error));
       }
-      accessToken = plain;
     } catch (e) {
       return {
         ...data,
