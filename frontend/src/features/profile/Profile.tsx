@@ -9,7 +9,7 @@ import type { GitHubRepo, GitHubActivityEvent } from '../../types/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getUserRepositories, getUserActivities, getUserStarredCount } from '../../services/github';
 import { ProfileSkeleton } from '../../components/skeletons/ProfileSkeleton';
-import ProfilePagination from '../../components/profile/ProfilePagination';
+import { Pagination } from '../../components/ui/Pagination';
 import ProfileStatsCard from '../../components/profile/ProfileStatsCard';
 import ProfileInfoItems from '../../components/profile/ProfileInfoItems';
 import { formatActivityMessage } from '../../components/profile/formatActivityMessage';
@@ -224,7 +224,7 @@ const Profile = () => {
                             </span>
                           </div>
                         </motion.div>)}
-                      <ProfilePagination page={page} hasMore={!!repos && repos.length >= PER_PAGE} onPageChange={setPage} />
+                      <Pagination currentPage={page} hasMore={!!repos && repos.length >= PER_PAGE} onPageChange={setPage} />
                     </>}
                 </div>}
             </div>
