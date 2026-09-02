@@ -46,7 +46,7 @@ const Layout = ({
                   <div className="flex items-center space-x-4 px-4">
                     <button onClick={() => navigate('/profile')} className="flex items-center space-x-2 shrink-0">
                       <div className="relative w-10 h-10 overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-full">
-                        <img src={user?.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                        <img src={user?.avatar_url} alt="Profile" width={40} height={40} decoding="async" className="h-full w-full object-cover" />
                       </div>
                       <span className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
                         {user?.login}
@@ -111,7 +111,7 @@ const Layout = ({
           }}>
                 <div className="flex items-center space-x-3">
                   <div className="relative w-10 h-10 overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-full">
-                    <img src={user?.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                    <img src={user?.avatar_url} alt="Profile" width={40} height={40} decoding="async" className="h-full w-full object-cover" />
                   </div>
                   <span>{user?.login}</span>
                 </div>

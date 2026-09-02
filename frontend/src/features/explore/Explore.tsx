@@ -35,7 +35,7 @@ const ContributorsList = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {contributors.map(user => <div key={user.id} onClick={() => navigate(`/contributors/${user.login}`)} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow">
             <div className="flex items-center space-x-4">
-              <img src={user.avatar_url} alt="" className="w-12 h-12 rounded-full" />
+              <img src={user.avatar_url} alt="" width={48} height={48} loading="lazy" decoding="async" className="w-12 h-12 rounded-full" />
               <div>
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white">{user.login}</h3>
                 <p className="text-xs text-gray-500">{user.public_repos} repositories</p>
@@ -172,7 +172,7 @@ const Explore = () => {
                             </span>
                           </div>
                         </div>
-                        <img src={repo.owner.avatar_url} alt="" className="w-12 h-12 rounded-full" />
+                        <img src={repo.owner.avatar_url} alt="" width={48} height={48} loading="lazy" decoding="async" className="w-12 h-12 rounded-full" />
                       </div>
                     </div>)}
                 </div>}

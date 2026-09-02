@@ -98,7 +98,7 @@ export default function PullRequestDetailsModal({
       return <div>Error loading pull request details</div>;
     }
     return <div className="flex items-center gap-4">
-        {pullRequestDetails.user?.avatar_url && <img src={pullRequestDetails.user.avatar_url} alt={pullRequestDetails.user.login || 'User avatar'} className="w-10 h-10 rounded-full" />}
+        {pullRequestDetails.user?.avatar_url && <img src={pullRequestDetails.user.avatar_url} alt={pullRequestDetails.user.login || 'User avatar'} width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full" />}
         <div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             {pullRequestDetails.title}
@@ -123,7 +123,7 @@ export default function PullRequestDetailsModal({
             {pullRequestDetails?.commits_data?.map(commit => {
             const isSelected = commit.sha === selectedCommitSha;
             return <button key={commit.sha} onClick={() => handleCommitClick(commit.sha)} className={`w-full text-left flex items-start gap-4 p-4 border ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors`}>
-                  {commit.author?.avatar_url ? <img src={commit.author.avatar_url} alt={commit.author.login || 'Committer'} className="w-8 h-8 rounded-full" /> : <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                  {commit.author?.avatar_url ? <img src={commit.author.avatar_url} alt={commit.author.login || 'Committer'} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full" /> : <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
                       <GitCommit className="w-4 h-4 text-gray-500" />
                     </div>}
                   <div className="flex-1 min-w-0">

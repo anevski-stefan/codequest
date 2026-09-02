@@ -85,7 +85,7 @@ const Profile = () => {
           y: 0
         }} className="bg-white dark:bg-[#0B1222] rounded-xl p-6 shadow-sm border border-gray-200 dark:border-white/10">
             <div className="flex flex-col items-center">
-              <img src={user.avatar_url} alt={user.name || user.login} className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-700 shadow-lg" />
+              <img src={user.avatar_url} alt={user.name || user.login} width={128} height={128} decoding="async" className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-700 shadow-lg" />
               <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
                 {user.name}
               </h1>
@@ -193,7 +193,7 @@ const Profile = () => {
               opacity: 1
             }} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <div className="flex-shrink-0">
-                      <img src={event.actor.avatar_url} alt={event.actor.login} className="w-8 h-8 rounded-full" />
+                      <img src={event.actor.avatar_url} alt={event.actor.login} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-900 dark:text-white">
