@@ -1,6 +1,7 @@
 const githubService = require('../services/githubService');
 const logger = require('../utils/logger');
 const { badRequest, asyncHandler, githubErrorResponse } = require('../utils/httpError');
+const { buildPagination, clampPage } = require('../utils/pagination');
 const { isValidOwner, isValidRepo, isValidNumber, isValidState } = require('../utils/validateParams');
 const MAX_COMMENT_BODY_LENGTH = 65536;
 exports.createComment = asyncHandler(async (req, res) => {
@@ -182,6 +183,7 @@ exports.getPulls = asyncHandler(async (req, res) => {
     state = 'open',
     page = 1
   } = req.query;
+  const pageNum = clampPage(page);
   if (!isValidOwner(owner) || !isValidRepo(repo)) {
     return badRequest(res, 'Invalid owner or repo');
   }
@@ -195,7 +197,7 @@ exports.getPulls = asyncHandler(async (req, res) => {
     const pullRequestsResponse = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls`, {
       params: {
         state,
-        page,
+        page: pageNum,
         per_page: perPage
       }
     });
@@ -229,10 +231,9 @@ exports.getPulls = asyncHandler(async (req, res) => {
       comments: pr.comments || 0,
       review_comments: pr.review_comments || 0
     }));
-    const hasMore = page * perPage < totalCount;
     res.json({
       pullRequests: pullRequestsWithDetails,
-      hasMore,
+      ...buildPagination({ page: pageNum, perPage, totalCount }),
       totalCount
     });
   } catch (error) {

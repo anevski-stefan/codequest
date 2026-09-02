@@ -2,14 +2,9 @@ const githubService = require('../services/githubService');
 const logger = require('../utils/logger');
 const { isValidOwner, isValidRepo, isValidNumber } = require('../utils/validateParams');
 const { badRequest, asyncHandler, githubErrorResponse } = require('../utils/httpError');
+const { buildPagination, clampPage } = require('../utils/pagination');
 
 const PER_PAGE = 30;
-const MAX_PAGE = 10000;
-
-function hasNextPage(linkHeader) {
-  if (!linkHeader) return false;
-  return /rel="?next"?/.test(linkHeader);
-}
 
 exports.getIssueComments = asyncHandler(async (req, res) => {
   const {
@@ -23,7 +18,7 @@ exports.getIssueComments = asyncHandler(async (req, res) => {
   if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(issueNumber)) {
     return badRequest(res, 'Invalid owner, repo or issue number');
   }
-  const pageNum = Math.min(Math.max(parseInt(page, 10) || 1, 1), MAX_PAGE);
+  const pageNum = clampPage(page);
   try {
     const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
       params: { page: pageNum, per_page: PER_PAGE },
@@ -39,12 +34,10 @@ exports.getIssueComments = asyncHandler(async (req, res) => {
       createdAt: new Date(comment.created_at).toISOString(),
       updatedAt: new Date(comment.updated_at).toISOString()
     }));
-    const hasMore = hasNextPage(response.headers.link);
     res.json({
       comments,
       count: comments.length,
-      hasMore,
-      nextPage: hasMore ? pageNum + 1 : null
+      ...buildPagination({ page: pageNum, perPage: PER_PAGE, linkHeader: response.headers.link })
     });
   } catch (error) {
     logger.error('Error fetching comments:', error.response?.data);
