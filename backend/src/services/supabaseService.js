@@ -4,7 +4,7 @@ const {
 const logger = require('../utils/logger');
 const {
   encrypt,
-  decryptAndUpgrade
+  decryptWithUpgrade
 } = require('../utils/crypto');
 class SupabaseService {
   async persistAccessToken(userId, accessToken, refreshToken) {
@@ -34,17 +34,13 @@ class SupabaseService {
       ...data,
       accessToken: null
     };
-    let accessToken;
-    try {
-      const result = decryptAndUpgrade(JSON.parse(data.github_token));
-      accessToken = result.plain;
-      if (result.upgraded) {
-        getSupabase().from('users')
-          .update({ github_token: JSON.stringify(result.upgraded) })
-          .eq('github_id', userId)
-          .catch(error => logger.error('Failed to upgrade github token ciphertext:', error));
-      }
-    } catch (e) {
+    const accessToken = decryptWithUpgrade(data.github_token, upgradedCiphertext => {
+      getSupabase().from('users')
+        .update({ github_token: upgradedCiphertext })
+        .eq('github_id', userId)
+        .catch(error => logger.error('Failed to upgrade github token ciphertext:', error));
+    });
+    if (!accessToken) {
       return {
         ...data,
         accessToken: null
