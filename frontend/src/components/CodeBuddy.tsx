@@ -4,8 +4,7 @@ import { Send, Bot, User, StopCircle, History, X, TrashIcon, Eraser } from 'luci
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/github';
 import ReactMarkdown from 'react-markdown';
-import { useAIService } from '../hooks/useAIService';
-import { setAIService, getAIService } from '../hooks/aiServiceStorage';
+import { useAIService, setAIService, getAIService } from '../hooks/useAIService';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import type { Components } from 'react-markdown';

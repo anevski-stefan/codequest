@@ -4,8 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import toast from 'react-hot-toast';
 import { api } from '../../services/github';
-import { isAIService } from '../../hooks/useAIService';
-import { setAIService } from '../../hooks/aiServiceStorage';
+import { setAIService, isAIService } from '../../hooks/useAIService';
 import type { AIService } from '../../hooks/useAIService';
 const SettingsPage = () => {
   usePageTitle('Settings');

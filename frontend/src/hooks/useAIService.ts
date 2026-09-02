@@ -1,24 +1,29 @@
-import { useState, useEffect } from 'react';
-import { getAIService, subscribeAIService, isAIService } from './aiServiceStorage';
-import type { AIService } from './aiServiceStorage';
-export type { AIService };
-export { isAIService };
-export const useAIService = () => {
-  const [selectedService, setSelectedService] = useState<AIService>(getAIService);
-  useEffect(() => {
-    const unsubscribe = subscribeAIService(() => {
-      setSelectedService(getAIService());
-    });
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'ai_service') {
-        setSelectedService(isAIService(e.newValue) ? e.newValue : 'chatgpt');
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      unsubscribe();
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-  return selectedService;
+import { useSyncExternalStore } from 'react';
+
+export type AIService = 'chatgpt' | 'gemini';
+
+const STORAGE_KEY = 'ai_service';
+
+export const isAIService = (value: string | null): value is AIService => 
+  value === 'chatgpt' || value === 'gemini';
+
+export const getAIService = (): AIService => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return isAIService(stored) ? stored : 'chatgpt';
 };
+
+export const setAIService = (value: AIService): void => {
+  localStorage.setItem(STORAGE_KEY, value);
+  window.dispatchEvent(new Event('ai_service_changed'));
+};
+
+const subscribe = (listener: () => void) => {
+  window.addEventListener('storage', listener);
+  window.addEventListener('ai_service_changed', listener);
+  return () => {
+    window.removeEventListener('storage', listener);
+    window.removeEventListener('ai_service_changed', listener);
+  };
+};
+
+export const useAIService = () => useSyncExternalStore(subscribe, getAIService);
