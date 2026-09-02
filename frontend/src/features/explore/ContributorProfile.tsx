@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import axios from 'axios';
-import { api } from '../../services/github';
+import { api, getUserStarredCount, getUserActivities } from '../../services/github';
 import { Star, GitFork, Calendar, MapPin, Link as LinkIcon, Building, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { motion } from 'framer-motion';
@@ -102,28 +102,15 @@ const ContributorProfile = () => {
     data: starredRepos
   } = useQuery({
     queryKey: ['contributor-starred', username],
-    queryFn: async () => {
-      const response = await api.get(`/api/github/users/${username}/starred`, {
-        params: {
-          per_page: 1
-        }
-      });
-      const links = response.headers['link'];
-      const match = links?.match(/page=(\d+)>; rel="last"/);
-      return match ? parseInt(match[1]) : 0;
-    }
+    queryFn: () => getUserStarredCount(username),
   });
   const {
     data: activityEvents,
     isLoading: activitiesLoading
   } = useQuery<ActivityEvent[]>({
     queryKey: ['contributor-activity', username],
-    queryFn: async () => {
-      const {
-        data
-      } = await api.get(`/api/github/users/${username}/events/public`);
-      return data;
-    }
+    queryFn: () => getUserActivities(username!),
+    enabled: !!username,
   });
   const {
     data: followers,

@@ -37,7 +37,7 @@ const Profile = () => {
     isLoading: starredLoading
   } = useQuery({
     queryKey: ['user-starred'],
-    queryFn: getUserStarredCount
+    queryFn: () => getUserStarredCount()
   });
   const isLoading = reposLoading || activitiesLoading || starredLoading;
   const Pagination = () => <div className="mt-6 flex items-center justify-center gap-4">
