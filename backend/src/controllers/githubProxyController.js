@@ -1,5 +1,6 @@
 const GitHubService = require('../services/githubService');
 const logger = require('../utils/logger');
+const supabaseService = require('../services/supabaseService');
 const ALLOWED_ROUTES = [{
   pattern: /^\/search\/issues$/,
   params: ['q', 'sort', 'order', 'per_page', 'page']
@@ -101,6 +102,10 @@ const proxy = async (req, res) => {
       return res.status(304).end();
     }
     if (error.response?.status === 401) {
+      if (req.user?.id) {
+        supabaseService.invalidateAccessToken(req.user.id).catch(err => logger.error('Failed to invalidate token on GitHub 401:', err.message));
+      }
+      req.logout?.(() => {});
       return res.status(401).json({
         error: 'Unauthorized'
       });

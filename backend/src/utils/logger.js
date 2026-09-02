@@ -23,6 +23,18 @@ const serializeError = error => {
   return out;
 };
 
+const safeStringify = value => {
+  const seen = new WeakSet();
+  return JSON.stringify(value, (key, val) => {
+    if (typeof val === 'bigint') return val.toString();
+    if (typeof val === 'object' && val !== null) {
+      if (seen.has(val)) return '[Circular]';
+      seen.add(val);
+    }
+    return val;
+  });
+};
+
 const write = (level, args) => {
   if ((LEVELS[level] ?? LEVELS.info) < threshold) return;
   const record = {
@@ -37,7 +49,8 @@ const write = (level, args) => {
       record.detail = serializeError(arg);
     } else if (arg !== undefined) {
       try {
-        record.detail = JSON.parse(JSON.stringify(arg, (key, value) => (typeof value === 'bigint' ? value.toString() : value)));
+        const serialized = safeStringify(arg);
+        record.detail = serialized ? JSON.parse(serialized) : arg;
       } catch {
         record.detail = String(arg);
       }

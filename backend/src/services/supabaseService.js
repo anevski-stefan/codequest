@@ -57,6 +57,18 @@ class SupabaseService {
       accessToken
     };
   }
+  async invalidateAccessToken(userId) {
+    const {
+      error
+    } = await getSupabase().from('users')
+      .update({
+        github_token: null,
+        github_refresh_token: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('github_id', userId);
+    if (error) throw error;
+  }
   async createOrUpdateUser(profile) {
     try {
       const {

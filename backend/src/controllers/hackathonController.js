@@ -54,8 +54,7 @@ exports.getHackathons = async (req, res) => {
       hackathons: paginatedHackathons,
       totalPages: Math.ceil(hackathons.length / parsedLimit),
       currentPage: parsedPage,
-      totalHackathons: hackathons.length,
-      isLoading: !hackathonService.getInitialCrawlStatus()
+      totalHackathons: hackathons.length
     });
   } catch (error) {
     logger.error('Error in /api/hackathons:', error);

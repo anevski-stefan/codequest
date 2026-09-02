@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const { githubErrorResponse } = require('../utils/githubError');
 const { badRequest, notFound, forbidden, sendError } = require('../utils/httpError');
 const { isValidOwner, isValidRepo, isValidNumber, isValidState } = require('../utils/validateParams');
+const MAX_COMMENT_BODY_LENGTH = 65536;
 exports.createComment = async (req, res) => {
   try {
     const {
@@ -21,6 +22,13 @@ exports.createComment = async (req, res) => {
         resource: 'IssueComment',
         field: 'body',
         code: 'missing_field'
+      }]);
+    }
+    if (typeof body !== 'string' || body.length > MAX_COMMENT_BODY_LENGTH) {
+      return sendError(res, 422, 'Validation Failed', [{
+        resource: 'IssueComment',
+        field: 'body',
+        code: 'too_long'
       }]);
     }
     const response = await githubService.request(req.user.accessToken, 'POST', `/repos/${owner}/${repo}/issues/${number}/comments`, {

@@ -5,6 +5,12 @@ const logger = require('../utils/logger');
 const DEFAULT_GITHUB_LABELS = 'good-first-issue,"good first issue",help-wanted,beginner';
 const MAX_PREVIOUS_MESSAGES = 5;
 const MAX_MESSAGE_CHARS = 4000;
+const ALLOWED_LANGUAGES = new Set(['javascript', 'typescript', 'python', 'java', 'c', 'c++', 'c#', 'go', 'rust', 'ruby', 'php', 'swift', 'kotlin', 'scala', 'dart', 'elixir', 'haskell', 'shell', 'html', 'css']);
+const safeLanguage = value => {
+  if (typeof value !== 'string') return 'javascript';
+  const normalized = value.trim().toLowerCase();
+  return ALLOWED_LANGUAGES.has(normalized) ? normalized : 'javascript';
+};
 const sanitizeMessages = (messages) => {
   if (!Array.isArray(messages)) return [];
   const result = [];
@@ -64,9 +70,9 @@ class CodeBuddyService {
       throw new Error('GitHub token is required');
     }
     try {
-      const safeLanguage = typeof language === 'string' ? language : 'javascript';
+      const safeLang = safeLanguage(language);
       const labels = getAIConfig().githubLabels;
-      const baseQuery = ['is:open', 'is:issue', `language:${safeLanguage.toLowerCase()}`, labels.map(label => `label:${label}`).join(' OR ')].filter(Boolean).join(' ');
+      const baseQuery = ['is:open', 'is:issue', `language:${safeLang}`, labels.map(label => `label:${label}`).join(' OR ')].filter(Boolean).join(' ');
       const query = encodeURIComponent(baseQuery);
       const options = {
         sort: 'updated',
@@ -107,7 +113,7 @@ class CodeBuddyService {
         throw new Error('Message is required');
       }
       const safePreviousMessages = sanitizeMessages(previousMessages);
-      const language = typeof context?.language === 'string' ? context.language : 'javascript';
+      const language = safeLanguage(context?.language);
       const difficulty = typeof context?.difficulty === 'string' ? context.difficulty : 'all';
       const issues = await this.getGitHubIssues(token, language, difficulty);
       if (!issues || issues.length === 0) {
