@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
-import { Star, GitFork, Calendar, MapPin, Link as LinkIcon, Building, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, GitFork } from 'lucide-react';
 import { motion } from 'framer-motion';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import type { RootState } from '../../store';
@@ -9,6 +9,10 @@ import type { GitHubRepo, GitHubActivityEvent } from '../../types/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getUserRepositories, getUserActivities, getUserStarredCount } from '../../services/github';
 import { ProfileSkeleton } from '../../components/skeletons/ProfileSkeleton';
+import ProfilePagination from '../../components/profile/ProfilePagination';
+import ProfileStatsCard from '../../components/profile/ProfileStatsCard';
+import ProfileInfoItems from '../../components/profile/ProfileInfoItems';
+import { formatActivityMessage } from '../../components/profile/formatActivityMessage';
 const Profile = () => {
   usePageTitle('Profile');
   const {
@@ -40,35 +44,6 @@ const Profile = () => {
     queryFn: () => getUserStarredCount()
   });
   const isLoading = reposLoading || activitiesLoading || starredLoading;
-  const Pagination = () => <div className="mt-6 flex items-center justify-center gap-4">
-      <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`p-2 rounded-lg ${page === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
-        <ChevronLeft className="w-5 h-5" />
-      </button>
-      <span className="text-sm text-gray-600 dark:text-gray-300">
-        Page {page}
-      </span>
-      <button onClick={() => setPage(p => p + 1)} disabled={!repos || repos.length < PER_PAGE} className={`p-2 rounded-lg ${!repos || repos.length < PER_PAGE ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
-        <ChevronRight className="w-5 h-5" />
-      </button>
-    </div>;
-  const formatActivityMessage = (event: GitHubActivityEvent) => {
-    switch (event.type) {
-      case 'PushEvent':
-        return 'pushed to';
-      case 'CreateEvent':
-        return `created ${event.payload.ref_type}`;
-      case 'IssuesEvent':
-        return `${event.payload.action} issue in`;
-      case 'PullRequestEvent':
-        return `${event.payload.action} pull request in`;
-      case 'ForkEvent':
-        return 'forked';
-      case 'WatchEvent':
-        return 'starred';
-      default:
-        return 'interacted with';
-    }
-  };
   if (isLoading) return <ProfileSkeleton />;
   if (!user) return <div className="flex flex-1 items-center justify-center p-8 text-center">
       <p className="text-gray-600 dark:text-gray-400">Session unavailable — please log in again.</p>
@@ -112,63 +87,21 @@ const Profile = () => {
                 </div>
               </div>
 
-              <div className="mt-6 w-full space-y-3">
-                {user.company && <div className="flex items-center text-gray-600 dark:text-gray-300">
-                    <Building className="w-5 h-5 mr-2" />
-                    {user.company}
-                  </div>}
-                {user.location && <div className="flex items-center text-gray-600 dark:text-gray-300">
-                    <MapPin className="w-5 h-5 mr-2" />
-                    {user.location}
-                  </div>}
-                {user.blog && <div className="flex items-center text-blue-600 dark:text-blue-400">
-                    <LinkIcon className="w-5 h-5 mr-2" />
-                    <a href={user.blog} target="_blank" rel="noopener noreferrer">
-                      {user.blog}
-                    </a>
-                  </div>}
-                {user.twitter_username && <div className="flex items-center text-blue-400">
-                    <X className="w-5 h-5 mr-2" />
-                    <a href={`https://twitter.com/${user.twitter_username}`} target="_blank" rel="noopener noreferrer">
-                      @{user.twitter_username}
-                    </a>
-                  </div>}
-                <div className="flex items-center text-gray-600 dark:text-gray-300">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  Joined {new Date(user.created_at).toLocaleDateString()}
-                </div>
-              </div>
+              <ProfileInfoItems
+                company={user.company}
+                location={user.location}
+                blog={user.blog}
+                twitter_username={user.twitter_username}
+                created_at={user.created_at}
+              />
             </div>
           </motion.div>
 
-          <motion.div initial={{
-          opacity: 0,
-          y: 20
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} className="mt-6 bg-white dark:bg-[#0B1222] rounded-xl p-6 shadow-sm border border-gray-200 dark:border-white/10">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Statistics
-            </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">Starred Repos</span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {starredCount || 0}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">Public Gists</span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {user?.public_gists || 0}
-                </span>
-              </div>
-              {user?.hireable && <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  Available for hire
-                </div>}
-            </div>
-          </motion.div>
+          <ProfileStatsCard
+            starredCount={starredCount}
+            publicGists={user.public_gists}
+            hireable={user.hireable}
+          />
         </div>
       </div>
 
@@ -291,7 +224,7 @@ const Profile = () => {
                             </span>
                           </div>
                         </motion.div>)}
-                      <Pagination />
+                      <ProfilePagination page={page} hasMore={!!repos && repos.length >= PER_PAGE} onPageChange={setPage} />
                     </>}
                 </div>}
             </div>
