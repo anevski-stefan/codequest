@@ -3,5 +3,5 @@ const router = express.Router();
 const {
   submit
 } = require('../controllers/feedbackController');
-router.post('/', express.json({ limit: '1mb' }), submit);
+router.post('/', submit);
 module.exports = router;

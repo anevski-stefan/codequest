@@ -3,5 +3,5 @@ const router = express.Router();
 const {
   chat
 } = require('../controllers/codeBuddyController');
-router.post('/chat', express.json({ limit: '1mb' }), chat);
+router.post('/chat', chat);
 module.exports = router;

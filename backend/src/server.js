@@ -10,6 +10,7 @@ const passport = require('passport');
 require('./config/passport');
 const etagMiddleware = require('./middleware/etagMiddleware');
 const requestLogger = require('./middleware/requestLogger');
+const csrfGuard = require('./middleware/csrfGuard');
 const chatRoutes = require('./routes/chatRoutes');
 const hackathonRoutes = require('./routes/hackathonRoutes');
 const authRoutes = require('./routes/authRoutes');
@@ -122,6 +123,7 @@ app.get('/health', (req, res) => {
   });
 });
 app.use(limiter);
+app.use(csrfGuard);
 app.use('/api/activity', requireAuth, activityRoutes);
 app.use('/api/issues', requireAuth, issuesRoutes);
 app.use('/api/repos', requireAuth, reposRoutes);
