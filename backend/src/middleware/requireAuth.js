@@ -1,12 +1,11 @@
 const GitHubService = require('../services/githubService');
+const { sendError } = require('../utils/httpError');
 
 const TOKEN_VALIDITY_WINDOW_MS = 60 * 1000;
 
 const requireAuth = (req, res, next) => {
   if (!req.user || !req.user.accessToken) {
-    return res.status(401).json({
-      error: 'Unauthorized'
-    });
+    return sendError(res, 401, 'Unauthorized');
   }
   const now = Date.now();
   const lastCheck = req.session?.lastTokenCheck;
@@ -20,9 +19,7 @@ const requireAuth = (req, res, next) => {
           delete req.session.lastTokenCheck;
           delete req.session.passport;
         }
-        return res.status(401).json({
-          error: 'Unauthorized'
-        });
+        return sendError(res, 401, 'Unauthorized');
       }
       if (req.session) {
         req.session.lastTokenCheck = now;
@@ -33,9 +30,7 @@ const requireAuth = (req, res, next) => {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Token validation error:', error.message);
       }
-      return res.status(503).json({
-        error: 'Unable to verify authentication token'
-      });
+      return sendError(res, 503, 'Unable to verify authentication token');
     });
 };
 module.exports = requireAuth;
