@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+
 import { Modal } from './ui/Modal';
 import { CommentForm } from './comments/CommentForm';
 import { CommentsList } from './comments/CommentsList';
@@ -15,21 +15,13 @@ export default function CommentsModal({
   isLoadingMore
 }: CommentsModalProps) {
   const sortedComments = useCommentSorting(comments);
-  const handleLoadMore = useCallback(() => {
-    if (!isLoadingMore && hasMoreComments) {
-      onLoadMore();
-    }
-  }, [isLoadingMore, hasMoreComments, onLoadMore]);
-  const handleAddComment = useCallback(async (comment: string) => {
-    await onAddComment(comment);
-  }, [onAddComment]);
   return <Modal isOpen={isOpen} onClose={onClose} title="Comments">
       <div className="flex-1 overflow-y-auto py-4 space-y-4">
-        <CommentsList comments={sortedComments} isLoading={isLoading} hasMoreComments={hasMoreComments} isLoadingMore={isLoadingMore} onLoadMore={handleLoadMore} />
+        <CommentsList comments={sortedComments} isLoading={isLoading} hasMoreComments={hasMoreComments} isLoadingMore={isLoadingMore} onLoadMore={onLoadMore} />
       </div>
 
       <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-        <CommentForm onSubmit={handleAddComment} />
+        <CommentForm onSubmit={onAddComment} />
       </div>
     </Modal>;
 }

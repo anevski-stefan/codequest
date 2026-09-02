@@ -6,7 +6,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { formatRelativeDate } from '../../utils/formatDate';
 import { motion } from 'framer-motion';
 import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails } from '../../services/github';
-import { getLabelColors, isHexColor } from '../dashboard/utils/filterUtils';
+import { getLabelColors } from '../dashboard/utils/filterUtils';
 import PullRequestDetailsModal, { PullRequestDetails } from '../../components/PullRequestDetailsModal';
 import { useState, useEffect, useMemo } from 'react';
 import { RepositorySkeleton } from '../../components/skeletons';
@@ -509,12 +509,7 @@ const RepositoryDetails = () => {
                       {/* */}
                       {pr.labels.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">
                           {pr.labels.map((label: any) => {
-                            const normalizedColor = label.color.trim();
-                            const isSafeColor = isHexColor(normalizedColor);
-                            return <span key={label.name} className="px-2 py-0.5 rounded-full text-xs font-medium" style={{
-                    backgroundColor: isSafeColor ? `#${normalizedColor}20` : '#6b728020',
-                    color: getLabelColors(normalizedColor).color
-                  }}>
+                            return <span key={label.name} className="px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap" style={getLabelColors(label.color)}>
                                 {label.name}
                               </span>;
                           })}
