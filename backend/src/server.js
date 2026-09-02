@@ -143,6 +143,13 @@ app.use((err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
+  if (err.name === 'GitHubApiError') {
+    logger.error(`[server] GitHubApiError: ${err.message}`, err.details);
+    return res.status(err.status).json({
+      error: err.message,
+      details: err.details
+    });
+  }
   logger.error('[server] Unhandled error:', err);
   res.status(err.status || 500).json({
     error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal server error'

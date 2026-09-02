@@ -1,7 +1,6 @@
 const {
   CodeBuddyService
 } = require('../services/codeBuddyService.js');
-const logger = require('../utils/logger');
 const aiKeyStore = require('../utils/aiKeyStore');
 const {
   badRequest,
@@ -31,17 +30,12 @@ exports.chat = asyncHandler(async (req, res) => {
   if (!apiKey) {
     return badRequest(res, 'No API key configured. Add your key in Settings.');
   }
-  try {
-    const response = await codeBuddyService.getResponse(message, context, messages, req.user.accessToken, normalizedService, apiKey);
-    if (!response) {
-      throw new Error(`No response from ${service} service`);
-    }
-    res.json({
-      message: response,
-      timestamp: new Date()
-    });
-  } catch (serviceError) {
-    logger.error(`${service} service error:`, serviceError.message);
-    return sendError(res, 503, `${service} service error: please try again or switch services`, devDetails(serviceError.message));
+  const response = await codeBuddyService.getResponse(message, context, messages, req.user.accessToken, normalizedService, apiKey);
+  if (!response) {
+    throw new Error(`No response from ${service} service`);
   }
+  res.json({
+    message: response,
+    timestamp: new Date()
+  });
 });
