@@ -27,6 +27,14 @@ const authLimiter = rateLimit({
   handler: errorHandler,
   keyGenerator: req => req.ip
 });
+const meLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: errorHandler,
+  keyGenerator: req => req.ip
+});
 const userAwareKeyGenerator = req => {
   return req.user ? `${req.ip}-${req.user.id}` : req.ip;
 };
@@ -64,6 +72,7 @@ const aiKeysLimiter = rateLimit({
 });
 module.exports = limiter;
 module.exports.authLimiter = authLimiter;
+module.exports.meLimiter = meLimiter;
 module.exports.newsletterLimiter = newsletterLimiter;
 module.exports.feedbackLimiter = feedbackLimiter;
 module.exports.aiChatLimiter = aiChatLimiter;

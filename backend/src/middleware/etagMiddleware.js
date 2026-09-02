@@ -15,22 +15,39 @@ function etagsMatch(clientEtag, serverEtag) {
   });
 }
 
+function computeETag(body) {
+  if (typeof body === 'string' || Buffer.isBuffer(body)) {
+    return etag(body);
+  }
+  if (body && typeof body === 'object') {
+    try {
+      return etag(JSON.stringify(body));
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 const etagMiddleware = (req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     return next();
   }
   const originalSend = res.send;
   res.send = function (body) {
-    if (body != null) {
-      if (!res.getHeader('ETag')) {
-        res.setHeader('ETag', etag(body));
-      }
-      res.setHeader('Cache-Control', 'no-cache');
-      const clientEtag = req.headers['if-none-match'];
-      const serverEtag = res.getHeader('ETag');
-      if (clientEtag && serverEtag && etagsMatch(clientEtag, serverEtag)) {
-        res.status(304);
-        return originalSend.call(this);
+    if (this.writableEnded) {
+      return this;
+    }
+    if (body != null && !res.getHeader('ETag')) {
+      const tag = computeETag(body);
+      if (tag) {
+        res.setHeader('ETag', tag);
+        res.setHeader('Cache-Control', 'no-cache');
+        const clientEtag = req.headers['if-none-match'];
+        if (clientEtag && etagsMatch(clientEtag, tag)) {
+          res.status(304);
+          return originalSend.call(this);
+        }
       }
     }
     return originalSend.call(this, body);
