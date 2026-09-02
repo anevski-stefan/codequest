@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
-import { getSuggestedIssues, getIssueComments, addIssueComment } from '../../services/github';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { getSuggestedIssues } from '../../services/github';
 import type { Issue, IssueParams } from '../../types/github';
 import CommentsModal from '../../components/CommentsModal';
 import { CardSkeleton } from '../../components/skeletons';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import useIssueComments from '../../hooks/useIssueComments';
 import IssueTable from '../dashboard/components/IssueTable';
-import { toast } from 'react-hot-toast';
 const SuggestedIssues = () => {
   usePageTitle('Suggested Issues');
   const [filter, setFilter] = useState<IssueParams>({
@@ -21,56 +21,18 @@ const SuggestedIssues = () => {
     commentsRange: '0'
   });
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
-  const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
-  const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
-  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   const {
-    data: commentsData,
-    isLoading: isLoadingComments,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage
-  } = useInfiniteQuery({
-    queryKey: ['comments', selectedIssueId, selectedRepo],
-    queryFn: async ({
-      pageParam = 1
-    }) => {
-      if (selectedIssueId && selectedRepo) {
-        return await getIssueComments(selectedIssueId, selectedRepo, pageParam);
-      }
-      return null;
-    },
-    initialPageParam: 1,
-    enabled: !!selectedIssueId && !!selectedRepo,
-    getNextPageParam: lastPage => {
-      if (!lastPage) return undefined;
-      return lastPage.hasMore ? lastPage.nextPage : undefined;
-    }
-  });
-  const allComments = commentsData?.pages?.flatMap(page => page?.comments ?? []) ?? [];
-  const queryClient = useQueryClient();
-  const addCommentMutation = useMutation({
-    mutationFn: ({
-      issueId,
-      comment
-    }: {
-      issueId: number;
-      comment: string;
-    }) => {
-      if (!selectedRepo) throw new Error('No repository selected');
-      return addIssueComment(issueId, selectedRepo, comment);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', selectedIssueId, selectedRepo] });
-      toast.success('Comment added');
-    },
-    onError: error => {
-      console.error('Error adding comment:', error);
-      const message = error instanceof Error ? error.message : 'Failed to add comment';
-      toast.error(message || 'Failed to add comment');
-    }
-  });
+    isCommentsModalOpen,
+    allComments,
+    isLoadingComments,
+    hasMoreComments,
+    isLoadingMore,
+    onLoadMore,
+    handleViewComments,
+    handleCloseComments,
+    handleAddComment
+  } = useIssueComments();
   const {
     data,
     isLoading,
@@ -106,20 +68,6 @@ const SuggestedIssues = () => {
     }
     setInitialFetchComplete(true);
   }, [isPlaceholderData, isError, error, data, filter.page]);
-  const handleViewComments = (issue: Issue) => {
-    if (selectedIssueId !== issue.number) {
-      setSelectedIssueId(issue.number);
-      setSelectedRepo(issue.repository.fullName);
-      setIsCommentsModalOpen(true);
-    }
-  };
-  const handleAddComment = async (comment: string) => {
-    if (!selectedIssueId) return;
-    return addCommentMutation.mutateAsync({
-      issueId: selectedIssueId,
-      comment
-    });
-  };
   const showLoadingSpinner = isLoading || !initialFetchComplete;
   const isRateLimitError = error instanceof Error && (error.message.includes('rate limit') || error.message.includes('secondary rate limit'));
   return <div className="w-full p-6 dark:bg-[#0B1222] mt-[64px]">
@@ -181,10 +129,7 @@ const SuggestedIssues = () => {
           </div>}
       </div>
 
-      <CommentsModal isOpen={isCommentsModalOpen} onClose={() => {
-      setIsCommentsModalOpen(false);
-      setSelectedIssueId(null);
-    }} comments={allComments} isLoading={isLoadingComments} onAddComment={handleAddComment} onLoadMore={() => fetchNextPage()} hasMoreComments={!!hasNextPage} isLoadingMore={isFetchingNextPage} />
+      <CommentsModal isOpen={isCommentsModalOpen} onClose={handleCloseComments} comments={allComments} isLoading={isLoadingComments} onAddComment={handleAddComment} onLoadMore={onLoadMore} hasMoreComments={hasMoreComments} isLoadingMore={isLoadingMore} />
     </div>;
 };
 export default SuggestedIssues;

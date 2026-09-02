@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useMutation, useQueryClient, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
-import { getIssues, getIssueComments, addIssueComment } from '../../services/github';
-import type { Issue, IssueParams, Language, IssueResponse } from '../../types/github';
+import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
+import { getIssues } from '../../services/github';
+import type { IssueParams, Language, IssueResponse } from '../../types/github';
 import debounce from 'lodash/debounce';
 import { SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import CommentsModal from '../../components/CommentsModal';
@@ -9,9 +9,9 @@ import LabelsFilter from '../../components/LabelsFilter';
 import { FilterDropdown } from './components/FilterDropdown';
 import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from './constants/filterOptions';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import useIssueComments from '../../hooks/useIssueComments';
 import IssueTable from './components/IssueTable';
 import { CardSkeleton } from '../../components/skeletons';
-import { toast } from 'react-hot-toast';
 const Dashboard = () => {
   usePageTitle('Dashboard');
   const [filter, setFilter] = useState<IssueParams>({
@@ -25,60 +25,19 @@ const Dashboard = () => {
     commentsRange: '',
     labels: []
   });
-  const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
-  const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
-  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const {
-    data: commentsData,
-    isLoading: isLoadingComments,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage
-  } = useInfiniteQuery({
-    queryKey: ['comments', selectedIssueId, selectedRepo],
-    queryFn: async ({
-      pageParam = 1
-    }) => {
-      if (selectedIssueId && selectedRepo) {
-        const result = await getIssueComments(selectedIssueId, selectedRepo, pageParam);
-        return result;
-      }
-      return null;
-    },
-    initialPageParam: 1,
-    enabled: !!selectedIssueId && !!selectedRepo,
-    getNextPageParam: lastPage => {
-      if (!lastPage) return undefined;
-      return lastPage.hasMore ? lastPage.nextPage : undefined;
-    }
-  });
-  const allComments = commentsData?.pages?.flatMap(page => page?.comments ?? []) ?? [];
-  const queryClient = useQueryClient();
-  const addCommentMutation = useMutation({
-    mutationFn: ({
-      issueId,
-      comment
-    }: {
-      issueId: number;
-      comment: string;
-    }) => {
-      if (!selectedRepo) {
-        throw new Error('No repository selected');
-      }
-      return addIssueComment(issueId, selectedRepo, comment);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', selectedIssueId, selectedRepo] });
-      toast.success('Comment added');
-    },
-    onError: error => {
-      console.error('Error in mutation:', error);
-      const message = error instanceof Error ? error.message : 'Failed to add comment';
-      toast.error(message || 'Failed to add comment');
-    }
-  });
+    isCommentsModalOpen,
+    allComments,
+    isLoadingComments,
+    hasMoreComments,
+    isLoadingMore,
+    onLoadMore,
+    handleViewComments,
+    handleCloseComments,
+    handleAddComment
+  } = useIssueComments();
   const debouncedSetFilter = useMemo(() => debounce((newFilter: Partial<IssueParams>) => {
     setFilter(prev => ({
       ...prev,
@@ -157,18 +116,6 @@ const Dashboard = () => {
   }, [handleFilterChange]);
   const handleLoadMore = () => {
     fetchNextIssuesPage();
-  };
-  const handleViewComments = useCallback((issue: Issue) => {
-    setSelectedIssueId(issue.number);
-    setSelectedRepo(issue.repository.fullName);
-    setIsCommentsModalOpen(true);
-  }, []);
-  const handleAddComment = async (comment: string) => {
-    if (!selectedIssueId) return;
-    return addCommentMutation.mutateAsync({
-      issueId: selectedIssueId,
-      comment
-    });
   };
   const showLoadingSpinner = isLoading || !initialFetchComplete;
   useEffect(() => {
@@ -310,10 +257,7 @@ const Dashboard = () => {
         </div>
       </main>
 
-      <CommentsModal isOpen={isCommentsModalOpen} onClose={() => {
-      setIsCommentsModalOpen(false);
-      setSelectedIssueId(null);
-    }} comments={allComments} isLoading={isLoadingComments} onAddComment={handleAddComment} onLoadMore={() => fetchNextPage()} hasMoreComments={!!hasNextPage} isLoadingMore={isFetchingNextPage} />
+      <CommentsModal isOpen={isCommentsModalOpen} onClose={handleCloseComments} comments={allComments} isLoading={isLoadingComments} onAddComment={handleAddComment} onLoadMore={onLoadMore} hasMoreComments={hasMoreComments} isLoadingMore={isLoadingMore} />
     </div>;
 };
 export default Dashboard;
