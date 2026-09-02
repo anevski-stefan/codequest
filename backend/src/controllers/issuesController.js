@@ -1,7 +1,6 @@
 const githubService = require('../services/githubService');
 const logger = require('../utils/logger');
-const { githubErrorResponse } = require('../utils/githubError');
-const { asyncHandler } = require('../utils/httpError');
+const { githubErrorResponse, asyncHandler } = require('../utils/httpError');
 exports.getAssignedIssues = asyncHandler(async (req, res) => {
   const {
     state

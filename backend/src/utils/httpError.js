@@ -17,20 +17,12 @@ function badRequest(res, message, details, code) {
   return sendError(res, 400, message, details, code);
 }
 
-function unauthorized(res, message) {
-  return sendError(res, 401, message);
-}
-
 function forbidden(res, message) {
   return sendError(res, 403, message);
 }
 
 function notFound(res, message) {
   return sendError(res, 404, message);
-}
-
-function conflict(res, message, details) {
-  return sendError(res, 409, message, details);
 }
 
 class HttpError extends Error {
@@ -47,14 +39,22 @@ function asyncHandler(fn) {
   };
 }
 
+function githubErrorResponse(res, error, fallbackMessage) {
+  const status = error.response?.status || 500;
+  const details =
+    process.env.NODE_ENV !== 'production' && error.response?.data?.message
+      ? error.response.data.message
+      : undefined;
+  return sendError(res, status, fallbackMessage || 'GitHub API request failed', details);
+}
+
 module.exports = {
   errorBody,
   sendError,
   badRequest,
-  unauthorized,
   forbidden,
   notFound,
-  conflict,
   HttpError,
-  asyncHandler
+  asyncHandler,
+  githubErrorResponse
 };

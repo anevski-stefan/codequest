@@ -1,8 +1,7 @@
 const passport = require('passport');
 const logger = require('../utils/logger');
 const axios = require('axios');
-const { githubErrorResponse } = require('../utils/githubError');
-const { sendError, asyncHandler } = require('../utils/httpError');
+const { sendError, asyncHandler, githubErrorResponse } = require('../utils/httpError');
 const clientUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
 const githubAuth = passport.authenticate('github', {
   scope: ['read:user', 'user:email'],

@@ -1,8 +1,7 @@
 const GitHubService = require('../services/githubService');
 const logger = require('../utils/logger');
 const supabaseService = require('../services/supabaseService');
-const { githubErrorResponse } = require('../utils/githubError');
-const { badRequest, forbidden, sendError, asyncHandler } = require('../utils/httpError');
+const { badRequest, forbidden, sendError, asyncHandler, githubErrorResponse } = require('../utils/httpError');
 const ALLOWED_ROUTES = [{
   pattern: /^\/search\/issues$/,
   params: ['q', 'sort', 'order', 'per_page', 'page']
