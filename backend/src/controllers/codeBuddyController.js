@@ -6,6 +6,7 @@ const aiKeyStore = require('../utils/aiKeyStore');
 const {
   badRequest,
   sendError,
+  devDetails,
   asyncHandler
 } = require('../utils/httpError');
 const codeBuddyService = new CodeBuddyService();
@@ -41,6 +42,6 @@ exports.chat = asyncHandler(async (req, res) => {
     });
   } catch (serviceError) {
     logger.error(`${service} service error:`, serviceError.message);
-    return sendError(res, 503, `${service} service error: please try again or switch services`, process.env.NODE_ENV !== 'production' ? serviceError.message : undefined);
+    return sendError(res, 503, `${service} service error: please try again or switch services`, devDetails(serviceError.message));
   }
 });

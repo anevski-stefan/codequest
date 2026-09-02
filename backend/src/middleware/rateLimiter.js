@@ -1,9 +1,9 @@
 const rateLimit = require('express-rate-limit');
+const { errorBody } = require('../utils/httpError');
 
 const errorHandler = (req, res) => {
   res.status(429).json({
-    error: 'Too many requests',
-    details: 'Please try again later',
+    ...errorBody('Too many requests', 'Please try again later'),
     retryAfter: res.getHeader('Retry-After')
   });
 };

@@ -39,12 +39,13 @@ function asyncHandler(fn) {
   };
 }
 
+function devDetails(details) {
+  return process.env.NODE_ENV !== 'production' ? details : undefined;
+}
+
 function githubErrorResponse(res, error, fallbackMessage) {
   const status = error.response?.status || 500;
-  const details =
-    process.env.NODE_ENV !== 'production' && error.response?.data?.message
-      ? error.response.data.message
-      : undefined;
+  const details = devDetails(error.response?.data?.message);
   return sendError(res, status, fallbackMessage || 'GitHub API request failed', details);
 }
 
@@ -56,5 +57,6 @@ module.exports = {
   notFound,
   HttpError,
   asyncHandler,
+  devDetails,
   githubErrorResponse
 };
