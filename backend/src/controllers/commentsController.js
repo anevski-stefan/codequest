@@ -1,8 +1,7 @@
 const githubService = require('../services/githubService');
 const logger = require('../utils/logger');
 const { isValidOwner, isValidRepo, isValidNumber } = require('../utils/validateParams');
-const { githubErrorResponse } = require('../utils/githubError');
-const { badRequest, asyncHandler } = require('../utils/httpError');
+const { badRequest, asyncHandler, githubErrorResponse } = require('../utils/httpError');
 
 const PER_PAGE = 30;
 const MAX_PAGE = 10000;

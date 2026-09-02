@@ -1,7 +1,6 @@
 const githubService = require('../services/githubService');
 const logger = require('../utils/logger');
-const { githubErrorResponse } = require('../utils/githubError');
-const { badRequest, notFound, forbidden, sendError, asyncHandler } = require('../utils/httpError');
+const { badRequest, asyncHandler, githubErrorResponse } = require('../utils/httpError');
 const { isValidOwner, isValidRepo, isValidNumber, isValidState } = require('../utils/validateParams');
 const MAX_COMMENT_BODY_LENGTH = 65536;
 exports.createComment = asyncHandler(async (req, res) => {
@@ -38,16 +37,7 @@ exports.createComment = asyncHandler(async (req, res) => {
     res.status(201).json(response);
   } catch (error) {
     logger.error('Error creating comment:', error.response?.data || error.message);
-    if (error.response?.status === 404) {
-      return notFound(res, 'Issue not found');
-    }
-    if (error.response?.status === 403) {
-      return forbidden(res, 'Forbidden');
-    }
-    if (error.response?.status === 422) {
-      return sendError(res, 422, 'Could not create comment');
-    }
-    return sendError(res, 500, 'Failed to create comment');
+    return githubErrorResponse(res, error, 'Failed to create comment');
   }
 });
 exports.getRepoDetails = asyncHandler(async (req, res) => {
