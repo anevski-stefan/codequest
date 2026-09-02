@@ -1,6 +1,7 @@
 const passport = require('passport');
 const logger = require('../utils/logger');
 const axios = require('axios');
+const GitHubService = require('../services/githubService');
 const { sendError, asyncHandler, githubErrorResponse } = require('../utils/httpError');
 const clientUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
 const githubAuth = passport.authenticate('github', {
@@ -39,15 +40,7 @@ const getMe = asyncHandler(async (req, res) => {
     return sendError(res, 401, 'Unauthorized');
   }
   try {
-    const {
-      data
-    } = await axios.get('https://api.github.com/user', {
-      headers: {
-        Authorization: `Bearer ${req.user.accessToken}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'CodeQuest'
-      }
-    });
+    const data = await GitHubService.request(req.user.accessToken, 'GET', '/user');
     res.json({
       user: data
     });
