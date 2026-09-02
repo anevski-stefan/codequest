@@ -1,6 +1,7 @@
 const {
   getSupabase
 } = require('../config/supabase');
+const logger = require('../utils/logger');
 
 const {
   encrypt,
@@ -26,18 +27,21 @@ async function getAiKey(userId, service) {
     if (error.code === 'PGRST116') return null;
     throw error;
   }
+  let plain;
   try {
-    const { plain, upgraded } = decryptAndUpgrade(JSON.parse(data.encrypted_key));
-    if (upgraded) {
-      await getSupabase().from('ai_keys')
-        .update({ encrypted_key: JSON.stringify(upgraded) })
+    const result = decryptAndUpgrade(JSON.parse(data.encrypted_key));
+    plain = result.plain;
+    if (result.upgraded) {
+      getSupabase().from('ai_keys')
+        .update({ encrypted_key: JSON.stringify(result.upgraded) })
         .eq('user_id', String(userId))
-        .eq('service', service);
+        .eq('service', service)
+        .catch(error => logger.error('Failed to upgrade ai_key ciphertext:', error));
     }
-    return plain;
   } catch (e) {
     return null;
   }
+  return plain;
 }
 
 async function deleteAiKey(userId, service) {
