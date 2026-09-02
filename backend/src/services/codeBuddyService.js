@@ -65,7 +65,7 @@ Remember to:
 6. Do not skip any available issues`;
 class CodeBuddyService {
   constructor() {}
-  async getGitHubIssues(token, language = 'javascript', difficulty = 'all') {
+  async getGitHubIssues(token, language = 'javascript') {
     if (!token) {
       throw new Error('GitHub token is required');
     }
@@ -114,8 +114,7 @@ class CodeBuddyService {
       }
       const safePreviousMessages = sanitizeMessages(previousMessages);
       const language = safeLanguage(context?.language);
-      const difficulty = typeof context?.difficulty === 'string' ? context.difficulty : 'all';
-      const issues = await this.getGitHubIssues(token, language, difficulty);
+      const issues = await this.getGitHubIssues(token, language);
       if (!issues || issues.length === 0) {
         return "I apologize, but I couldn't find any matching issues at the moment. Please try again with different criteria.";
       }
