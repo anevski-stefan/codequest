@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { getIssueComments, addIssueComment } from '../services/github';
 import type { Issue } from '../types/github';
@@ -31,7 +31,7 @@ const useIssueComments = () => {
       return lastPage.hasMore ? lastPage.nextPage : undefined;
     }
   });
-  const allComments = commentsData?.pages?.flatMap(page => page?.comments ?? []) ?? [];
+  const allComments = useMemo(() => commentsData?.pages?.flatMap(page => page?.comments ?? []) ?? [], [commentsData]);
   const queryClient = useQueryClient();
   const addCommentMutation = useMutation({
     mutationFn: ({

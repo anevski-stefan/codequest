@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAssignedIssues } from '../services/github';
-import { formatRelativeDate } from '../utils/formatDate';
+import { getAssignedIssues } from '../../services/github';
+import { formatRelativeDate } from '../../utils/formatDate';
 import { MessageCircle } from 'lucide-react';
-import type { Issue } from '../types/github';
-import CommentsModal from './CommentsModal';
-import { usePageTitle } from '../hooks/usePageTitle';
-import { CardSkeletonList } from './skeletons';
-import { ErrorDisplay } from './ui/ErrorDisplay';
-import { getLabelColors } from '../features/dashboard/utils/filterUtils';
-import useIssueComments from '../hooks/useIssueComments';
+import type { Issue } from '../../types/github';
+import CommentsModal from '../../components/CommentsModal';
+import { usePageTitle } from '../../hooks/usePageTitle';
+import { CardSkeletonList } from '../../components/skeletons';
+import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
+import { getLabelColors } from '../dashboard/utils/filterUtils';
+import useIssueComments from '../../hooks/useIssueComments';
 const MyAssignedIssues = () => {
   usePageTitle('My Assigned Issues');
   const [issueState, setIssueState] = useState<string>('open');
