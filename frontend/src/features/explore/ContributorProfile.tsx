@@ -3,15 +3,17 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import axios from 'axios';
 import { api, getUserStarredCount, getUserActivities } from '../../services/github';
-import { Star, GitFork } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { motion } from 'framer-motion';
+import { Star, GitFork } from 'lucide-react';
 import StatsModal from '../../components/StatsModal';
 import { ProfileSkeleton } from '../../components/skeletons';
 import { Pagination } from '../../components/ui/Pagination';
 import ProfileStatsCard from '../../components/profile/ProfileStatsCard';
 import ProfileInfoItems from '../../components/profile/ProfileInfoItems';
-import { formatActivityMessage } from '../../components/profile/formatActivityMessage';
+import RecentActivityList from '../../components/profile/RecentActivityList';
+import RepositoryList from '../../components/profile/RepositoryList';
+import type { GitHubActivityEvent, GitHubRepo } from '../../types/github';
 interface ContributorDetails {
   login: string;
   name: string;
@@ -32,30 +34,6 @@ interface ContributorDetails {
   starred_url: string;
   total_private_repos?: number;
   owned_private_repos?: number;
-}
-interface Repository {
-  id: number;
-  name: string;
-  description: string;
-  stargazers_count: number;
-  forks_count: number;
-  language: string;
-  html_url: string;
-}
-interface ActivityEvent {
-  id: string;
-  type: string;
-  created_at: string;
-  repo: {
-    name: string;
-    url: string;
-  };
-  payload: {
-    action?: string;
-    ref_type?: string;
-    ref?: string;
-    description?: string;
-  };
 }
 const ContributorProfile = () => {
   const {
@@ -101,7 +79,7 @@ const ContributorProfile = () => {
   const {
     data: activityEvents,
     isLoading: activitiesLoading
-  } = useQuery<ActivityEvent[]>({
+  } = useQuery<GitHubActivityEvent[]>({
     queryKey: ['contributor-activity', username],
     queryFn: () => getUserActivities(username!),
     enabled: !!username,
@@ -165,7 +143,7 @@ const ContributorProfile = () => {
   const {
     data: repos,
     isLoading: reposLoading
-  } = useQuery<Repository[]>({
+  } = useQuery<GitHubRepo[]>({
     queryKey: ['contributor-repos', username, page],
     queryFn: async () => {
       const {
@@ -289,46 +267,7 @@ const ContributorProfile = () => {
       <div className="flex-1 min-w-0">
         <div className="space-y-6">
           {/* */}
-          <motion.div initial={{
-          opacity: 0,
-          y: 20
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} className="bg-white dark:bg-[#0B1222] rounded-xl shadow-sm p-6 border border-gray-200 dark:border-white/10">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-              Recent Activity
-            </h2>
-            {activitiesLoading ? <LoadingSpinner /> : <div className="space-y-4">
-                {activityEvents?.slice(0, 10).map(event => <motion.div key={event.id} initial={{
-              opacity: 0
-            }} animate={{
-              opacity: 1
-            }} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <div className="flex-shrink-0">
-                      <img src={user.avatar_url} alt={user.name || user.login} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900 dark:text-white">
-                        <span className="font-medium">{username}</span>{' '}
-                        {formatActivityMessage(event)}{' '}
-                        <a href={`https://github.com/${event.repo.name}`} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                          {event.repo.name}
-                        </a>
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {new Date(event.created_at).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                      </p>
-                    </div>
-                  </motion.div>)}
-              </div>}
-          </motion.div>
+          <RecentActivityList activities={activityEvents ?? []} isLoading={activitiesLoading} />
 
           {/* */}
           <div className="bg-white dark:bg-[#0B1222] rounded-xl shadow-sm border border-gray-200 dark:border-white/10">
@@ -348,32 +287,7 @@ const ContributorProfile = () => {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Popular Repositories
                   </h3>
-                  {reposLoading ? <LoadingSpinner /> : <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {repos?.slice(0, 6).map(repo => <motion.a key={repo.id} href={repo.html_url} target="_blank" rel="noopener noreferrer" className="block p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" whileHover={{
-                  scale: 1.02
-                }}>
-                          <h4 className="text-base font-semibold text-blue-600 dark:text-blue-400">
-                            {repo.name}
-                          </h4>
-                          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                            {repo.description || 'No description available'}
-                          </p>
-                          <div className="mt-3 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                            {repo.language && <span className="flex items-center">
-                                <span className="w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
-                                {repo.language}
-                              </span>}
-                            <span className="flex items-center">
-                              <Star className="w-4 h-4 mr-1" />
-                              {repo.stargazers_count}
-                            </span>
-                            <span className="flex items-center">
-                              <GitFork className="w-4 h-4 mr-1" />
-                              {repo.forks_count}
-                            </span>
-                          </div>
-                        </motion.a>)}
-                    </div>}
+                  {reposLoading ? <LoadingSpinner /> : <RepositoryList repos={repos?.slice(0, 6) ?? []} />}
                 </div> : <div className="space-y-4">
                   {reposLoading ? <LoadingSpinner /> : <>
                       <div className="mt-8">
