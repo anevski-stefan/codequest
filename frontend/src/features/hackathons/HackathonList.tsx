@@ -1,14 +1,14 @@
 import React from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { HackathonCard } from './hackathons/HackathonCard';
-import { Pagination } from './ui/Pagination';
-import { ErrorDisplay } from './ui/ErrorDisplay';
-import { SearchBar } from './ui/SearchBar';
-import { usePageTitle } from '../hooks/usePageTitle';
-import { fetchHackathons } from '../services/hackathons';
-import { HackathonSkeleton } from './skeletons/HackathonSkeleton';
-import { HackathonResponse } from '../types/hackathon';
-import { useDebounce } from '../hooks/useDebounce';
+import { HackathonCard } from '../../components/hackathons/HackathonCard';
+import { Pagination } from '../../components/ui/Pagination';
+import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
+import { SearchBar } from '../../components/ui/SearchBar';
+import { usePageTitle } from '../../hooks/usePageTitle';
+import { fetchHackathons } from '../../services/hackathons';
+import { HackathonSkeleton } from '../../components/skeletons/HackathonSkeleton';
+import { HackathonResponse } from '../../types/hackathon';
+import { useDebounce } from '../../hooks/useDebounce';
 const ITEMS_PER_PAGE = 10;
 export default function HackathonList() {
   usePageTitle('Hackathons');

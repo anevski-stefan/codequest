@@ -11,7 +11,7 @@ const Dashboard = lazyWithRetry(() => import('./features/dashboard/Dashboard'));
 const Profile = lazyWithRetry(() => import('./features/profile/Profile'));
 const Settings = lazyWithRetry(() => import('./features/settings/Settings'));
 const SuggestedIssues = lazyWithRetry(() => import('./features/suggested/SuggestedIssues'));
-const HackathonList = lazyWithRetry(() => import('./components/HackathonList'));
+const HackathonList = lazyWithRetry(() => import('./features/hackathons/HackathonList'));
 const Explore = lazyWithRetry(() => import('./features/explore/Explore'));
 const RepositoryDetails = lazyWithRetry(() => import('./features/explore/RepositoryDetails'));
 const ContributorProfile = lazyWithRetry(() => import('./features/explore/ContributorProfile'));
