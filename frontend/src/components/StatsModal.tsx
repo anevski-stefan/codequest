@@ -11,10 +11,10 @@ interface Repository {
   id: number;
   name: string;
   html_url: string;
-  description: string;
+  description: string | null;
   stargazers_count: number;
   forks_count: number;
-  language: string;
+  language: string | null;
 }
 interface StatsModalProps {
   isOpen: boolean;

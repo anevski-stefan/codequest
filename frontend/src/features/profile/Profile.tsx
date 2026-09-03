@@ -5,14 +5,15 @@ import { Star, GitFork } from 'lucide-react';
 import { motion } from 'framer-motion';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import type { RootState } from '../../store';
-import type { GitHubRepo, GitHubActivityEvent } from '../../types/github';
+import type { GitHubRepo } from '../../types/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { getUserRepositories, getUserActivities, getUserStarredCount } from '../../services/github';
 import { ProfileSkeleton } from '../../components/skeletons/ProfileSkeleton';
 import { Pagination } from '../../components/ui/Pagination';
 import ProfileStatsCard from '../../components/profile/ProfileStatsCard';
 import ProfileInfoItems from '../../components/profile/ProfileInfoItems';
-import { formatActivityMessage } from '../../components/profile/formatActivityMessage';
+import RecentActivityList from '../../components/profile/RecentActivityList';
+import RepositoryList from '../../components/profile/RepositoryList';
 const Profile = () => {
   usePageTitle('Profile');
   const {
@@ -109,46 +110,7 @@ const Profile = () => {
       <div className="flex-1 min-w-0">
         <div className="space-y-6">
           {}
-          <motion.div initial={{
-          opacity: 0,
-          y: 20
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} className="bg-white dark:bg-[#0B1222] rounded-xl shadow-sm p-6 border border-gray-200 dark:border-white/10">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-              Recent Activity
-            </h2>
-            {activitiesLoading ? <LoadingSpinner /> : <div className="space-y-4">
-                {activities?.slice(0, 10).map((event: GitHubActivityEvent) => <motion.div key={event.id} initial={{
-              opacity: 0
-            }} animate={{
-              opacity: 1
-            }} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <div className="flex-shrink-0">
-                      <img src={event.actor.avatar_url} alt={event.actor.login} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900 dark:text-white">
-                        <span className="font-medium">{event.actor.login}</span>{' '}
-                        {formatActivityMessage(event)}{' '}
-                        <a href={`https://github.com/${event.repo.name}`} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                          {event.repo.name}
-                        </a>
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {new Date(event.created_at).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                      </p>
-                    </div>
-                  </motion.div>)}
-              </div>}
-          </motion.div>
+          <RecentActivityList activities={activities ?? []} isLoading={activitiesLoading} />
 
           {}
           <div className="bg-white dark:bg-[#0B1222] rounded-xl shadow-sm border border-gray-200 dark:border-white/10">
@@ -168,32 +130,7 @@ const Profile = () => {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Popular Repositories
                   </h3>
-                  {reposLoading ? <LoadingSpinner /> : <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {repos?.slice(0, 6).map((repo: GitHubRepo) => <motion.a key={repo.id} href={repo.html_url} target="_blank" rel="noopener noreferrer" className="block p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" whileHover={{
-                  scale: 1.02
-                }}>
-                          <h4 className="text-base font-semibold text-blue-600 dark:text-blue-400">
-                            {repo.name}
-                          </h4>
-                          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                            {repo.description || 'No description available'}
-                          </p>
-                          <div className="mt-3 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                            {repo.language && <span className="flex items-center">
-                                <span className="w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
-                                {repo.language}
-                              </span>}
-                            <span className="flex items-center">
-                              <Star className="w-4 h-4 mr-1" />
-                              {repo.stargazers_count}
-                            </span>
-                            <span className="flex items-center">
-                              <GitFork className="w-4 h-4 mr-1" />
-                              {repo.forks_count}
-                            </span>
-                          </div>
-                        </motion.a>)}
-                    </div>}
+                  {reposLoading ? <LoadingSpinner /> : <RepositoryList repos={repos?.slice(0, 6) ?? []} />}
                 </div> : <div className="space-y-4">
                   {reposLoading ? <LoadingSpinner /> : <>
                       {repos?.map((repo: GitHubRepo) => <motion.div key={repo.id} initial={{
