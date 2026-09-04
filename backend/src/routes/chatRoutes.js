@@ -7,5 +7,6 @@ router.use(requireAuth);
 router.get('/', chatController.getUserChats);
 router.delete('/:chatId', chatController.deleteChat);
 router.post('/', chatController.saveChat);
+router.put('/:chatId', chatController.updateChat);
 
 module.exports = router;

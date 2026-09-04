@@ -21,6 +21,15 @@ exports.deleteChat = asyncHandler(async (req, res) => {
   });
 });
 
+exports.updateChat = asyncHandler(async (req, res) => {
+  const { chatId } = req.params;
+  const { messages } = req.body;
+  const userId = req.user.id;
+  if (!messages || !Array.isArray(messages)) return badRequest(res, 'Invalid messages format');
+  const data = await supabaseService.updateChat(chatId, userId, messages);
+  res.json(data);
+});
+
 exports.saveChat = asyncHandler(async (req, res) => {
   const {
     messages,

@@ -101,6 +101,22 @@ class SupabaseService {
       throw error;
     }
   }
+  async updateChat(chatId, userId, messages) {
+    try {
+      const { data, error } = await getSupabase()
+        .from('chat_histories')
+        .update({ messages })
+        .eq('id', chatId)
+        .eq('user_id', userId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      logger.error('Supabase chat update error:', error);
+      throw error;
+    }
+  }
   async saveChat(userId, messages, title) {
     try {
       const {
