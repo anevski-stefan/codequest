@@ -19,6 +19,9 @@ pids
 # Encrypted at-rest user secrets (AI keys)
 data/
 
+# Supabase CLI local state (project ref, DB URL, versions)
+supabase/.temp/
+
 lib-cov
 
 coverage
