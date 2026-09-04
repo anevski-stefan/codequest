@@ -5,7 +5,7 @@ const csrfGuard = (req, res, next) => {
     return next();
   }
   const site = req.headers['sec-fetch-site'];
-  if (site && site !== 'same-origin' && site !== 'none') {
+  if (site && site !== 'same-origin' && site !== 'same-site' && site !== 'none') {
     return sendError(res, 403, 'Cross-site request blocked');
   }
   return next();
