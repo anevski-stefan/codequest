@@ -17,7 +17,6 @@ const authRoutes = require('./routes/authRoutes');
 const issuesRoutes = require('./routes/issuesRoutes');
 const reposRoutes = require('./routes/reposRoutes');
 const activityRoutes = require('./routes/activityRoutes');
-const codeBuddyRoutes = require('./routes/codeBuddyRoutes');
 const githubProxyRoutes = require('./routes/githubProxyRoutes');
 const limiter = require('./middleware/rateLimiter');
 const {
@@ -126,7 +125,6 @@ app.use(csrfGuard);
 app.use('/api/activity', activityRoutes);
 app.use('/api/issues', issuesRoutes);
 app.use('/api/repos', reposRoutes);
-app.use('/api/code-buddy', aiChatLimiter, codeBuddyRoutes);
 app.use('/api/chats', aiChatLimiter, chatRoutes);
 app.use('/api/github', githubProxyRoutes);
 app.use('/auth', authRoutes);

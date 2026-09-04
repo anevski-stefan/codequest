@@ -350,3 +350,4 @@ export const getUserStarredCount = async (username?: string) => {
   const match = links?.match(/page=(\d+)>; rel="last"/);
   return match ? parseInt(match[1]) : 0;
 };
+
