@@ -24,6 +24,7 @@ export interface Issue {
   repository: Repository;
   user: User;
   url: string;
+  repoStars?: number;
 }
 export interface IssueResponse {
   issues: Issue[];
