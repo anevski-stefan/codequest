@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getAssignedIssues } from '../../services/github';
 import { formatRelativeDate } from '../../utils/formatDate';
@@ -12,6 +13,7 @@ import { getLabelColors } from '../dashboard/utils/filterUtils';
 import useIssueComments from '../../hooks/useIssueComments';
 const MyAssignedIssues = () => {
   usePageTitle('My Assigned Issues');
+  const navigate = useNavigate();
   const [issueState, setIssueState] = useState<string>('open');
   const {
     isCommentsModalOpen,
@@ -70,9 +72,15 @@ const MyAssignedIssues = () => {
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="flex-1">
-                      <a href={issue.url} target="_blank" rel="noopener noreferrer" className="text-base font-medium text-gray-900 dark:text-white hover:text-blue-600">
+                      <button
+                        onClick={() => {
+                          const [owner, repo] = (issue.repository?.fullName ?? '').split('/');
+                          if (owner && repo) navigate(`/explore/${owner}/${repo}?issue=${issue.number}`);
+                        }}
+                        className="text-base font-medium text-gray-900 dark:text-white hover:text-blue-600 text-left"
+                      >
                         {issue.title}
-                      </a>
+                      </button>
                       <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                         {issue.repository?.fullName} #{issue.number}
                       </p>
