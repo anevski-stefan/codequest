@@ -250,7 +250,7 @@ class HackathonService {
     if (!supabase || hackathons.length === 0) return;
     const rows = hackathons.map(h => toDbRow({ ...h, updated_at: new Date().toISOString() }));
     await this.executeDb(
-      supabase.from(HACKATHONS_TABLE).upsert(rows, { onConflict: 'id' }),
+      supabase.from(HACKATHONS_TABLE).upsert(rows, { onConflict: 'url', ignoreDuplicates: false }),
       'Failed to persist hackathons to DB:'
     );
   }
@@ -335,8 +335,8 @@ class HackathonService {
     const supabase = await this.getSupabaseClient();
     if (supabase) {
       await this.executeDb(
-        supabase.from(HACKATHONS_TABLE).insert(row),
-        'Failed to persist new hackathon:'
+        supabase.from(HACKATHONS_TABLE).upsert(row, { onConflict: 'url', ignoreDuplicates: false }),
+        'Failed to persist hackathon:'
       );
     }
     this.hackathons.set(hackathon.id, hackathon);
