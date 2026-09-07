@@ -35,6 +35,35 @@ exports.createComment = asyncHandler(async (req, res) => {
   });
   res.status(201).json(response);
 });
+exports.checkRepoStarred = asyncHandler(async (req, res) => {
+  const { owner, repo } = req.params;
+  if (!isValidOwner(owner) || !isValidRepo(repo)) return badRequest(res, 'Invalid owner or repo');
+  try {
+    await githubService.request(req.user.accessToken, 'GET', `/user/starred/${owner}/${repo}`);
+    res.json({ starred: true });
+  } catch (err) {
+    if (err.status === 404 || err.response?.status === 404) return res.json({ starred: false });
+    throw err;
+  }
+});
+
+exports.starRepo = asyncHandler(async (req, res) => {
+  const { owner, repo } = req.params;
+  if (!isValidOwner(owner) || !isValidRepo(repo)) return badRequest(res, 'Invalid owner or repo');
+  await githubService.request(req.user.accessToken, 'PUT', `/user/starred/${owner}/${repo}`, {
+    data: '',
+    headers: { 'Content-Length': '0' },
+  });
+  res.status(204).end();
+});
+
+exports.unstarRepo = asyncHandler(async (req, res) => {
+  const { owner, repo } = req.params;
+  if (!isValidOwner(owner) || !isValidRepo(repo)) return badRequest(res, 'Invalid owner or repo');
+  await githubService.request(req.user.accessToken, 'DELETE', `/user/starred/${owner}/${repo}`);
+  res.status(204).end();
+});
+
 exports.getRepoDetails = asyncHandler(async (req, res) => {
   const {
     owner,
@@ -55,6 +84,7 @@ exports.getRepoContributors = asyncHandler(async (req, res) => {
     return badRequest(res, 'Invalid owner or repo');
   }
   const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/stats/contributors`);
+  if (!Array.isArray(response)) return res.json([]);
   const contributors = response.map(contributor => ({
     login: contributor.author.login,
     avatar_url: contributor.author.avatar_url,

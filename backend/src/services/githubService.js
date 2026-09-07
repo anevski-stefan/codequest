@@ -54,7 +54,7 @@ class GitHubService {
   }
 
   static async request(token, method, path, options = {}) {
-    const headers = GitHubService.buildHeaders(token);
+    const headers = { ...GitHubService.buildHeaders(token), ...options.headers };
     if (options.contentType) {
       headers['Content-Type'] = options.contentType;
     }
