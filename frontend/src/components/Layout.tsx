@@ -1,7 +1,7 @@
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import useAuth from '../hooks/useAuth';
-import { LogOut } from 'lucide-react';
+import { LogOut, Star } from 'lucide-react';
 import type { RootState } from '../store';
 import { useState, useEffect, ReactNode } from 'react';
 import FeedbackModal from './FeedbackModal';
@@ -57,6 +57,10 @@ const Layout = ({
                     </button>
                     <button onClick={() => navigate('/suggested')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors whitespace-nowrap">
                       Suggested Issues
+                    </button>
+                    <button onClick={() => navigate('/starred')} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors whitespace-nowrap">
+                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                      Starred
                     </button>
                     <button onClick={() => navigate('/explore')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
                       Explore
@@ -126,6 +130,18 @@ const Layout = ({
             transitionDelay: '75ms'
           }}>
                 Suggested Issues
+              </button>
+              <button onClick={() => {
+            navigate('/starred');
+            setIsMobileMenuOpen(false);
+          }} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md flex items-center gap-2" style={{
+            transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
+            opacity: isMobileMenuOpen ? 1 : 0,
+            transition: 'all 0.2s ease-out',
+            transitionDelay: '75ms'
+          }}>
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                Starred
               </button>
               <button onClick={() => {
             navigate('/settings');

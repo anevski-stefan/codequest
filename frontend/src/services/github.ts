@@ -60,6 +60,7 @@ interface RawGitHubIssue {
   repository_url?: unknown;
   html_url?: unknown;
   user?: RawGitHubUser;
+  repoStars?: unknown;
 }
 const safeString = (value: unknown): string => (typeof value === 'string' ? value : '');
 const safeNumber = (value: unknown): number => (typeof value === 'number' && !Number.isNaN(value) ? value : 0);
@@ -92,7 +93,8 @@ const transformIssue = (item: RawGitHubIssue): Issue => {
       login: safeString(user.login),
       avatarUrl: safeString(user.avatar_url)
     },
-    url: safeString(item.html_url)
+    url: safeString(item.html_url),
+    repoStars: typeof item.repoStars === 'number' ? item.repoStars : undefined,
   };
 };
 // Map UI sort values ('created' | 'created-asc' | 'updated' | 'comments') to a valid GitHub search sort param.
@@ -244,20 +246,175 @@ export const getAssignedIssues = async (state?: string): Promise<IssueResponse> 
     throw error;
   }
 };
-export const getSuggestedIssues = async (params: IssueParams): Promise<IssueResponse> => {
-  let searchQuery = 'is:issue is:open no:assignee ';
-  if (params.labels && params.labels.length > 0) {
-    searchQuery += 'label:"good first issue" label:"help wanted" ';
-  }
-  if (params.commentsRange === '0') {
-    searchQuery += 'comments:0 ';
-  }
-  if (params.timeFrame === 'month') {
-    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    searchQuery += `created:>=${since} `;
-  }
-  return fetchIssues(searchQuery, params.sort, params.direction, params.page);
+export interface SuggestedIssueParams {
+  language?: string;
+  commentsRange?: string;
+  timeFrame?: string;
+  page?: number;
+  famousOnly?: boolean;
+}
+
+export const getSuggestedIssues = async (params: SuggestedIssueParams): Promise<IssueResponse> => {
+  const { data } = await api.get('/api/issues/suggested', {
+    params: {
+      language: params.language || '',
+      commentsRange: params.commentsRange ?? '',
+      timeFrame: params.timeFrame || 'month',
+      page: params.page || 1,
+      famousOnly: params.famousOnly ? 'true' : 'false',
+    },
+  });
+  return {
+    issues: (data.items ?? []).map(transformIssue),
+    totalCount: data.total_count ?? 0,
+    hasMore: data.hasMore ?? false,
+    currentPage: data.currentPage ?? 1,
+  };
 };
+export const explainIssue = async ({
+  owner,
+  repo,
+  issueTitle,
+  issueBody,
+  comments,
+  repoLanguage,
+  repoDescription,
+  onChunk,
+  onDone,
+  onError,
+}: {
+  owner: string;
+  repo: string;
+  issueTitle: string;
+  issueBody: string | null;
+  comments: Array<{ user: { login: string }; body: string }>;
+  repoLanguage?: string | null;
+  repoDescription?: string;
+  onChunk: (text: string) => void;
+  onDone: () => void;
+  onError: (error: string) => void;
+}): Promise<void> => {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/issues/explain/${owner}/${repo}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        issueTitle,
+        issueBody,
+        comments: comments.slice(0, 10).map(c => ({ user: { login: c.user.login }, body: c.body })),
+        repoLanguage,
+        repoDescription,
+      }),
+    });
+  } catch {
+    onError('Network error — could not reach the server.');
+    return;
+  }
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+    onError(err.error || `HTTP ${response.status}`);
+    return;
+  }
+
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6);
+      if (data === '[DONE]') { onDone(); return; }
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.error) { onError(parsed.error); return; }
+        if (parsed.text) onChunk(parsed.text);
+      } catch { /* skip malformed chunk */ }
+    }
+  }
+  onDone();
+};
+
+export const onboardRepo = async ({
+  owner,
+  repo,
+  onChunk,
+  onDone,
+  onError,
+}: {
+  owner: string;
+  repo: string;
+  onChunk: (text: string) => void;
+  onDone: () => void;
+  onError: (error: string) => void;
+}): Promise<void> => {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/repos/${owner}/${repo}/onboard`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+  } catch {
+    onError('Network error — could not reach the server.');
+    return;
+  }
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+    onError(err.error || `HTTP ${response.status}`);
+    return;
+  }
+
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6);
+      if (raw === '[DONE]') { onDone(); return; }
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.error) { onError(parsed.error); return; }
+        if (parsed.text) onChunk(parsed.text);
+      } catch { /* skip malformed chunk */ }
+    }
+  }
+  onDone();
+};
+
+export const getRepositoryIssues = async (owner: string, repo: string, page = 1): Promise<IssueResponse> => {
+  return fetchIssues(`repo:${owner}/${repo} is:issue is:open`, 'created', 'desc', page);
+};
+
+export const checkRepoStarred = async (owner: string, repo: string): Promise<boolean> => {
+  const { data } = await api.get(`/api/repos/${owner}/${repo}/starred`);
+  return data.starred as boolean;
+};
+
+export const starRepo = async (owner: string, repo: string): Promise<void> => {
+  await api.put(`/api/repos/${owner}/${repo}/starred`);
+};
+
+export const unstarRepo = async (owner: string, repo: string): Promise<void> => {
+  await api.delete(`/api/repos/${owner}/${repo}/starred`);
+};
+
 export const getRepositoryDetails = async (owner: string, repo: string) => {
   const {
     data
@@ -337,6 +494,29 @@ export const getUserActivities = async (username: string) => {
   } = await api.get(`/api/github/users/${username}/events/public`);
   return data;
 };
+export interface StarredRepo {
+  id: number;
+  full_name: string;
+  description: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  open_issues_count: number;
+  language: string | null;
+  topics: string[];
+  html_url: string;
+  updated_at: string;
+  owner: { login: string; avatar_url: string };
+}
+
+export const getStarredRepos = async (page = 1, perPage = 30): Promise<{ repos: StarredRepo[]; hasMore: boolean }> => {
+  const response = await api.get('/api/github/user/starred', {
+    params: { per_page: perPage, page, sort: 'updated', direction: 'desc' },
+  });
+  const links: string | undefined = response.headers['link'];
+  const hasMore = !!links?.includes('rel="next"');
+  return { repos: response.data as StarredRepo[], hasMore };
+};
+
 export const getUserStarredCount = async (username?: string) => {
   const url = username
     ? `/api/github/users/${username}/starred`

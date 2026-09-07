@@ -16,6 +16,7 @@ const Explore = lazyWithRetry(() => import('./features/explore/Explore'));
 const RepositoryDetails = lazyWithRetry(() => import('./features/explore/RepositoryDetails'));
 const ContributorProfile = lazyWithRetry(() => import('./features/explore/ContributorProfile'));
 const AssignedIssuesPage = lazyWithRetry(() => import('./features/assigned/AssignedIssues'));
+const StarredRepos = lazyWithRetry(() => import('./features/starred/StarredRepos'));
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'));
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'));
 const PageFallback = () => <div className="flex items-center justify-center min-h-screen">
@@ -54,6 +55,9 @@ const AppRoutes = () => {
               </PrivateRoute>} />
           <Route path="/assigned" element={<PrivateRoute>
                 <AssignedIssuesPage />
+              </PrivateRoute>} />
+          <Route path="/starred" element={<PrivateRoute>
+                <StarredRepos />
               </PrivateRoute>} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
