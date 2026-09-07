@@ -14,7 +14,16 @@
 }
 
 body {
-  @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+  @apply bg-white text-gray-900 dark:text-gray-100;
+  background-color: white;
+}
+
+.dark body, body.dark {
+  background-color: #0B1222;
+}
+
+html.dark {
+  background-color: #0B1222;
 }
 
 
