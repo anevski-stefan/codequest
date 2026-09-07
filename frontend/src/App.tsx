@@ -8,7 +8,17 @@ import { restoreSession } from './features/auth/authThunks';
 import AppRoutes from './routes';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Toaster } from 'react-hot-toast';
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        const status = (error as { response?: { status?: number } })?.response?.status;
+        if (status && status >= 400 && status < 500) return false;
+        return failureCount < 2;
+      },
+    },
+  },
+});
 const App = () => {
   useEffect(() => {
     store.dispatch(restoreSession());
