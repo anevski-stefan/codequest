@@ -142,7 +142,8 @@ app.use((err, req, res, next) => {
     return next(err);
   }
   if (err.name === 'GitHubApiError') {
-    logger.error(`[server] GitHubApiError: ${err.message}`, err.details);
+    const log = err.status >= 500 ? logger.error.bind(logger) : logger.warn.bind(logger);
+    log(`[github] ${err.status} ${err.message}`, err.details);
     return res.status(err.status).json({
       error: err.message,
       details: err.details
