@@ -58,7 +58,6 @@ const Explore = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedQuery = useDebounce(searchQuery, 500);
   const [showContributors, setShowContributors] = useState(false);
-  const [contributorQuery, setContributorQuery] = useState('');
 
   const {
     data,
@@ -77,7 +76,7 @@ const Explore = () => {
       });
       return data;
     },
-    enabled: !!debouncedQuery
+    enabled: !!debouncedQuery && !showContributors
   });
 
   const {
@@ -87,8 +86,8 @@ const Explore = () => {
     hasNextPage: hasNextContributorsPage,
     isFetchingNextPage: isFetchingNextContributorsPage
   } = useInfiniteQuery({
-    queryKey: ['contributors', contributorQuery],
-    queryFn: ({ pageParam = 1 }) => searchTopContributors(contributorQuery || 'followers:>1000', pageParam as number),
+    queryKey: ['contributors', showContributors ? debouncedQuery : ''],
+    queryFn: ({ pageParam = 1 }) => searchTopContributors(debouncedQuery || 'followers:>1000', pageParam as number),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => lastPage.hasMore ? allPages.length + 1 : undefined,
     enabled: showContributors
@@ -99,6 +98,10 @@ const Explore = () => {
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
+  const handleToggleContributors = () => {
+    setSearchQuery('');
+    setShowContributors(prev => !prev);
+  };
   const handleRepositoryClick = (fullName: string) => {
     const [owner, repo] = fullName.split('/');
     navigate(`/explore/${owner}/${repo}`);
@@ -106,31 +109,36 @@ const Explore = () => {
   const handleLoadMoreContributors = () => {
     fetchNextContributorsPage();
   };
-  return <div className="flex items-center justify-center min-h-[calc(100vh-64px)] mt-[64px]">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center">
+  return <div className="min-h-[calc(100vh-48px)] flex flex-col">
+      {/* padding-top pushes controls to vertical center regardless of what's below */}
+      <div className="flex flex-col items-center text-center px-4 pb-8" style={{ paddingTop: 'calc(50vh - 130px)' }}>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Explore <span className="text-orange-500">Open Source</span>
           </h1>
-          
-          <div className="max-w-2xl mx-auto relative mb-6">
-            <input type="text" value={searchQuery} onChange={handleSearch} placeholder="Search repositories..." className="w-full px-4 py-3 pl-12 text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-            <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+
+          <div className="w-full max-w-2xl relative mb-6">
+            {showContributors
+              ? <Users className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+              : <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />}
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearch}
+              placeholder={showContributors ? 'Search contributors...' : 'Search repositories...'}
+              className="w-full px-4 py-3 pl-12 text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
 
-          <button onClick={() => setShowContributors(!showContributors)} className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+          <button onClick={handleToggleContributors} className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
             <Users className="w-5 h-5 mr-2" />
             {showContributors ? 'Hide Contributors' : 'Show Contributors'}
           </button>
+      </div>
 
-          {showContributors && <div className="max-w-2xl mx-auto relative mt-4">
-              <input type="text" value={contributorQuery} onChange={e => setContributorQuery(e.target.value)} placeholder="Search contributors..." className="w-full px-4 py-3 pl-12 text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
-              <Users className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-            </div>}
-        </div>
-
+      {/* Results */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 w-full">
         {showContributors ? <>
-            {showContributors && contributorsLoading && allContributors.length === 0 ? <div className="mt-6">
+            {contributorsLoading && allContributors.length === 0 ? <div className="mt-6">
                 <CardSkeletonList count={6} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" />
               </div> : allContributors.length > 0 && <ContributorsList contributors={allContributors} onLoadMore={handleLoadMoreContributors} hasMore={!!hasNextContributorsPage} isLoading={isFetchingNextContributorsPage || contributorsLoading} />}
           </> : <>
@@ -165,7 +173,7 @@ const Explore = () => {
           </>}
 
         {error instanceof Error && (
-          <ErrorDisplay 
+          <ErrorDisplay
             className="mt-6"
             title={error.message.includes('rate limit') ? 'GitHub API rate limit exceeded' : 'Failed to load data'}
             error={error.message.includes('rate limit') ? 'Please wait a few minutes before trying again.' : error.message}
