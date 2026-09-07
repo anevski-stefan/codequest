@@ -5,7 +5,7 @@ const GitHubService = require('../services/githubService');
 const { sendError, asyncHandler } = require('../utils/httpError');
 const clientUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
 const githubAuth = passport.authenticate('github', {
-  scope: ['read:user', 'user:email'],
+  scope: ['read:user', 'user:email', 'public_repo'],
   state: true
 });
 const githubCallback = [passport.authenticate('github', {
