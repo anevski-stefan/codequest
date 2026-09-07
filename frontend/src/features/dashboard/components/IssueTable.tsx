@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { formatRelativeDate } from '../../../utils/formatDate';
 import { MessageSquare, ExternalLink } from 'lucide-react';
 import type { Issue } from '../../../types/github';
@@ -7,10 +8,20 @@ interface IssueTableProps {
   issues: Issue[];
   onViewComments: (issue: Issue) => void;
 }
+
+const toRepoPath = (issue: Issue) => {
+  const fullName = issue.repository?.fullName;
+  if (!fullName) return null;
+  const [owner, repo] = fullName.split('/');
+  if (!owner || !repo) return null;
+  return `/explore/${owner}/${repo}?issue=${issue.number}`;
+};
+
 const IssueTable = memo(({
   issues,
   onViewComments
 }: IssueTableProps) => {
+  const navigate = useNavigate();
   return <>
       {}
       <div className="hidden sm:block">
@@ -42,21 +53,23 @@ const IssueTable = memo(({
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              {issues.map(issue => <tr key={`${issue.repository?.fullName}-${issue.number}`} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+              {issues.map(issue => {
+                const repoPath = toRepoPath(issue);
+                return <tr key={`${issue.repository?.fullName}-${issue.number}`} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="px-6 py-4">
-                    <a href={issue.url} target="_blank" rel="noopener noreferrer" className="group">
+                    <button onClick={() => repoPath && navigate(repoPath)} className="group text-left w-full">
                       <div className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
                         {issue.title}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         #{issue.number}
                       </div>
-                    </a>
+                    </button>
                   </td>
-                  <td className="px-6 py-4 max-w-0">
-                    <a href={`https://github.com/${issue.repository?.fullName}`} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 block truncate" title={issue.repository?.fullName}>
+                  <td className="px-6 py-4 max-w-0 overflow-hidden">
+                    <button onClick={() => repoPath && navigate(repoPath.split('?')[0])} className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 w-full block truncate overflow-hidden" title={issue.repository?.fullName}>
                       {issue.repository?.fullName}
-                    </a>
+                    </button>
                   </td>
                   <td className="hidden md:table-cell px-6 py-4">
                     <div className="flex flex-wrap gap-1 justify-center">
@@ -99,7 +112,8 @@ const IssueTable = memo(({
                       </a>
                     </div>
                   </td>
-                </tr>)}
+                </tr>;
+              })}
             </tbody>
           </table>
         </div>
@@ -107,20 +121,22 @@ const IssueTable = memo(({
 
       {}
       <div className="sm:hidden space-y-4">
-        {issues.map(issue => <div key={`${issue.repository?.fullName}-${issue.number}`} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 space-y-3">
+        {issues.map(issue => {
+          const repoPath = toRepoPath(issue);
+          return <div key={`${issue.repository?.fullName}-${issue.number}`} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 space-y-3">
             <div className="space-y-2">
-              <a href={issue.url} target="_blank" rel="noopener noreferrer" className="block group">
+              <button onClick={() => repoPath && navigate(repoPath)} className="block text-left w-full group">
                 <h3 className="text-base font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
                   {issue.title}
                 </h3>
-              </a>
+              </button>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                   <span>#{issue.number}</span>
                   <span>•</span>
-                  <a href={`https://github.com/${issue.repository?.fullName}`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400">
+                  <button onClick={() => repoPath && navigate(repoPath.split('?')[0])} className="hover:text-blue-600 dark:hover:text-blue-400">
                     {issue.repository?.fullName}
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -168,7 +184,8 @@ const IssueTable = memo(({
                 </a>
               </div>
             </div>
-          </div>)}
+          </div>;
+        })}
       </div>
     </>;
 });
