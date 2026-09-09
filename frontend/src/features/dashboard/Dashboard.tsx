@@ -52,7 +52,7 @@ const Dashboard = () => {
     queryFn: ({ pageParam }) => getIssues({ ...filter, page: pageParam as number }),
     initialPageParam: 1,
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: 60000,
     gcTime: 300000,
     refetchOnWindowFocus: false,
     getNextPageParam: (lastPage, allPages) => lastPage.hasMore ? allPages.length + 1 : undefined
