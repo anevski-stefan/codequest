@@ -34,7 +34,7 @@ const Dashboard = () => {
 
   const {
     isCommentsModalOpen, selectedIssue, allComments, isLoadingComments, hasMoreComments,
-    isLoadingMore, onLoadMore, handleViewComments, handleCloseComments, handleAddComment
+    isLoadingMore, onLoadMore, prefetchComments, handleViewComments, handleCloseComments, handleAddComment
   } = useIssueComments();
 
   const debouncedSetFilter = useMemo(() => debounce((newFilter: Partial<IssueParams>) => {
@@ -229,7 +229,7 @@ const Dashboard = () => {
             )}
 
             {allIssues.length > 0 && (
-              <IssueTable issues={allIssues} onViewComments={handleViewComments} />
+              <IssueTable issues={allIssues} onViewComments={handleViewComments} onPrefetchComments={prefetchComments} />
             )}
 
             {!isLoading && hasNextPage && allIssues.length > 0 && (
