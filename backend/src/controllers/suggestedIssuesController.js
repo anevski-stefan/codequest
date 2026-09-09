@@ -56,6 +56,24 @@ async function fetchIssues(accessToken, q, page) {
   return data?.items ? data : { items: [], total_count: 0 };
 }
 
+async function enrichWithStars(accessToken, items) {
+  const uniqueRepos = [...new Set(items.map(item => {
+    const parts = (item.repository_url || '').split('/');
+    return parts.slice(-2).join('/');
+  }).filter(Boolean))];
+
+  const starsMap = {};
+  await Promise.allSettled(uniqueRepos.map(async fn => {
+    starsMap[fn] = await getRepoStars(accessToken, fn);
+  }));
+
+  return items.map(item => {
+    const parts = (item.repository_url || '').split('/');
+    const fn = parts.slice(-2).join('/');
+    return { ...item, repoStars: starsMap[fn] ?? 0 };
+  });
+}
+
 exports.getSuggestedIssues = asyncHandler(async (req, res) => {
   const {
     language = '',
@@ -99,23 +117,7 @@ exports.getSuggestedIssues = asyncHandler(async (req, res) => {
     allItems = merged.slice(start, start + perPage);
     const hasMore = merged.length > start + perPage || totalCount > merged.length;
 
-    // Enrich with stars
-    const uniqueRepos = [...new Set(allItems.map(item => {
-      const parts = (item.repository_url || '').split('/');
-      return parts.slice(-2).join('/');
-    }).filter(Boolean))];
-
-    const starsMap = {};
-    await Promise.allSettled(uniqueRepos.map(async fn => {
-      starsMap[fn] = await getRepoStars(req.user.accessToken, fn);
-    }));
-
-    const enriched = allItems.map(item => {
-      const parts = (item.repository_url || '').split('/');
-      const fn = parts.slice(-2).join('/');
-      return { ...item, repoStars: starsMap[fn] ?? 0 };
-    });
-
+    const enriched = await enrichWithStars(req.user.accessToken, allItems);
     return res.json({ items: enriched, total_count: totalCount, hasMore, currentPage: pageNum });
   }
 
@@ -123,21 +125,7 @@ exports.getSuggestedIssues = asyncHandler(async (req, res) => {
   const data = await fetchIssues(req.user.accessToken, base, pageNum);
   if (!data.items.length && !data.total_count) return sendError(res, 502, 'No data received from GitHub');
 
-  const uniqueRepos = [...new Set(data.items.map(item => {
-    const parts = (item.repository_url || '').split('/');
-    return parts.slice(-2).join('/');
-  }).filter(Boolean))];
-
-  const starsMap = {};
-  await Promise.allSettled(uniqueRepos.map(async fn => {
-    starsMap[fn] = await getRepoStars(req.user.accessToken, fn);
-  }));
-
-  const enriched = data.items.map(item => {
-    const parts = (item.repository_url || '').split('/');
-    const fn = parts.slice(-2).join('/');
-    return { ...item, repoStars: starsMap[fn] ?? 0 };
-  });
+  const enriched = await enrichWithStars(req.user.accessToken, data.items);
 
   res.json({
     items: enriched,
