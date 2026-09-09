@@ -10,6 +10,7 @@ import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
 import { formatCount } from '../../utils/formatCount';
 import EmptyState from '../../components/ui/EmptyState';
+import LoadMoreButton from '../../components/ui/LoadMoreButton';
 
 interface Repository {
   id: number;
@@ -367,15 +368,7 @@ const Explore = () => {
                 </div>
 
                 {hasNextPage && (
-                  <div className="flex justify-center pb-6">
-                    <button
-                      onClick={() => fetchNextPage()}
-                      disabled={isFetchingNextPage}
-                      className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm text-gray-400 border border-white/[0.08] hover:border-white/[0.15] hover:text-white disabled:opacity-40 transition-all cursor-pointer"
-                    >
-                      {isFetchingNextPage ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Loading…</> : 'Load more'}
-                    </button>
-                  </div>
+                  <LoadMoreButton onClick={() => fetchNextPage()} isLoading={isFetchingNextPage} />
                 )}
               </>
             )

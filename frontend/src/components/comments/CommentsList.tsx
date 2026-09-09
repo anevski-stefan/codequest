@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import CommentItem from './CommentItem';
 import LoadingSpinner from '../LoadingSpinner';
-import { LoadMoreButton } from './LoadMoreButton';
+import LoadMoreButton from '../ui/LoadMoreButton';
 import type { Comment } from '../../types/comments';
 interface CommentsListProps {
   comments: Comment[];
