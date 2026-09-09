@@ -15,7 +15,7 @@ const HackathonList = lazyWithRetry(() => import('./features/hackathons/Hackatho
 const Explore = lazyWithRetry(() => import('./features/explore/Explore'));
 const RepositoryDetails = lazyWithRetry(() => import('./features/explore/RepositoryDetails'));
 const ContributorProfile = lazyWithRetry(() => import('./features/explore/ContributorProfile'));
-const AssignedIssuesPage = lazyWithRetry(() => import('./features/assigned/AssignedIssues'));
+const AssignedIssuesPage = lazyWithRetry(() => import('./features/assigned/MyAssignedIssues'));
 const StarredRepos = lazyWithRetry(() => import('./features/starred/StarredRepos'));
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'));
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'));
