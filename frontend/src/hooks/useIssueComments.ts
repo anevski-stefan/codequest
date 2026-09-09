@@ -48,10 +48,9 @@ const useIssueComments = () => {
       queryClient.invalidateQueries({ queryKey: ['comments', selectedIssueId, selectedRepo] });
       toast.success('Comment added');
     },
-    onError: error => {
-      console.error('Error adding comment:', error);
+    onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to add comment';
-      toast.error(message || 'Failed to add comment');
+      toast.error(message);
     }
   });
   const handleViewComments = useCallback((issue: Issue) => {

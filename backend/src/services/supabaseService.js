@@ -38,7 +38,7 @@ class SupabaseService {
       getSupabase().from('users')
         .update({ github_token: upgradedCiphertext })
         .eq('github_id', userId)
-        .catch(error => logger.error('Failed to upgrade github token ciphertext:', error));
+        .catch(upgradeErr => logger.error('Failed to upgrade github token ciphertext:', upgradeErr));
     });
     if (!accessToken) {
       return {
