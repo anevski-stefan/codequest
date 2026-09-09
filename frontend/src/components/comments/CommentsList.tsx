@@ -23,9 +23,7 @@ export const CommentsList = memo(function CommentsList({
       </div>;
   }
   if (comments.length === 0) {
-    return <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-        No comments yet. Be the first to comment!
-      </p>;
+    return <p className="text-center text-xs text-gray-700 py-6">No comments yet. Be the first to comment!</p>;
   }
   return <>
       {comments.map(comment => <CommentItem key={comment.id} comment={comment} />)}
