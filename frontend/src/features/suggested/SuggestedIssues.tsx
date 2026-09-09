@@ -10,6 +10,7 @@ import useIssueComments from '../../hooks/useIssueComments';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
 import { getLabelColors } from '../dashboard/utils/filterUtils';
 import { formatRelativeDate } from '../../utils/formatDate';
+import { formatCount } from '../../utils/formatCount';
 
 const LANGUAGES = [
   { value: '', label: 'Any Language' },
@@ -38,11 +39,6 @@ const COMPETITION = [
   { value: '1-5', label: 'Low (1–5)' },
   { value: '', label: 'Any' },
 ];
-
-function formatStars(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
-  return String(n);
-}
 
 /* ── FilterChip — same pattern as Dashboard ── */
 const FilterChip = ({
@@ -152,7 +148,7 @@ function IssueRow({ issue, onOpen }: { issue: Issue; onOpen: (issue: Issue) => v
         {stars ? (
           <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md border ${starTier}`}>
             <Star className="w-2.5 h-2.5 fill-current" />
-            {formatStars(stars)}
+            {formatCount(stars)}
           </span>
         ) : <span className="text-[10px] text-gray-700">—</span>}
       </td>
