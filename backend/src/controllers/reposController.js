@@ -159,16 +159,15 @@ exports.getPulls = asyncHandler(async (req, res) => {
     return badRequest(res, 'Invalid state; must be open, closed or all');
   }
   const perPage = 30;
-  const searchResponse = await githubService.request(req.user.accessToken, 'GET', `/search/issues?q=repo:${owner}/${repo}+is:pr+state:${state}`);
-  const totalCount = searchResponse.total_count;
-  const pullRequestsResponse = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls`, {
-    params: {
-      state,
-      page: pageNum,
-      per_page: perPage
-    }
+  const { data: pullRequestsItems, headers } = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls`, {
+    params: { state, page: pageNum, per_page: perPage },
+    fullResponse: true,
   });
-  const pullRequestsWithDetails = pullRequestsResponse.map(pr => ({
+  const linkHeader = headers?.link || '';
+  const lastMatch = linkHeader.match(/[?&]page=(\d+)[^>]*>;\s*rel="last"/);
+  const lastPage = lastMatch ? parseInt(lastMatch[1], 10) : pageNum;
+  const totalCount = lastPage * perPage;
+  const pullRequestsWithDetails = pullRequestsItems.map(pr => ({
     id: pr.id,
     number: pr.number,
     title: pr.title,
