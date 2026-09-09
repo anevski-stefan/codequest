@@ -9,6 +9,7 @@ import { RepoCellContent, LabelsCellContent } from '../../../components/ui/Issue
 interface IssueTableProps {
   issues: Issue[];
   onViewComments: (issue: Issue) => void;
+  onPrefetchComments?: (issue: Issue) => void;
 }
 
 const toRepoPath = (issue: Issue) => {
@@ -30,7 +31,7 @@ const StatusBadge = ({ state }: { state: string }) => (
   </span>
 );
 
-const IssueTable = memo(({ issues, onViewComments }: IssueTableProps) => {
+const IssueTable = memo(({ issues, onViewComments, onPrefetchComments }: IssueTableProps) => {
   const navigate = useNavigate();
 
   return (
@@ -57,6 +58,7 @@ const IssueTable = memo(({ issues, onViewComments }: IssueTableProps) => {
                 <tr
                   key={`${issue.repository?.fullName}-${issue.number}`}
                   className="group hover:bg-white/[0.025] transition-colors duration-100"
+                  onMouseEnter={() => onPrefetchComments?.(issue)}
                 >
                   {/* Title */}
                   <td className="px-5 py-3.5">

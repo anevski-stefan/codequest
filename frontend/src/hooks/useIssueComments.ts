@@ -54,6 +54,15 @@ const useIssueComments = () => {
       toast.error(message);
     }
   });
+  const prefetchComments = useCallback((issue: Issue) => {
+    queryClient.prefetchInfiniteQuery({
+      queryKey: ['comments', issue.number, issue.repository.fullName],
+      queryFn: ({ pageParam }) => getIssueComments(issue.number, issue.repository.fullName, pageParam as number),
+      initialPageParam: 1,
+      staleTime: 60 * 1000,
+    });
+  }, [queryClient]);
+
   const handleViewComments = useCallback((issue: Issue) => {
     const key = `${issue.repository.fullName}#${issue.number}`;
     const currentKey = selectedRepo && selectedIssueId ? `${selectedRepo}#${selectedIssueId}` : null;
@@ -85,6 +94,7 @@ const useIssueComments = () => {
     hasMoreComments: !!hasNextPage,
     isLoadingMore: isFetchingNextPage,
     onLoadMore: fetchNextPage,
+    prefetchComments,
     handleViewComments,
     handleCloseComments,
     handleAddComment
