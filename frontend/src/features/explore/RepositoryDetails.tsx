@@ -20,6 +20,7 @@ import { RepositorySkeleton } from '../../components/skeletons';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
 import { formatCount } from '../../utils/formatCount';
 import type { GitHubRepository as Repository } from '../../types/github';
+import { extractErrorMessage } from '../../utils/extractErrorMessage';
 interface TopContributor { login: string; avatar_url: string; contributions: number; percentage: number; }
 interface LotteryContributor { login: string; avatar_url: string; pull_requests: number; percentage: number; }
 interface ContributorConfidence { percentage: number; message: string; }
@@ -117,9 +118,7 @@ const RepositoryDetails = () => {
       toast.success(target ? 'Repository starred' : 'Repository unstarred');
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error
-        ?? (err as { message?: string })?.message ?? 'Unknown error';
-      toast.error(`Failed: ${msg}`);
+      toast.error(`Failed: ${extractErrorMessage(err)}`);
     },
   });
 
