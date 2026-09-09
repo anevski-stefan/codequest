@@ -1,7 +1,7 @@
 const githubService = require('../services/githubService');
 const { asyncHandler } = require('../utils/httpError');
 
-const PAYLOAD_WHITELIST = new Set(['action', 'ref_type']);
+const PAYLOAD_WHITELIST = new Set(['action', 'ref_type', 'commits']);
 
 function trimPayload(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return {};
