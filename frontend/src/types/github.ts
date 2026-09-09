@@ -101,10 +101,60 @@ export interface GitHubRepo {
   stargazers_count: number;
   forks_count: number;
 }
+
+export interface GitHubRepository {
+  id: number;
+  full_name: string;
+  description: string;
+  stargazers_count: number;
+  forks_count: number;
+  watchers_count: number;
+  language: string;
+  html_url: string;
+  default_branch: string;
+  open_issues_count: number;
+  topics: string[];
+  updated_at: string;
+  license: { name: string } | null;
+  owner: { avatar_url: string; login: string };
+}
 export interface GitHubActivityActor {
   login: string;
   avatar_url: string;
 }
+export interface PullRequestFile {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  changes: number;
+  patch?: string;
+}
+
+export interface PullRequestDetails {
+  number: number;
+  title: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  merged_at: string | null;
+  closed_at: string | null;
+  user: { login: string; avatar_url: string };
+  files: PullRequestFile[];
+  commits: number;
+  additions: number;
+  deletions: number;
+  changed_files: number;
+  comments: number;
+  review_comments: number;
+  commits_data: {
+    sha: string;
+    commit: { message: string; author: { name: string; email: string; date: string } };
+    author: { login: string; avatar_url: string } | null;
+    files: string[];
+  }[];
+}
+
 export interface GitHubActivityEvent {
   id: string;
   type: string;

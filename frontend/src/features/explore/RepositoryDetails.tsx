@@ -11,21 +11,15 @@ import { formatRelativeDate } from '../../utils/formatDate';
 import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails, getRepositoryIssues, onboardRepo, checkRepoStarred, starRepo, unstarRepo } from '../../services/github';
 import ReactMarkdown from 'react-markdown';
 import { getLabelColors } from '../dashboard/utils/filterUtils';
-import PullRequestDetailsModal, { PullRequestDetails } from '../../components/PullRequestDetailsModal';
+import PullRequestDetailsModal from '../../components/PullRequestDetailsModal';
+import type { PullRequestDetails } from '../../types/github';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
 import useIssueComments from '../../hooks/useIssueComments';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { RepositorySkeleton } from '../../components/skeletons';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
 import { formatCount } from '../../utils/formatCount';
-
-interface Repository {
-  id: number; full_name: string; description: string; stargazers_count: number;
-  forks_count: number; watchers_count: number; language: string; html_url: string;
-  default_branch: string; open_issues_count: number; topics: string[];
-  updated_at: string; license: { name: string } | null;
-  owner: { avatar_url: string; login: string };
-}
+import type { GitHubRepository as Repository } from '../../types/github';
 interface TopContributor { login: string; avatar_url: string; contributions: number; percentage: number; }
 interface LotteryContributor { login: string; avatar_url: string; pull_requests: number; percentage: number; }
 interface ContributorConfidence { percentage: number; message: string; }
