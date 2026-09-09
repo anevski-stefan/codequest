@@ -360,32 +360,13 @@ const RepositoryDetails = () => {
           <div className="rounded-xl bg-[#0D1525] border border-white/[0.07] p-5 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold text-gray-400">OpenSSF Scorecard</p>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-green-400 bg-green-500/10 border-green-500/20">
-                5.4 / 10
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border text-gray-500 bg-white/[0.03] border-white/[0.07]">
+                N/A
               </span>
             </div>
-            <div className="mb-4">
-              <svg className="w-full h-12" viewBox="0 0 400 48" preserveAspectRatio="xMidYMid meet">
-                <line x1="32" y1="20" x2="368" y2="20" stroke="rgba(255,255,255,0.08)" strokeWidth="2" />
-                {[0, 2.5, 5, 7.5, 10].map((score, i) => (
-                  <g key={score}>
-                    <line x1={32 + i * 84} y1="14" x2={32 + i * 84} y2="26" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
-                    <text x={32 + i * 84} y="42" textAnchor="middle" fontSize="11" fill="#4b5563">{score}</text>
-                  </g>
-                ))}
-                <circle cx={32 + 5.4 / 10 * 336} cy="20" r="6" fill="#059669" stroke="rgba(0,0,0,0.5)" strokeWidth="2" />
-              </svg>
-            </div>
-            <p className="text-xs text-gray-600 leading-relaxed mb-4">
-              Automated analysis of security best practices and maintenance.
+            <p className="text-xs text-gray-600 leading-relaxed">
+              OpenSSF Scorecard data is not yet available for this repository.
             </p>
-            <div className="mt-auto flex flex-wrap gap-x-3 gap-y-1.5 pt-4 border-t border-white/[0.05]">
-              {[{ dot: '#ef4444', label: '0–3 High Risk' }, { dot: '#f59e0b', label: '4–7 Medium' }, { dot: '#22c55e', label: '8–10 Low Risk' }].map(({ dot, label }) => (
-                <span key={label} className="flex items-center gap-1.5 text-[10px] text-gray-600">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: dot }} />{label}
-                </span>
-              ))}
-            </div>
           </div>
 
           {/* Lottery Factor */}
