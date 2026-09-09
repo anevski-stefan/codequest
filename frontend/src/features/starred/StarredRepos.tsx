@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Star, GitFork, AlertCircle, ExternalLink, Search, Loader2 } from 'lucide-react';
+import { Star, GitFork, AlertCircle, ExternalLink, Search } from 'lucide-react';
 import { getStarredRepos, type StarredRepo } from '../../services/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
 import { formatCount } from '../../utils/formatCount';
 import EmptyState from '../../components/ui/EmptyState';
+import LoadMoreButton from '../../components/ui/LoadMoreButton';
 import { formatRelativeDate } from '../../utils/formatDate';
 import { CardSkeletonList } from '../../components/skeletons';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
@@ -199,15 +200,7 @@ const StarredRepos = () => {
             </div>
 
             {hasNextPage && !search && (
-              <div className="flex justify-center py-5 border-t border-white/[0.04]">
-                <button
-                  onClick={() => fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm text-gray-400 border border-white/[0.08] hover:border-white/[0.15] hover:text-white disabled:opacity-40 transition-all cursor-pointer"
-                >
-                  {isFetchingNextPage ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Loading…</> : 'Load more'}
-                </button>
-              </div>
+              <LoadMoreButton onClick={() => fetchNextPage()} isLoading={isFetchingNextPage} />
             )}
 
             {!hasNextPage && filtered.length > 0 && (

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
-import { Star, MessageSquare, ExternalLink, Sparkles, Loader2, GitPullRequest } from 'lucide-react';
+import { Star, MessageSquare, ExternalLink, Sparkles, GitPullRequest } from 'lucide-react';
 import { getSuggestedIssues } from '../../services/github';
 import type { Issue } from '../../types/github';
 import { CardSkeletonList } from '../../components/skeletons';
@@ -13,6 +13,7 @@ import { formatRelativeDate } from '../../utils/formatDate';
 import { formatCount } from '../../utils/formatCount';
 import FilterChip from '../../components/ui/FilterChip';
 import EmptyState from '../../components/ui/EmptyState';
+import LoadMoreButton from '../../components/ui/LoadMoreButton';
 
 const LANGUAGES = [
   { value: '', label: 'Any Language' },
@@ -281,15 +282,7 @@ const SuggestedIssues = () => {
             </div>
 
             {hasNextPage && (
-              <div className="flex justify-center py-5 border-t border-white/[0.04]">
-                <button
-                  onClick={() => fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm text-gray-400 border border-white/[0.08] hover:border-white/[0.15] hover:text-white disabled:opacity-40 transition-all cursor-pointer"
-                >
-                  {isFetchingNextPage ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Loading…</> : 'Load more'}
-                </button>
-              </div>
+              <LoadMoreButton onClick={() => fetchNextPage()} isLoading={isFetchingNextPage} />
             )}
 
             {!hasNextPage && allIssues.length > 0 && (
