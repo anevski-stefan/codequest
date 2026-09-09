@@ -5,23 +5,12 @@ import { Search, Users, Star, GitFork, Globe, Loader2, ArrowRight, ExternalLink 
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useDebounce } from '../../hooks/useDebounce';
 import { api, searchTopContributors } from '../../services/github';
-import type { GithubUser } from '../../types/github';
+import type { GithubUser, GitHubRepository as Repository } from '../../types/github';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
 import { formatCount } from '../../utils/formatCount';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
-
-interface Repository {
-  id: number;
-  full_name: string;
-  description: string;
-  stargazers_count: number;
-  forks_count: number;
-  language: string;
-  html_url: string;
-  owner: { avatar_url: string; login: string };
-}
 
 
 const QUICK_TOPICS = [

@@ -3,38 +3,7 @@ import { Fragment, useState, useMemo, useCallback } from 'react';
 import { formatRelativeDate } from '../utils/formatDate';
 import { X, GitCommit, FileText, ChevronDown, ChevronUp, GitPullRequest, Loader2 } from 'lucide-react';
 
-export interface PullRequestFile {
-  filename: string;
-  status: string;
-  additions: number;
-  deletions: number;
-  changes: number;
-  patch?: string;
-}
-
-export interface PullRequestDetails {
-  number: number;
-  title: string;
-  state: string;
-  created_at: string;
-  updated_at: string;
-  merged_at: string | null;
-  closed_at: string | null;
-  user: { login: string; avatar_url: string };
-  files: PullRequestFile[];
-  commits: number;
-  additions: number;
-  deletions: number;
-  changed_files: number;
-  comments: number;
-  review_comments: number;
-  commits_data: {
-    sha: string;
-    commit: { message: string; author: { name: string; email: string; date: string } };
-    author: { login: string; avatar_url: string } | null;
-    files: string[];
-  }[];
-}
+import type { PullRequestDetails } from '../types/github';
 
 interface Props {
   isOpen: boolean;
