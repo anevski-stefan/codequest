@@ -8,7 +8,7 @@ import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
-import { getLabelColors } from '../dashboard/utils/filterUtils';
+import { RepoCellContent, LabelsCellContent } from '../../components/ui/IssueTableCells';
 import { formatRelativeDate } from '../../utils/formatDate';
 import { formatCount } from '../../utils/formatCount';
 import FilterChip from '../../components/ui/FilterChip';
@@ -49,8 +49,6 @@ function IssueRow({ issue, onOpen }: { issue: Issue; onOpen: (issue: Issue) => v
     stars && stars >= 10000 ? 'text-amber-400 bg-amber-400/[0.08] border-amber-400/20' :
     'text-gray-500 bg-white/[0.04] border-white/[0.06]';
 
-  const [repoOwner, repoName] = (issue.repository?.fullName ?? '').split('/');
-
   return (
     <tr className="group hover:bg-white/[0.025] transition-colors duration-100">
       {/* Title */}
@@ -69,37 +67,12 @@ function IssueRow({ issue, onOpen }: { issue: Issue; onOpen: (issue: Issue) => v
 
       {/* Repository */}
       <td className="px-4 py-3.5">
-        <button onClick={() => onOpen(issue)} className="text-left w-full cursor-pointer group/repo">
-          {repoOwner && repoName ? (
-            <div className="min-w-0">
-              <p className="text-xs text-gray-600 truncate">{repoOwner}/</p>
-              <p className="text-xs font-medium text-gray-400 group-hover/repo:text-blue-400 transition-colors truncate leading-snug">{repoName}</p>
-            </div>
-          ) : (
-            <span className="text-xs text-gray-600 truncate">{issue.repository?.fullName}</span>
-          )}
-        </button>
+        <RepoCellContent fullName={issue.repository?.fullName} onClick={() => onOpen(issue)} />
       </td>
 
       {/* Labels */}
       <td className="hidden md:table-cell px-4 py-3.5">
-        <div className="flex flex-wrap gap-1">
-          {issue.labels.length > 0
-            ? issue.labels.slice(0, 2).map(label => (
-              <span
-                key={label.name}
-                className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded-md truncate max-w-[100px]"
-                style={getLabelColors(label.color)}
-                title={label.name}
-              >
-                {label.name}
-              </span>
-            ))
-            : <span className="text-[10px] text-gray-700">—</span>}
-          {issue.labels.length > 2 && (
-            <span className="text-[10px] text-gray-600">+{issue.labels.length - 2}</span>
-          )}
-        </div>
+        <LabelsCellContent labels={issue.labels} />
       </td>
 
       {/* Stars */}
