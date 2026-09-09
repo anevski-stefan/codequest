@@ -175,6 +175,7 @@ const Dashboard = () => {
                 { label: 'Time Frame', options: timeFrameOptions, value: filter.timeFrame, onChange: handleTimeFrameChange },
                 { label: 'Sort By', options: sortOptions, value: filter.direction === 'asc' ? 'created-asc' : filter.sort, onChange: handleSortChange },
                 { label: 'Comments', options: commentRanges, value: filter.commentsRange, onChange: handleCommentsChange },
+                { label: 'Language', options: [{ value: '', label: 'All Languages' }, ...languageOptions.slice(1).map(l => ({ value: l, label: l.charAt(0).toUpperCase() + l.slice(1) }))], value: filter.language, onChange: handleLanguageChange },
               ].map(({ label, options, value, onChange }) => (
                 <div key={label} className="space-y-2">
                   <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">{label}</p>
@@ -197,6 +198,16 @@ const Dashboard = () => {
               <div className="space-y-2">
                 <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Labels</p>
                 <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={handleLabelsChange} />
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Unassigned</p>
+                <button
+                  onClick={() => handleFilterChange({ unassigned: !filter.unassigned })}
+                  className={`flex items-center gap-2 w-full px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer ${filter.unassigned ? 'border-blue-500/40 bg-blue-500/[0.08] text-blue-300' : 'border-white/[0.08] bg-white/[0.03] text-gray-400'}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full transition-colors ${filter.unassigned ? 'bg-blue-400' : 'bg-gray-600'}`} />
+                  Unassigned only
+                </button>
               </div>
             </div>
           </aside>
