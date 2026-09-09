@@ -152,7 +152,7 @@ const RepositoryDetails = () => {
       const [od, cd] = await Promise.all([getRepositoryPullRequests(owner!, repo!, 'open', 1), getRepositoryPullRequests(owner!, repo!, 'closed', 1)]);
       return { open: od.totalCount, closed: cd.totalCount };
     },
-    enabled: !!owner && !!repo, staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000,
+    enabled: !!owner && !!repo && activeTab === 'pullrequests', staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000,
   });
 
   const prefetchPRDetails = (pr: PullRequest) => {
