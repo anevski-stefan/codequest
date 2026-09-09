@@ -21,12 +21,16 @@ const starsCache = new Map();
 const STARS_TTL = 60 * 60 * 1000;
 
 async function getRepoStars(accessToken, fullName) {
+  const now = Date.now();
   const cached = starsCache.get(fullName);
-  if (cached && Date.now() - cached.ts < STARS_TTL) return cached.stars;
+  if (cached && now - cached.ts < STARS_TTL) return cached.stars;
   try {
     const data = await GitHubService.request(accessToken, 'GET', `/repos/${fullName}`);
     const stars = data?.stargazers_count ?? 0;
-    starsCache.set(fullName, { stars, ts: Date.now() });
+    for (const [key, val] of starsCache) {
+      if (now - val.ts >= STARS_TTL) starsCache.delete(key);
+    }
+    starsCache.set(fullName, { stars, ts: now });
     return stars;
   } catch {
     return 0;
