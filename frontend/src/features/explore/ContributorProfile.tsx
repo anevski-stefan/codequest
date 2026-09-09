@@ -15,6 +15,7 @@ import { ProfileSkeleton } from '../../components/skeletons';
 import { Pagination } from '../../components/ui/Pagination';
 import { formatActivityMessage } from '../../components/profile/formatActivityMessage';
 import { formatStandardDate } from '../../utils/formatDate';
+import { formatUrl, formatDisplayUrl } from '../../utils/formatUrl';
 import type { GitHubActivityEvent, GitHubRepo } from '../../types/github';
 
 interface ContributorDetails {
@@ -35,17 +36,6 @@ interface ContributorDetails {
   email: string;
 }
 
-
-const formatUrl = (url: string) => {
-  const trimmed = url.trim();
-  const match = trimmed.match(/^([a-z][a-z0-9+.-]*):/i);
-  if (match) return ['http', 'https'].includes(match[1].toLowerCase()) ? trimmed : '#';
-  return `https://${trimmed}`;
-};
-
-const formatDisplayUrl = (url: string) => {
-  try { return new URL(formatUrl(url)).hostname.replace(/^www\./, ''); } catch { return url; }
-};
 
 const ContributorProfile = () => {
   const { username } = useParams<{ username: string }>();

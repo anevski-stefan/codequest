@@ -15,18 +15,7 @@ import { ProfileSkeleton } from '../../components/skeletons/ProfileSkeleton';
 import { Pagination } from '../../components/ui/Pagination';
 import { formatActivityMessage } from '../../components/profile/formatActivityMessage';
 import { formatStandardDate } from '../../utils/formatDate';
-
-
-const formatUrl = (url: string) => {
-  const trimmed = url.trim();
-  const match = trimmed.match(/^([a-z][a-z0-9+.-]*):/i);
-  if (match) return ['http', 'https'].includes(match[1].toLowerCase()) ? trimmed : '#';
-  return `https://${trimmed}`;
-};
-
-const formatDisplayUrl = (url: string) => {
-  try { return new URL(formatUrl(url)).hostname.replace(/^www\./, ''); } catch { return url; }
-};
+import { formatUrl, formatDisplayUrl } from '../../utils/formatUrl';
 
 const Profile = () => {
   usePageTitle('Profile');
