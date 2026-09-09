@@ -13,6 +13,7 @@ import IssueTable from './components/IssueTable';
 import { CardSkeletonList } from '../../components/skeletons';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import FilterChip from '../../components/ui/FilterChip';
+import EmptyState from '../../components/ui/EmptyState';
 
 const Dashboard = () => {
   usePageTitle('Dashboard');
@@ -212,13 +213,7 @@ const Dashboard = () => {
             )}
 
             {!isError && allIssues.length === 0 && initialFetchComplete && (
-              <div className="flex flex-col items-center justify-center h-64 text-center">
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
-                  <SlidersHorizontal className="w-4 h-4 text-gray-600" />
-                </div>
-                <p className="text-sm text-gray-400">No issues found</p>
-                <p className="text-xs text-gray-600 mt-1">Try adjusting your filters</p>
-              </div>
+              <EmptyState icon={SlidersHorizontal} title="No issues found" subtitle="Try adjusting your filters" />
             )}
 
             {allIssues.length > 0 && (

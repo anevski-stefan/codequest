@@ -9,6 +9,7 @@ import type { GithubUser } from '../../types/github';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
 import { formatCount } from '../../utils/formatCount';
+import EmptyState from '../../components/ui/EmptyState';
 
 interface Repository {
   id: number;
@@ -242,10 +243,7 @@ const Explore = () => {
                 </table>
               </div>
             ) : repos.length === 0 && debouncedQuery ? (
-              <div className="flex flex-col items-center justify-center h-64 text-center">
-                <p className="text-sm text-gray-500">No repositories found for "{debouncedQuery}"</p>
-                <p className="text-xs text-gray-700 mt-1">Try a different search term</p>
-              </div>
+              <EmptyState title={`No repositories found for "${debouncedQuery}"`} subtitle="Try a different search term" />
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
