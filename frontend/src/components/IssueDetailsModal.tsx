@@ -169,8 +169,8 @@ export default function IssueDetailsModal({
 
                 {/* Issue body */}
                 {issue.body ? (
-                  <div className="text-sm text-gray-400 whitespace-pre-wrap break-words leading-relaxed rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                    {issue.body}
+                  <div className="text-sm text-gray-400 prose prose-invert prose-sm max-w-none break-words leading-relaxed rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                    <ReactMarkdown>{issue.body}</ReactMarkdown>
                   </div>
                 ) : (
                   <p className="text-xs text-gray-700 italic">No description provided.</p>
