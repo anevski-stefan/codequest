@@ -4,6 +4,7 @@ import { formatRelativeDate } from '../../../utils/formatDate';
 import { MessageSquare, ExternalLink, ArrowUpRight } from 'lucide-react';
 import type { Issue } from '../../../types/github';
 import { getLabelColors } from '../utils/filterUtils';
+import { RepoCellContent, LabelsCellContent } from '../../../components/ui/IssueTableCells';
 
 interface IssueTableProps {
   issues: Issue[];
@@ -52,7 +53,6 @@ const IssueTable = memo(({ issues, onViewComments }: IssueTableProps) => {
           <tbody className="divide-y divide-white/[0.04]">
             {issues.map(issue => {
               const repoPath = toRepoPath(issue);
-              const [repoOwner, repoName] = (issue.repository?.fullName ?? '').split('/');
               return (
                 <tr
                   key={`${issue.repository?.fullName}-${issue.number}`}
@@ -78,40 +78,15 @@ const IssueTable = memo(({ issues, onViewComments }: IssueTableProps) => {
 
                   {/* Repository */}
                   <td className="px-4 py-3.5">
-                    <button
+                    <RepoCellContent
+                      fullName={issue.repository?.fullName}
                       onClick={() => repoPath && navigate(repoPath.split('?')[0])}
-                      className="text-left w-full cursor-pointer group/repo"
-                    >
-                      {repoOwner && repoName ? (
-                        <div className="min-w-0">
-                          <p className="text-xs text-gray-600 truncate">{repoOwner}/</p>
-                          <p className="text-xs font-medium text-gray-400 group-hover/repo:text-blue-400 transition-colors truncate leading-snug">{repoName}</p>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-600 truncate">{issue.repository?.fullName}</span>
-                      )}
-                    </button>
+                    />
                   </td>
 
                   {/* Labels */}
                   <td className="hidden md:table-cell px-4 py-3.5">
-                    <div className="flex flex-wrap gap-1">
-                      {issue.labels.length > 0
-                        ? issue.labels.slice(0, 2).map(label => (
-                          <span
-                            key={label.name}
-                            className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded-md truncate max-w-[100px]"
-                            style={getLabelColors(label.color)}
-                            title={label.name}
-                          >
-                            {label.name}
-                          </span>
-                        ))
-                        : <span className="text-[10px] text-gray-700">—</span>}
-                      {issue.labels.length > 2 && (
-                        <span className="text-[10px] text-gray-600">+{issue.labels.length - 2}</span>
-                      )}
-                    </div>
+                    <LabelsCellContent labels={issue.labels} />
                   </td>
 
                   {/* Status */}
