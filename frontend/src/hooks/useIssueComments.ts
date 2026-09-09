@@ -55,15 +55,18 @@ const useIssueComments = () => {
     }
   });
   const handleViewComments = useCallback((issue: Issue) => {
-    if (selectedIssueId !== issue.number) {
+    const key = `${issue.repository.fullName}#${issue.number}`;
+    const currentKey = selectedRepo && selectedIssueId ? `${selectedRepo}#${selectedIssueId}` : null;
+    if (key !== currentKey) {
       setSelectedIssueId(issue.number);
       setSelectedRepo(issue.repository.fullName);
       setIsCommentsModalOpen(true);
     }
-  }, [selectedIssueId]);
+  }, [selectedIssueId, selectedRepo]);
   const handleCloseComments = useCallback(() => {
     setIsCommentsModalOpen(false);
     setSelectedIssueId(null);
+    setSelectedRepo(null);
   }, []);
   const handleAddComment = useCallback(async (comment: string) => {
     if (!selectedIssueId) return;
