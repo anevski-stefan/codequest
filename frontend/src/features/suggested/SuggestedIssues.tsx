@@ -130,21 +130,19 @@ const SuggestedIssues = () => {
   const [famousOnly, setFamousOnly] = useState(false);
 
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
-    allComments, isLoadingComments, hasMoreComments,
+    isCommentsModalOpen, allComments, isLoadingComments, hasMoreComments,
     isLoadingMore, onLoadMore, handleViewComments, handleCloseComments, handleAddComment,
   } = useIssueComments();
 
   const handleOpenIssue = (issue: Issue) => {
     setSelectedIssue(issue);
-    setIsModalOpen(true);
     handleViewComments(issue);
   };
 
   const handleClose = () => {
-    setIsModalOpen(false);
+    setSelectedIssue(null);
     handleCloseComments();
   };
 
@@ -293,7 +291,7 @@ const SuggestedIssues = () => {
       </div>
 
       <IssueDetailsModal
-        isOpen={isModalOpen}
+        isOpen={isCommentsModalOpen}
         onClose={handleClose}
         issue={selectedIssue}
         comments={allComments}
