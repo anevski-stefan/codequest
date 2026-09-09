@@ -1,17 +1,3 @@
-export const getStateColor = (state: string) => {
-  switch (state.toLowerCase()) {
-    case 'open':
-      return 'bg-green-100 text-green-800';
-    case 'closed':
-      return 'bg-red-100 text-red-800';
-    case 'completed':
-      return 'bg-blue-100 text-blue-800';
-    case 'not planned':
-      return 'bg-gray-100 text-gray-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
 export const isHexColor = (color: string): boolean => /^[0-9a-fA-F]{6}$/.test(color.trim());
 export const getLabelColors = (color: string) => {
   const normalized = color?.trim() ?? '';
