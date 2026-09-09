@@ -12,6 +12,7 @@ import useIssueComments from '../../hooks/useIssueComments';
 import IssueTable from './components/IssueTable';
 import { CardSkeletonList } from '../../components/skeletons';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
+import FilterChip from '../../components/ui/FilterChip';
 
 const Dashboard = () => {
   usePageTitle('Dashboard');
@@ -69,7 +70,6 @@ const Dashboard = () => {
   const handleCommentsChange    = useCallback((v: string) => handleFilterChange({ commentsRange: v }), [handleFilterChange]);
   const handleLanguageChange    = useCallback((v: string) => handleFilterChange({ language: v as Language }), [handleFilterChange]);
   const handleLabelsChange      = useCallback((labels: string[]) => handleFilterChange({ labels }), [handleFilterChange]);
-  const handleUnassignedChange  = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange({ unassigned: e.target.checked }), [handleFilterChange]);
 
   useEffect(() => () => { debouncedSetFilter.cancel(); }, [debouncedSetFilter]);
 
@@ -258,50 +258,5 @@ const Dashboard = () => {
   );
 };
 
-/* Premium filter chip — styled div + transparent select on top */
-const FilterChip = ({
-  prefix, options, value, onChange
-}: {
-  prefix: string;
-  options: (string | { value: string; label: string })[];
-  value: string;
-  onChange: (v: string) => void;
-}) => {
-  const selected = options.find(o => (typeof o === 'string' ? o : o.value) === value);
-  const selectedLabel = selected
-    ? (typeof selected === 'string' ? (selected || 'All') : selected.label)
-    : 'All';
-  const isActive = value !== '' && value !== 'all' && value !== 'created' && value !== '';
-
-  return (
-    <div className="relative flex-1 min-w-[100px] h-8">
-      {/* Visual layer — fills full width of flex-1 container */}
-      <div className={`absolute inset-0 flex items-center gap-1.5 px-3 rounded-lg border text-xs transition-all pointer-events-none ${
-        isActive
-          ? 'border-blue-500/40 bg-blue-500/[0.08]'
-          : 'border-white/[0.10] bg-[#111927]'
-      }`}>
-        <span className="text-gray-500 whitespace-nowrap">{prefix}:</span>
-        <span className={`font-medium truncate ${isActive ? 'text-blue-300' : 'text-gray-200'}`}>
-          {selectedLabel}
-        </span>
-        <ChevronDown className={`w-3 h-3 ml-auto shrink-0 ${isActive ? 'text-blue-400' : 'text-gray-600'}`} />
-      </div>
-      {/* Actual select — absolute, fills the container exactly */}
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="absolute inset-0 opacity-0 cursor-pointer w-full"
-        aria-label={prefix}
-      >
-        {options.map(o => (
-          <option key={typeof o === 'string' ? o : o.value} value={typeof o === 'string' ? o : o.value}>
-            {typeof o === 'string' ? (o || 'All') : o.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-};
 
 export default Dashboard;

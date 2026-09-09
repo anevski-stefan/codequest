@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
-import { Star, MessageSquare, ExternalLink, Sparkles, Loader2, ChevronDown, GitPullRequest } from 'lucide-react';
+import { Star, MessageSquare, ExternalLink, Sparkles, Loader2, GitPullRequest } from 'lucide-react';
 import { getSuggestedIssues } from '../../services/github';
 import type { Issue } from '../../types/github';
 import { CardSkeletonList } from '../../components/skeletons';
@@ -11,6 +11,7 @@ import IssueDetailsModal from '../../components/IssueDetailsModal';
 import { getLabelColors } from '../dashboard/utils/filterUtils';
 import { formatRelativeDate } from '../../utils/formatDate';
 import { formatCount } from '../../utils/formatCount';
+import FilterChip from '../../components/ui/FilterChip';
 
 const LANGUAGES = [
   { value: '', label: 'Any Language' },
@@ -39,48 +40,6 @@ const COMPETITION = [
   { value: '1-5', label: 'Low (1–5)' },
   { value: '', label: 'Any' },
 ];
-
-/* ── FilterChip — same pattern as Dashboard ── */
-const FilterChip = ({
-  prefix, options, value, onChange, maxW = 'max-w-[220px]', defaultValue = '',
-}: {
-  prefix: string;
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (v: string) => void;
-  maxW?: string;
-  defaultValue?: string;
-}) => {
-  const selected = options.find(o => o.value === value);
-  const selectedLabel = selected?.label ?? 'All';
-  const isActive = value !== defaultValue;
-
-  return (
-    <div className={`relative flex-1 min-w-[110px] ${maxW} h-8`}>
-      <div className={`absolute inset-0 flex items-center gap-1.5 px-3 rounded-lg border text-xs transition-all pointer-events-none ${
-        isActive
-          ? 'border-blue-500/40 bg-blue-500/[0.08]'
-          : 'border-white/[0.10] bg-[#111927]'
-      }`}>
-        <span className="text-gray-500 whitespace-nowrap">{prefix}:</span>
-        <span className={`font-medium truncate ${isActive ? 'text-blue-300' : 'text-gray-200'}`}>
-          {selectedLabel}
-        </span>
-        <ChevronDown className={`w-3 h-3 ml-auto shrink-0 ${isActive ? 'text-blue-400' : 'text-gray-600'}`} />
-      </div>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="absolute inset-0 opacity-0 cursor-pointer w-full"
-        aria-label={prefix}
-      >
-        {options.map(o => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-    </div>
-  );
-};
 
 /* ── Issue row ── */
 function IssueRow({ issue, onOpen }: { issue: Issue; onOpen: (issue: Issue) => void }) {
