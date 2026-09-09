@@ -45,6 +45,7 @@ const RepositoryDetails = () => {
   const focusedIssueNumber = searchParams.get('issue') ? Number(searchParams.get('issue')) : null;
   const issuesSectionRef = useRef<HTMLDivElement>(null);
   const focusedIssueRef = useRef<HTMLDivElement>(null);
+  const hasScrolledToFocused = useRef(false);
   const queryClient = useQueryClient();
   usePageTitle(`${owner}/${repo}`);
 
@@ -79,8 +80,10 @@ const RepositoryDetails = () => {
   const allIssues = useMemo(() => issuesData?.pages.flatMap(p => p.issues) ?? [], [issuesData]);
 
   useEffect(() => {
-    if (focusedIssueNumber && focusedIssueRef.current)
+    if (focusedIssueNumber && focusedIssueRef.current && !hasScrolledToFocused.current) {
       focusedIssueRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      hasScrolledToFocused.current = true;
+    }
   }, [focusedIssueNumber, allIssues]);
 
   const [selectedIssue, setSelectedIssue] = useState<(typeof allIssues)[0] | null>(null);
