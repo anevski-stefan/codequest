@@ -15,7 +15,9 @@ const {
 const { onboardRepo } = require('../controllers/repoOnboardingController');
 const { aiChatLimiter } = require('../middleware/rateLimiter');
 const requireAuth = require('../middleware/requireAuth');
+const { validateOwnerRepo } = require('../utils/validateParams');
 router.use(requireAuth);
+router.use('/:owner/:repo', validateOwnerRepo);
 router.get('/:owner/:repo', getRepoDetails);
 router.get('/:owner/:repo/contributors/stats', getRepoContributors);
 router.get('/:owner/:repo/lottery-contributors', getLotteryContributors);

@@ -18,9 +18,18 @@ function isValidState(value) {
   return value === 'open' || value === 'closed' || value === 'all';
 }
 
+function validateOwnerRepo(req, res, next) {
+  const { owner, repo } = req.params;
+  if (!isValidOwner(owner) || !isValidRepo(repo)) {
+    return res.status(400).json({ error: 'Invalid owner or repo' });
+  }
+  next();
+}
+
 module.exports = {
   isValidOwner,
   isValidRepo,
   isValidNumber,
-  isValidState
+  isValidState,
+  validateOwnerRepo,
 };
