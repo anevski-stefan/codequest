@@ -12,10 +12,17 @@ export default function CommentsModal({
   onAddComment,
   onLoadMore,
   hasMoreComments,
-  isLoadingMore
+  isLoadingMore,
+  issue,
 }: CommentsModalProps) {
   const sortedComments = useCommentSorting(comments);
-  return <Modal isOpen={isOpen} onClose={onClose} title="Comments">
+  const title = issue ? `#${issue.number} · ${issue.title}` : 'Comments';
+  return <Modal isOpen={isOpen} onClose={onClose} title={title}>
+      {issue && (
+        <p className="text-[10px] text-gray-600 pb-3 border-b border-white/[0.05] truncate">
+          {issue.repository.fullName}
+        </p>
+      )}
       <div className="flex-1 overflow-y-auto py-4 space-y-4">
         <CommentsList comments={sortedComments} isLoading={isLoading} hasMoreComments={hasMoreComments} isLoadingMore={isLoadingMore} onLoadMore={onLoadMore} />
       </div>

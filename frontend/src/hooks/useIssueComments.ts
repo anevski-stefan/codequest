@@ -5,6 +5,7 @@ import type { Issue } from '../types/github';
 import { toast } from 'react-hot-toast';
 
 const useIssueComments = () => {
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
@@ -57,6 +58,7 @@ const useIssueComments = () => {
     const key = `${issue.repository.fullName}#${issue.number}`;
     const currentKey = selectedRepo && selectedIssueId ? `${selectedRepo}#${selectedIssueId}` : null;
     if (key !== currentKey) {
+      setSelectedIssue(issue);
       setSelectedIssueId(issue.number);
       setSelectedRepo(issue.repository.fullName);
       setIsCommentsModalOpen(true);
@@ -64,6 +66,7 @@ const useIssueComments = () => {
   }, [selectedIssueId, selectedRepo]);
   const handleCloseComments = useCallback(() => {
     setIsCommentsModalOpen(false);
+    setSelectedIssue(null);
     setSelectedIssueId(null);
     setSelectedRepo(null);
   }, []);
@@ -76,6 +79,7 @@ const useIssueComments = () => {
   }, [selectedIssueId, addCommentMutation]);
   return {
     isCommentsModalOpen,
+    selectedIssue,
     allComments,
     isLoadingComments,
     hasMoreComments: !!hasNextPage,
