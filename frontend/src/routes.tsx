@@ -37,7 +37,9 @@ const AppRoutes = () => {
           <Route path="/profile" element={<PrivateRoute>
                 <Profile />
               </PrivateRoute>} />
-          <Route path="/hackathons" element={<HackathonList />} />
+          <Route path="/hackathons" element={<PrivateRoute>
+                <HackathonList />
+              </PrivateRoute>} />
           <Route path="/settings" element={<PrivateRoute>
                 <Settings />
               </PrivateRoute>} />
