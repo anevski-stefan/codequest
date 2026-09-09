@@ -28,14 +28,10 @@ const App = () => {
       <Provider store={store}>
         <ThemeProvider>
           <BrowserRouter>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-              <div className="min-h-screen">
-                <AppRoutes />
-              </div>
-            </div>
+            <AppRoutes />
           </BrowserRouter>
+          <Toaster />
         </ThemeProvider>
-        <Toaster />
       </Provider>
     </QueryClientProvider>
     </ErrorBoundary>;
