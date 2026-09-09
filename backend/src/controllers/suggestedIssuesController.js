@@ -119,7 +119,7 @@ exports.getSuggestedIssues = asyncHandler(async (req, res) => {
     const perPage = 30;
     const start = (pageNum - 1) * perPage;
     allItems = merged.slice(start, start + perPage);
-    const hasMore = merged.length > start + perPage || totalCount > merged.length;
+    const hasMore = merged.length > start + perPage;
 
     const enriched = await enrichWithStars(req.user.accessToken, allItems);
     return res.json({ items: enriched, total_count: totalCount, hasMore, currentPage: pageNum });
