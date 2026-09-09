@@ -1,7 +1,7 @@
 const githubService = require('../services/githubService');
 const { badRequest, asyncHandler } = require('../utils/httpError');
 const { buildPagination, clampPage } = require('../utils/pagination');
-const { isValidOwner, isValidRepo, isValidNumber, isValidState } = require('../utils/validateParams');
+const { isValidNumber, isValidState } = require('../utils/validateParams');
 const MAX_COMMENT_BODY_LENGTH = 65536;
 exports.createComment = asyncHandler(async (req, res) => {
   const {
@@ -9,8 +9,8 @@ exports.createComment = asyncHandler(async (req, res) => {
     repo,
     number
   } = req.params;
-  if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(number)) {
-    return badRequest(res, 'Invalid owner, repo or issue number');
+  if (!isValidNumber(number)) {
+    return badRequest(res, 'Invalid issue number');
   }
   const {
     body
@@ -37,7 +37,6 @@ exports.createComment = asyncHandler(async (req, res) => {
 });
 exports.checkRepoStarred = asyncHandler(async (req, res) => {
   const { owner, repo } = req.params;
-  if (!isValidOwner(owner) || !isValidRepo(repo)) return badRequest(res, 'Invalid owner or repo');
   try {
     await githubService.request(req.user.accessToken, 'GET', `/user/starred/${owner}/${repo}`);
     res.json({ starred: true });
@@ -49,7 +48,6 @@ exports.checkRepoStarred = asyncHandler(async (req, res) => {
 
 exports.starRepo = asyncHandler(async (req, res) => {
   const { owner, repo } = req.params;
-  if (!isValidOwner(owner) || !isValidRepo(repo)) return badRequest(res, 'Invalid owner or repo');
   await githubService.request(req.user.accessToken, 'PUT', `/user/starred/${owner}/${repo}`, {
     data: '',
     headers: { 'Content-Length': '0' },
@@ -59,30 +57,17 @@ exports.starRepo = asyncHandler(async (req, res) => {
 
 exports.unstarRepo = asyncHandler(async (req, res) => {
   const { owner, repo } = req.params;
-  if (!isValidOwner(owner) || !isValidRepo(repo)) return badRequest(res, 'Invalid owner or repo');
   await githubService.request(req.user.accessToken, 'DELETE', `/user/starred/${owner}/${repo}`);
   res.status(204).end();
 });
 
 exports.getRepoDetails = asyncHandler(async (req, res) => {
-  const {
-    owner,
-    repo
-  } = req.params;
-  if (!isValidOwner(owner) || !isValidRepo(repo)) {
-    return badRequest(res, 'Invalid owner or repo');
-  }
+  const { owner, repo } = req.params;
   const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}`);
   res.json(response);
 });
 exports.getRepoContributors = asyncHandler(async (req, res) => {
-  const {
-    owner,
-    repo
-  } = req.params;
-  if (!isValidOwner(owner) || !isValidRepo(repo)) {
-    return badRequest(res, 'Invalid owner or repo');
-  }
+  const { owner, repo } = req.params;
   const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/stats/contributors`);
   if (!Array.isArray(response)) return res.json([]);
   const contributors = response.map(contributor => ({
@@ -96,13 +81,7 @@ exports.getRepoContributors = asyncHandler(async (req, res) => {
   res.json(contributors.slice(0, 5));
 });
 exports.getLotteryContributors = asyncHandler(async (req, res) => {
-  const {
-    owner,
-    repo
-  } = req.params;
-  if (!isValidOwner(owner) || !isValidRepo(repo)) {
-    return badRequest(res, 'Invalid owner or repo');
-  }
+  const { owner, repo } = req.params;
   const response = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls`, {
     params: { state: 'all', per_page: 100 }
   });
@@ -129,13 +108,7 @@ exports.getLotteryContributors = asyncHandler(async (req, res) => {
   res.json(contributors.slice(0, 4));
 });
 exports.getContributorConfidence = asyncHandler(async (req, res) => {
-  const {
-    owner,
-    repo
-  } = req.params;
-  if (!isValidOwner(owner) || !isValidRepo(repo)) {
-    return badRequest(res, 'Invalid owner or repo');
-  }
+  const { owner, repo } = req.params;
   const [contributorsResponse, commitsResponse, prResponse] = await Promise.all([
     githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/contributors`, { params: { per_page: 100 } }),
     githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/commits`, { params: { per_page: 100 } }),
@@ -179,18 +152,9 @@ exports.getContributorConfidence = asyncHandler(async (req, res) => {
   });
 });
 exports.getPulls = asyncHandler(async (req, res) => {
-  const {
-    owner,
-    repo
-  } = req.params;
-  const {
-    state = 'open',
-    page = 1
-  } = req.query;
+  const { owner, repo } = req.params;
+  const { state = 'open', page = 1 } = req.query;
   const pageNum = clampPage(page);
-  if (!isValidOwner(owner) || !isValidRepo(repo)) {
-    return badRequest(res, 'Invalid owner or repo');
-  }
   if (!isValidState(state)) {
     return badRequest(res, 'Invalid state; must be open, closed or all');
   }
@@ -241,13 +205,9 @@ exports.getPulls = asyncHandler(async (req, res) => {
   });
 });
 exports.getPullDetails = asyncHandler(async (req, res) => {
-  const {
-    owner,
-    repo,
-    pullNumber
-  } = req.params;
-  if (!isValidOwner(owner) || !isValidRepo(repo) || !isValidNumber(pullNumber)) {
-    return badRequest(res, 'Invalid owner, repo or pull request number');
+  const { owner, repo, pullNumber } = req.params;
+  if (!isValidNumber(pullNumber)) {
+    return badRequest(res, 'Invalid pull request number');
   }
   const [response, filesResponse, commitsResponse] = await Promise.all([
     githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls/${pullNumber}`),
