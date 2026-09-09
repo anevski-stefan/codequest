@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Search, Users, Star, GitFork, Globe, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import { ExploreTableSkeleton } from '../../components/skeletons';
 import { useDebounce } from '../../hooks/useDebounce';
 import { api, searchTopContributors } from '../../services/github';
 import type { GithubUser, GitHubRepository as Repository } from '../../types/github';
@@ -212,24 +213,7 @@ const Explore = () => {
                       <th className="hidden md:table-cell px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Forks</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
-                    {[...Array(8)].map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-full bg-white/[0.05] shrink-0" />
-                            <div>
-                              <div className="h-3.5 bg-white/[0.06] rounded w-48 mb-1.5" />
-                              <div className="h-2.5 bg-white/[0.03] rounded w-72" />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="hidden lg:table-cell px-4 py-4"><div className="h-5 bg-white/[0.05] rounded-full w-20" /></td>
-                        <td className="px-4 py-4"><div className="h-3 bg-white/[0.05] rounded w-10 mx-auto" /></td>
-                        <td className="hidden md:table-cell px-4 py-4"><div className="h-3 bg-white/[0.05] rounded w-8 mx-auto" /></td>
-                      </tr>
-                    ))}
-                  </tbody>
+                  <ExploreTableSkeleton />
                 </table>
               </div>
             ) : repos.length === 0 && debouncedQuery ? (
