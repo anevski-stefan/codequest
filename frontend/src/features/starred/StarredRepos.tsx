@@ -6,6 +6,7 @@ import { getStarredRepos, type StarredRepo } from '../../services/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
 import { formatCount } from '../../utils/formatCount';
+import EmptyState from '../../components/ui/EmptyState';
 import { formatRelativeDate } from '../../utils/formatDate';
 import { CardSkeletonList } from '../../components/skeletons';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
@@ -171,20 +172,9 @@ const StarredRepos = () => {
         ) : error instanceof Error ? (
           <div className="p-6"><ErrorDisplay title="Failed to load starred repos" error={error.message} /></div>
         ) : allRepos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
-              <Star className="w-4 h-4 text-gray-600" />
-            </div>
-            <p className="text-sm text-gray-400">No starred repositories yet</p>
-            <p className="text-xs text-gray-600 mt-1">Star a repo from the Explore page to see it here</p>
-          </div>
+          <EmptyState icon={Star} title="No starred repositories yet" subtitle="Star a repo from the Explore page to see it here" />
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
-              <Search className="w-4 h-4 text-gray-600" />
-            </div>
-            <p className="text-sm text-gray-400">No repos match "{search}"</p>
-          </div>
+          <EmptyState icon={Search} title={`No repos match "${search}"`} />
         ) : (
           <>
             <div className="overflow-x-auto">

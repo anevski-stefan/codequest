@@ -12,6 +12,7 @@ import { RepoCellContent, LabelsCellContent } from '../../components/ui/IssueTab
 import { formatRelativeDate } from '../../utils/formatDate';
 import { formatCount } from '../../utils/formatCount';
 import FilterChip from '../../components/ui/FilterChip';
+import EmptyState from '../../components/ui/EmptyState';
 
 const LANGUAGES = [
   { value: '', label: 'Any Language' },
@@ -250,13 +251,7 @@ const SuggestedIssues = () => {
             />
           </div>
         ) : allIssues.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
-              <GitPullRequest className="w-4 h-4 text-gray-600" />
-            </div>
-            <p className="text-sm text-gray-400">No issues found for these filters</p>
-            <p className="text-xs text-gray-600 mt-1">Try widening the time frame or removing the language filter</p>
-          </div>
+          <EmptyState icon={GitPullRequest} title="No issues found for these filters" subtitle="Try widening the time frame or removing the language filter" />
         ) : (
           <>
             <div className="overflow-x-auto">

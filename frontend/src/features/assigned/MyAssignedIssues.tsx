@@ -11,6 +11,7 @@ import { CardSkeletonList } from '../../components/skeletons';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import { getLabelColors } from '../dashboard/utils/filterUtils';
 import useIssueComments from '../../hooks/useIssueComments';
+import EmptyState from '../../components/ui/EmptyState';
 
 const MyAssignedIssues = () => {
   usePageTitle('My Assigned Issues');
@@ -87,13 +88,7 @@ const MyAssignedIssues = () => {
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {issues.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
-              <GitPullRequest className="w-4 h-4 text-gray-600" />
-            </div>
-            <p className="text-sm text-gray-400">No {issueState} issues assigned to you</p>
-            <p className="text-xs text-gray-600 mt-1">Issues you're assigned to will appear here</p>
-          </div>
+          <EmptyState icon={GitPullRequest} title={`No ${issueState} issues assigned to you`} subtitle="Issues you're assigned to will appear here" />
         ) : (
           <div className="divide-y divide-white/[0.05]">
             {issues.map((issue: Issue) => {

@@ -8,6 +8,7 @@ import { HackathonSkeleton } from '../../components/skeletons/HackathonSkeleton'
 import { HackathonResponse } from '../../types/hackathon';
 import { useDebounce } from '../../hooks/useDebounce';
 import { ChevronDown, ChevronLeft, ChevronRight, Search, Trophy } from 'lucide-react';
+import EmptyState from '../../components/ui/EmptyState';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -106,13 +107,7 @@ export default function HackathonList() {
             <ErrorDisplay title="Failed to load hackathons" error={error instanceof Error ? error.message : 'An error occurred'} />
           </div>
         ) : !data?.hackathons?.length ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
-              <Trophy className="w-4 h-4 text-gray-600" />
-            </div>
-            <p className="text-sm text-gray-400">No hackathons found</p>
-            <p className="text-xs text-gray-600 mt-1">Try adjusting the filter or search term</p>
-          </div>
+          <EmptyState icon={Trophy} title="No hackathons found" subtitle="Try adjusting the filter or search term" />
         ) : (
           <>
             <div className="divide-y divide-white/[0.05]">
