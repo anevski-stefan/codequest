@@ -33,7 +33,7 @@ const Dashboard = () => {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const {
-    isCommentsModalOpen, allComments, isLoadingComments, hasMoreComments,
+    isCommentsModalOpen, selectedIssue, allComments, isLoadingComments, hasMoreComments,
     isLoadingMore, onLoadMore, handleViewComments, handleCloseComments, handleAddComment
   } = useIssueComments();
 
@@ -252,6 +252,7 @@ const Dashboard = () => {
         onLoadMore={onLoadMore}
         hasMoreComments={hasMoreComments}
         isLoadingMore={isLoadingMore}
+        issue={selectedIssue}
       />
     </div>
   );

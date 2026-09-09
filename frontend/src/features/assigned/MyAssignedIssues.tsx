@@ -19,7 +19,7 @@ const MyAssignedIssues = () => {
   const [issueState, setIssueState] = useState<string>('open');
 
   const {
-    isCommentsModalOpen, allComments, isLoadingComments, hasMoreComments,
+    isCommentsModalOpen, selectedIssue, allComments, isLoadingComments, hasMoreComments,
     isLoadingMore, onLoadMore, handleViewComments, handleCloseComments, handleAddComment
   } = useIssueComments();
 
@@ -175,6 +175,7 @@ const MyAssignedIssues = () => {
           onLoadMore={onLoadMore}
           hasMoreComments={hasMoreComments}
           isLoadingMore={isLoadingMore}
+          issue={selectedIssue}
         />
       )}
     </div>

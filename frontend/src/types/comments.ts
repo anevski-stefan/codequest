@@ -8,6 +8,12 @@ export interface Comment {
   createdAt: string;
   updatedAt: string;
 }
+export interface CommentsModalIssue {
+  number: number;
+  title: string;
+  repository: { fullName: string };
+}
+
 export interface CommentsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -17,4 +23,5 @@ export interface CommentsModalProps {
   onLoadMore: () => void;
   hasMoreComments: boolean;
   isLoadingMore: boolean;
+  issue?: CommentsModalIssue | null;
 }
