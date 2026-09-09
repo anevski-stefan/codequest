@@ -62,12 +62,12 @@ const RepositoryDetails = () => {
   const { data: lotteryContributors } = useQuery<LotteryContributor[]>({
     queryKey: ['lottery-contributors', owner, repo],
     queryFn: () => getLotteryContributors(owner!, repo!),
-    enabled: !!owner && !!repo, staleTime: 15 * 60 * 1000, gcTime: 60 * 60 * 1000,
+    enabled: !!owner && !!repo && !!repository, staleTime: 15 * 60 * 1000, gcTime: 60 * 60 * 1000,
   });
   const { data: contributorConfidence } = useQuery<ContributorConfidence>({
     queryKey: ['contributor-confidence', owner, repo],
     queryFn: () => getContributorConfidence(owner!, repo!),
-    enabled: !!owner && !!repo, staleTime: 15 * 60 * 1000, gcTime: 60 * 60 * 1000,
+    enabled: !!owner && !!repo && !!repository, staleTime: 15 * 60 * 1000, gcTime: 60 * 60 * 1000,
   });
   const { data: issuesData, isLoading: issuesLoading, fetchNextPage: fetchNextIssues, hasNextPage: hasNextIssues, isFetchingNextPage: isFetchingNextIssues } =
     useInfiniteQuery({
@@ -103,7 +103,7 @@ const RepositoryDetails = () => {
   const { data: isStarred, isLoading: starredLoading } = useQuery<boolean>({
     queryKey: ['repo-starred', owner, repo],
     queryFn: () => checkRepoStarred(owner!, repo!),
-    enabled: !!owner && !!repo, staleTime: 5 * 60 * 1000,
+    enabled: !!owner && !!repo && !!repository, staleTime: 5 * 60 * 1000,
   });
 
   const starMutation = useMutation({
@@ -137,7 +137,7 @@ const RepositoryDetails = () => {
       queryFn: ({ pageParam = 1 }) => getRepositoryPullRequests(owner!, repo!, prState, pageParam as number),
       initialPageParam: 1,
       getNextPageParam: (lastPage, allPages) => lastPage.hasMore ? allPages.length + 1 : undefined,
-      enabled: !!owner && !!repo, placeholderData: keepPreviousData, staleTime: 2 * 60 * 1000,
+      enabled: !!owner && !!repo && activeTab === 'pullrequests', placeholderData: keepPreviousData, staleTime: 2 * 60 * 1000,
     });
   const allPullRequests = useMemo(() => pullRequestsData?.pages.flatMap(p => p.pullRequests) ?? [], [pullRequestsData]);
   const currentTotalCount = pullRequestsData?.pages[0]?.totalCount || 0;
