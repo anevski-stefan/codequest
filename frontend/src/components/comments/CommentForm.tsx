@@ -23,10 +23,10 @@ export function CommentForm({
       setIsSubmitting(false);
     }
   }, [comment, onSubmit, isSubmitting]);
-  return <form onSubmit={handleSubmit} className="flex space-x-2">
-      <input type="text" value={comment} onChange={e => setComment(e.target.value)} placeholder="Add a comment..." className="flex-1 min-w-0 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0B1222] px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none" disabled={isSubmitting || disabled} />
-      <button type="submit" disabled={isSubmitting || disabled || !comment.trim()} className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
-        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+  return <form onSubmit={handleSubmit} className="flex gap-2">
+      <input type="text" value={comment} onChange={e => setComment(e.target.value)} placeholder="Add a comment…" className="flex-1 min-w-0 h-9 px-3 text-xs bg-[#111927] border border-white/[0.10] rounded-lg text-gray-300 placeholder-gray-700 focus:outline-none focus:border-blue-500/50 transition-all" disabled={isSubmitting || disabled} />
+      <button type="submit" disabled={isSubmitting || disabled || !comment.trim()} className="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer shrink-0">
+        {isSubmitting ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Send className="w-3.5 h-3.5 text-white" />}
       </button>
     </form>;
 }
