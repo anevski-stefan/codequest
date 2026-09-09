@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { api, getUserStarredCount, getUserActivities } from '../../services/github';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
+import { formatCount } from '../../utils/formatCount';
 import StatsModal from '../../components/StatsModal';
 import { ProfileSkeleton } from '../../components/skeletons';
 import { Pagination } from '../../components/ui/Pagination';
@@ -45,11 +46,6 @@ const formatUrl = (url: string) => {
 const formatDisplayUrl = (url: string) => {
   try { return new URL(formatUrl(url)).hostname.replace(/^www\./, ''); } catch { return url; }
 };
-
-function formatCount(n: number) {
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
-  return String(n);
-}
 
 const ContributorProfile = () => {
   const { username } = useParams<{ username: string }>();

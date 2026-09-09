@@ -5,15 +5,11 @@ import { Star, GitFork, AlertCircle, ExternalLink, Search, Loader2 } from 'lucid
 import { getStarredRepos, type StarredRepo } from '../../services/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
+import { formatCount } from '../../utils/formatCount';
 import { formatRelativeDate } from '../../utils/formatDate';
 import { CardSkeletonList } from '../../components/skeletons';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 
-
-function formatStars(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
-  return String(n);
-}
 
 function RepoRow({ repo }: { repo: StarredRepo }) {
   const navigate = useNavigate();
@@ -71,7 +67,7 @@ function RepoRow({ repo }: { repo: StarredRepo }) {
       <td className="px-4 py-3.5 text-center">
         <span className="flex items-center justify-center gap-1 text-xs text-gray-500">
           <Star className="w-3 h-3 text-amber-500" />
-          {formatStars(repo.stargazers_count)}
+          {formatCount(repo.stargazers_count)}
         </span>
       </td>
 

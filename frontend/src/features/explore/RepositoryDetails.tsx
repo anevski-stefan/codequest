@@ -17,6 +17,7 @@ import useIssueComments from '../../hooks/useIssueComments';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { RepositorySkeleton } from '../../components/skeletons';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
+import { formatCount } from '../../utils/formatCount';
 
 interface Repository {
   id: number; full_name: string; description: string; stargazers_count: number;
@@ -42,11 +43,6 @@ type PullRequestsResult = { pullRequests: PullRequest[]; hasMore: boolean; total
 interface PullRequestCounts { open: number; closed: number; }
 
 const BAR_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444'];
-
-function formatCount(n: number) {
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
-  return String(n);
-}
 
 const RepositoryDetails = () => {
   const { owner, repo } = useParams();

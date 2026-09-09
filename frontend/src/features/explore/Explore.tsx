@@ -8,6 +8,7 @@ import { api, searchTopContributors } from '../../services/github';
 import type { GithubUser } from '../../types/github';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
+import { formatCount } from '../../utils/formatCount';
 
 interface Repository {
   id: number;
@@ -25,11 +26,6 @@ const QUICK_TOPICS = [
   'TypeScript', 'Rust', 'Python', 'Go', 'React',
   'Machine Learning', 'CLI tools', 'Open Source',
 ];
-
-function formatCount(n: number) {
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
-  return String(n);
-}
 
 const Explore = () => {
   const navigate = useNavigate();
