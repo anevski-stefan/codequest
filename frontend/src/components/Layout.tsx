@@ -1,180 +1,190 @@
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import useAuth from '../hooks/useAuth';
-import { LogOut, Star } from 'lucide-react';
+import {
+  LayoutDashboard, GitPullRequest, Sparkles, Star, Compass,
+  Trophy, Settings, LogOut, Zap, Menu, X, ChevronRight
+} from 'lucide-react';
 import type { RootState } from '../store';
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, ReactNode } from 'react';
 import FeedbackModal from './FeedbackModal';
+
 interface LayoutProps {
   children?: ReactNode;
 }
-const Layout = ({
-  children
-}: LayoutProps) => {
-  const {
-    isAuthenticated,
-    user
-  } = useSelector((state: RootState) => state.auth);
-  const {
-    logout
-  } = useAuth();
-  const navigate = useNavigate();
+
+interface NavItemProps {
+  to: string;
+  icon: React.ElementType;
+  label: string;
+  exact?: boolean;
+  onClick?: () => void;
+}
+
+const NavItem = ({ to, icon: Icon, label, exact, onClick }: NavItemProps) => {
   const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 0);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-  return <div className="min-h-screen flex flex-col bg-white dark:bg-[#0B1222] overflow-x-hidden">
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${scrolled ? 'bg-white/80 dark:bg-[#0B1222]/80' : 'bg-white dark:bg-[#0B1222]'} backdrop-blur-lg shadow`}>
-        <div className="max-w-7xl mx-auto h-20 flex items-center">
-          <div className="flex justify-between items-center w-full">
-            <div className="flex items-center">
-              <button onClick={() => navigate('/')} className="text-xl sm:text-2xl font-bold text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-                Code Quest
-              </button>
-            </div>
+  const isActive = exact ? location.pathname === to : location.pathname.startsWith(to);
+  return (
+    <Link
+      to={to}
+      onClick={onClick}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${
+        isActive
+          ? 'bg-white/[0.08] text-white'
+          : 'text-gray-500 hover:text-gray-200 hover:bg-white/[0.04]'
+      }`}
+    >
+      <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-blue-400' : 'group-hover:text-gray-300'}`} />
+      <span className="truncate">{label}</span>
+      {isActive && <ChevronRight className="w-3 h-3 ml-auto text-gray-600 shrink-0" />}
+    </Link>
+  );
+};
 
-            {isAuthenticated ? <>
-                {}
-                <div className="hidden md:flex items-center space-x-4 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent">
-                  <div className="flex items-center space-x-4 px-4">
-                    <button onClick={() => navigate('/profile')} className="flex items-center space-x-2 shrink-0">
-                      <div className="relative w-10 h-10 overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-full">
-                        <img src={user?.avatar_url} alt="Profile" width={40} height={40} decoding="async" className="h-full w-full object-cover" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-                        {user?.login}
-                      </span>
-                    </button>
-                    <button onClick={() => navigate('/assigned')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors whitespace-nowrap">
-                      Assigned Issues
-                    </button>
-                    <button onClick={() => navigate('/suggested')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors whitespace-nowrap">
-                      Suggested Issues
-                    </button>
-                    <button onClick={() => navigate('/starred')} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors whitespace-nowrap">
-                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                      Starred
-                    </button>
-                    <button onClick={() => navigate('/explore')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-                      Explore
-                    </button>
-                    <button onClick={() => navigate('/settings')} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-                      Settings
-                    </button>
-                    <button onClick={logout} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors flex items-center shrink-0">
-                      <LogOut className="h-5 w-5 mr-2" />
-                      Logout
-                    </button>
-                  </div>
-                </div>
+const SidebarContent = ({ onClose, onFeedback }: { onClose?: () => void; onFeedback: () => void }) => {
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
-                {}
-                <div className="md:hidden">
-                  <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <span className="sr-only">Open main menu</span>
-                    {!isMobileMenuOpen ? <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                      </svg> : <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>}
-                  </button>
-                </div>
-              </> : <div className="flex items-center space-x-4">
-                {location.pathname === '/login' ? <button onClick={() => setIsFeedbackOpen(true)} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-                    Send Feedback
-                  </button> : <Link to="/login" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
-                    Login
-                  </Link>}
-              </div>}
+  return (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="px-4 py-5 flex items-center justify-between shrink-0">
+        <button
+          onClick={() => { navigate('/'); onClose?.(); }}
+          className="flex items-center gap-2.5 group cursor-pointer"
+        >
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(99,102,241,0.3)]">
+            <Zap className="w-4 h-4 text-white" />
           </div>
-        </div>
+          <span className="text-sm font-bold text-white tracking-tight">Code Quest</span>
+        </button>
+        {onClose && (
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-600 hover:text-white hover:bg-white/5 transition-all cursor-pointer lg:hidden">
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
-        {}
-        {isAuthenticated && isMobileMenuOpen && <div className="md:hidden absolute top-16 inset-x-0 bg-white dark:bg-[#0B1222] backdrop-blur-lg shadow-lg z-50" style={{
-        opacity: isMobileMenuOpen ? 1 : 0,
-        visibility: isMobileMenuOpen ? 'visible' : 'hidden',
-        transition: 'opacity 0.3s ease-in-out, visibility 0.3s ease-in-out',
-        minHeight: '120px'
-      }}>
-            <div className="px-2 pt-4 pb-4 space-y-3">
-              <button onClick={() => {
-            navigate('/profile');
-            setIsMobileMenuOpen(false);
-          }} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md" style={{
-            transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
-            opacity: isMobileMenuOpen ? 1 : 0,
-            transition: 'all 0.2s ease-out',
-            transitionDelay: '75ms'
-          }}>
-                <div className="flex items-center space-x-3">
-                  <div className="relative w-10 h-10 overflow-hidden bg-gray-200 dark:bg-gray-700 rounded-full">
-                    <img src={user?.avatar_url} alt="Profile" width={40} height={40} decoding="async" className="h-full w-full object-cover" />
-                  </div>
-                  <span>{user?.login}</span>
-                </div>
-              </button>
-              <button onClick={() => {
-            navigate('/suggested');
-            setIsMobileMenuOpen(false);
-          }} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md" style={{
-            transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
-            opacity: isMobileMenuOpen ? 1 : 0,
-            transition: 'all 0.2s ease-out',
-            transitionDelay: '75ms'
-          }}>
-                Suggested Issues
-              </button>
-              <button onClick={() => {
-            navigate('/starred');
-            setIsMobileMenuOpen(false);
-          }} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md flex items-center gap-2" style={{
-            transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
-            opacity: isMobileMenuOpen ? 1 : 0,
-            transition: 'all 0.2s ease-out',
-            transitionDelay: '75ms'
-          }}>
-                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                Starred
-              </button>
-              <button onClick={() => {
-            navigate('/settings');
-            setIsMobileMenuOpen(false);
-          }} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md" style={{
-            transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
-            opacity: isMobileMenuOpen ? 1 : 0,
-            transition: 'all 0.2s ease-out',
-            transitionDelay: '75ms'
-          }}>
-                Settings
-              </button>
-              <button onClick={() => {
-            logout();
-            setIsMobileMenuOpen(false);
-          }} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors rounded-md" style={{
-            transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(50px)',
-            opacity: isMobileMenuOpen ? 1 : 0,
-            transition: 'all 0.2s ease-out',
-            transitionDelay: '150ms'
-          }}>
-                Logout
-              </button>
+      {/* Nav */}
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+        {isAuthenticated ? (
+          <>
+            <div className="pb-1">
+              <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" exact onClick={onClose} />
+              <NavItem to="/assigned" icon={GitPullRequest} label="Assigned Issues" onClick={onClose} />
+              <NavItem to="/suggested" icon={Sparkles} label="Suggested Issues" onClick={onClose} />
+              <NavItem to="/starred" icon={Star} label="Starred" onClick={onClose} />
+              <NavItem to="/explore" icon={Compass} label="Explore" onClick={onClose} />
+              <NavItem to="/hackathons" icon={Trophy} label="Hackathons" onClick={onClose} />
             </div>
-          </div>}
+            <div className="pt-2 border-t border-white/[0.05]">
+              <NavItem to="/settings" icon={Settings} label="Settings" onClick={onClose} />
+            </div>
+          </>
+        ) : (
+          <NavItem to="/hackathons" icon={Trophy} label="Hackathons" onClick={onClose} />
+        )}
       </nav>
 
-      <div className="flex-1 flex overflow-hidden pt-12">
-        <main className="w-full max-w-full">
+      {/* Bottom */}
+      <div className="px-3 pb-4 pt-3 border-t border-white/[0.05] space-y-1 shrink-0">
+        <button
+          onClick={onFeedback}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs text-gray-600 hover:text-gray-300 hover:bg-white/[0.04] transition-all duration-150 cursor-pointer"
+        >
+          Send Feedback
+        </button>
+
+        {isAuthenticated ? (
+          <div className="flex items-center gap-3 px-3 py-2">
+            <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10">
+              <img src={user?.avatar_url} alt={user?.login} className="w-full h-full object-cover" />
+            </div>
+            <button
+              onClick={() => { navigate('/profile'); onClose?.(); }}
+              className="flex-1 min-w-0 text-left cursor-pointer"
+            >
+              <p className="text-sm font-medium text-gray-300 hover:text-white transition-colors truncate">{user?.login}</p>
+            </button>
+            <button
+              onClick={() => { logout(); onClose?.(); }}
+              className="p-1.5 text-gray-600 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all cursor-pointer shrink-0"
+              aria-label="Log out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <Link
+            to="/login"
+            onClick={onClose}
+            className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-white bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30 transition-all duration-150"
+          >
+            Sign in with GitHub
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const Layout = ({ children }: LayoutProps) => {
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const { user } = useSelector((state: RootState) => state.auth);
+
+  return (
+    <div className="min-h-screen flex bg-[#0B1222]">
+
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-56 lg:z-40 border-r border-white/[0.05]" style={{ background: '#080D18' }}>
+        <SidebarContent onFeedback={() => setIsFeedbackOpen(true)} />
+      </aside>
+
+      {/* Mobile top bar */}
+      <header className="lg:hidden fixed top-0 inset-x-0 h-14 z-40 flex items-center justify-between px-4 border-b border-white/[0.05]" style={{ background: '#080D18' }}>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsMobileOpen(true)}
+            className="p-2 rounded-xl text-gray-500 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center">
+              <Zap className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-sm font-bold text-white">Code Quest</span>
+          </div>
+        </div>
+        {user && (
+          <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10">
+            <img src={user.avatar_url} alt={user.login} className="w-full h-full object-cover" />
+          </div>
+        )}
+      </header>
+
+      {/* Mobile drawer overlay */}
+      {isMobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileOpen(false)} />
+          <aside className="absolute inset-y-0 left-0 w-56 border-r border-white/[0.05]" style={{ background: '#080D18' }}>
+            <SidebarContent onClose={() => setIsMobileOpen(false)} onFeedback={() => { setIsMobileOpen(false); setIsFeedbackOpen(true); }} />
+          </aside>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div className="lg:pl-56 flex-1 flex flex-col min-h-screen">
+        <main className="flex-1 pt-14 lg:pt-0 w-full">
           {children || <Outlet />}
         </main>
       </div>
+
       <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
-    </div>;
+    </div>
+  );
 };
+
 export default Layout;

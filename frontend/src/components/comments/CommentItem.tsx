@@ -7,24 +7,20 @@ interface CommentItemProps {
 const CommentItem = memo(({
   comment
 }: CommentItemProps) => {
-  return <div className="mb-6 last:mb-0 bg-white/90 dark:bg-[#0B1222] backdrop-blur-lg rounded-lg p-4 hover:bg-gray-50/50 dark:hover:bg-white/10 transition-colors">
-      <div className="flex items-start space-x-4">
-        <img src={comment.user.avatar_url} alt={comment.user.login} width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-full flex-shrink-0" />
+  return (
+    <div className="mb-3 last:mb-0 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 hover:bg-white/[0.035] transition-colors">
+      <div className="flex items-start gap-3">
+        <img src={comment.user.avatar_url} alt={comment.user.login} width={28} height={28} loading="lazy" decoding="async" className="w-7 h-7 rounded-full ring-1 ring-white/[0.08] shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-semibold text-gray-900 dark:text-gray-200 truncate">
-              {comment.user.login}
-            </h4>
-            <span className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
-              {formatRelativeDate(comment.createdAt)}
-            </span>
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="text-xs font-semibold text-gray-300 truncate">{comment.user.login}</span>
+            <span className="text-[10px] text-gray-700 shrink-0">{formatRelativeDate(comment.createdAt)}</span>
           </div>
-          <div className="prose prose-sm max-w-none text-gray-800 dark:text-gray-300 break-words whitespace-pre-wrap">
-            {comment.body}
-          </div>
+          <p className="text-xs text-gray-500 break-words whitespace-pre-wrap leading-relaxed">{comment.body}</p>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 });
 CommentItem.displayName = 'CommentItem';
 export default CommentItem;

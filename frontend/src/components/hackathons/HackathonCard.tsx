@@ -1,80 +1,123 @@
 import { memo } from 'react';
 import { Calendar, MapPin, Trophy, Users, Clock, ExternalLink } from 'lucide-react';
-import { InfoItem } from './InfoItem';
-import { Tag } from './Tag';
-import { SourceBadge } from './SourceBadge';
 import type { Hackathon } from '../../types/hackathon';
+
 interface HackathonCardProps {
   hackathon: Hackathon;
 }
-export const HackathonCard = memo(function HackathonCard({
-  hackathon
-}: HackathonCardProps) {
-  const isSafeUrl = (url: string | undefined) => {
-    if (!url) return false;
-    try {
-      const parsed = new URL(url);
-      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  };
+
+const isSafeUrl = (url: string | undefined) => {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch { return false; }
+};
+
+function getDaysLabel(endDate: string) {
+  const diff = Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
+  if (diff < 0) return { label: 'Ended', urgent: false };
+  if (diff === 0) return { label: 'Ends today', urgent: true };
+  if (diff === 1) return { label: '1 day left', urgent: true };
+  if (diff <= 7) return { label: `${diff} days left`, urgent: true };
+  return { label: `${diff} days left`, urgent: false };
+}
+
+const SOURCE_COLORS: Record<string, string> = {
+  devpost: 'text-blue-400 bg-blue-400/[0.08] border-blue-400/20',
+  mlh: 'text-red-400 bg-red-400/[0.08] border-red-400/20',
+  devfolio: 'text-violet-400 bg-violet-400/[0.08] border-violet-400/20',
+};
+
+export const HackathonCard = memo(function HackathonCard({ hackathon }: HackathonCardProps) {
   const safeUrl = isSafeUrl(hackathon.url);
-  const getDaysToDeadline = () => {
-    const deadline = new Date(hackathon.endDate);
-    const today = new Date();
-    const diffTime = deadline.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return 'Ended';
-    if (diffDays === 0) return 'Ends today';
-    if (diffDays === 1) return '1 day remaining';
-    return `${diffDays} days remaining`;
-  };
-  const isUrgentDeadline = () => {
-    const deadline = new Date(hackathon.endDate);
-    const today = new Date();
-    const diffTime = deadline.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays <= 7;
-  };
-  return <div className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-100 dark:border-gray-700">
-      <div className="p-6">
-        <div className="flex justify-between items-start gap-4">
-          <div>
-            <h3 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+  const { label: daysLabel, urgent } = getDaysLabel(hackathon.endDate);
+  const sourceClass = SOURCE_COLORS[hackathon.source?.toLowerCase()] ?? 'text-gray-400 bg-white/[0.04] border-white/[0.08]';
+
+  return (
+    <div className="group px-6 py-5 hover:bg-white/[0.02] transition-colors">
+      {/* Top row: title + source + link */}
+      <div className="flex items-start justify-between gap-4 mb-1.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {safeUrl ? (
+            <a
+              href={hackathon.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-gray-200 hover:text-white transition-colors truncate leading-snug"
+            >
               {hackathon.title}
-            </h3>
-            <p className="mt-2 text-base leading-relaxed text-gray-600 dark:text-gray-300 line-clamp-2">
-              {hackathon.description}
-            </p>
-          </div>
-          <SourceBadge source={hackathon.source} />
+            </a>
+          ) : (
+            <span className="text-sm font-semibold text-gray-200 truncate leading-snug">{hackathon.title}</span>
+          )}
+          {hackathon.source && (
+            <span className={`shrink-0 inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-md border ${sourceClass}`}>
+              {hackathon.source}
+            </span>
+          )}
         </div>
-
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <InfoItem icon={Clock} text={getDaysToDeadline()} isDeadline={true} isUrgent={isUrgentDeadline()} />
-          <InfoItem icon={Calendar} text={hackathon.startDate} />
-          {hackathon.location && <InfoItem icon={MapPin} text={hackathon.location} />}
-          {hackathon.prize && <InfoItem icon={Trophy} text={hackathon.prize} />}
-          {hackathon.participantCount !== undefined && <InfoItem icon={Users} text={`${hackathon.participantCount} participants`} />}
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-2">
-          {hackathon.tags.map(tag => <Tag key={tag} text={tag} />)}
-        </div>
+        {safeUrl && (
+          <a
+            href={hackathon.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 p-1 text-gray-700 hover:text-gray-300 transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        )}
       </div>
 
-      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700">
-        {safeUrl ? (
-          <a href={hackathon.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors">
-            View Details
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        ) : (
-          <span className="inline-flex items-center gap-2 text-gray-400 dark:text-gray-500 font-semibold">
-            Details unavailable
+      {/* Description */}
+      <p className="text-xs text-gray-500 line-clamp-1 mb-3">{hackathon.description}</p>
+
+      {/* Meta */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-3">
+        <span className={`flex items-center gap-1.5 text-xs font-medium ${urgent ? 'text-red-400' : 'text-gray-500'}`}>
+          <Clock className={`w-3 h-3 ${urgent ? 'text-red-400' : 'text-gray-600'}`} />
+          {daysLabel}
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-gray-600">
+          <Calendar className="w-3 h-3" />
+          {hackathon.startDate}
+        </span>
+        {hackathon.location && (
+          <span className="flex items-center gap-1.5 text-xs text-gray-600">
+            <MapPin className="w-3 h-3" />
+            {hackathon.location}
+          </span>
+        )}
+        {hackathon.prize && (
+          <span className="flex items-center gap-1.5 text-xs text-amber-500">
+            <Trophy className="w-3 h-3" />
+            {hackathon.prize}
+          </span>
+        )}
+        {hackathon.participantCount !== undefined && (
+          <span className="flex items-center gap-1.5 text-xs text-gray-600">
+            <Users className="w-3 h-3" />
+            {hackathon.participantCount.toLocaleString()} participants
           </span>
         )}
       </div>
-    </div>;
+
+      {/* Tags */}
+      {hackathon.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {hackathon.tags.slice(0, 6).map(tag => (
+            <span
+              key={tag}
+              className="px-2 py-0.5 text-[10px] font-medium rounded-md bg-white/[0.04] border border-white/[0.06] text-gray-500"
+            >
+              {tag}
+            </span>
+          ))}
+          {hackathon.tags.length > 6 && (
+            <span className="text-[10px] text-gray-700 self-center">+{hackathon.tags.length - 6}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 });

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
-import { Star, MessageSquare, ExternalLink, Sparkles, Trophy, Filter } from 'lucide-react';
+import { Star, MessageSquare, ExternalLink, Sparkles, Loader2, ChevronDown, GitPullRequest } from 'lucide-react';
 import { getSuggestedIssues } from '../../services/github';
 import type { Issue } from '../../types/github';
 import { CardSkeletonList } from '../../components/skeletons';
@@ -12,7 +12,7 @@ import { getLabelColors } from '../dashboard/utils/filterUtils';
 import { formatRelativeDate } from '../../utils/formatDate';
 
 const LANGUAGES = [
-  { value: '', label: 'Any language' },
+  { value: '', label: 'Any Language' },
   { value: 'javascript', label: 'JavaScript' },
   { value: 'typescript', label: 'TypeScript' },
   { value: 'python', label: 'Python' },
@@ -27,15 +27,15 @@ const LANGUAGES = [
 ];
 
 const TIME_FRAMES = [
-  { value: 'week', label: 'Last week' },
-  { value: 'month', label: 'Last month' },
-  { value: 'year', label: 'Last year' },
-  { value: 'all', label: 'All time' },
+  { value: 'week', label: 'Last Week' },
+  { value: 'month', label: 'Last Month' },
+  { value: 'year', label: 'Last Year' },
+  { value: 'all', label: 'All Time' },
 ];
 
 const COMPETITION = [
-  { value: '0', label: 'No competition (0 comments)' },
-  { value: '1-5', label: 'Low (1–5 comments)' },
+  { value: '0', label: 'No Competition' },
+  { value: '1-5', label: 'Low (1–5)' },
   { value: '', label: 'Any' },
 ];
 
@@ -44,97 +44,153 @@ function formatStars(n: number): string {
   return String(n);
 }
 
-function StarBadge({ stars }: { stars?: number }) {
-  if (!stars) return null;
-  const tier =
-    stars >= 50000 ? 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' :
-    stars >= 10000 ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20' :
-    'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
-  return (
-    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${tier}`}>
-      <Star className="w-3 h-3 fill-current" />
-      {formatStars(stars)}
-    </span>
-  );
-}
-
-function IssueCard({
-  issue,
-  onOpen,
+/* ── FilterChip — same pattern as Dashboard ── */
+const FilterChip = ({
+  prefix, options, value, onChange, maxW = 'max-w-[220px]', defaultValue = '',
 }: {
-  issue: Issue;
-  onOpen: (issue: Issue) => void;
-}) {
+  prefix: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  maxW?: string;
+  defaultValue?: string;
+}) => {
+  const selected = options.find(o => o.value === value);
+  const selectedLabel = selected?.label ?? 'All';
+  const isActive = value !== defaultValue;
+
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex flex-col gap-3 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md transition-all">
-      {/* Repo header */}
-      <div className="flex items-center justify-between gap-2 min-w-0">
-        <button
-          onClick={() => onOpen(issue)}
-          className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline truncate"
-        >
-          {issue.repository?.fullName}
-        </button>
-        <StarBadge stars={issue.repoStars} />
+    <div className={`relative flex-1 min-w-[110px] ${maxW} h-8`}>
+      <div className={`absolute inset-0 flex items-center gap-1.5 px-3 rounded-lg border text-xs transition-all pointer-events-none ${
+        isActive
+          ? 'border-blue-500/40 bg-blue-500/[0.08]'
+          : 'border-white/[0.10] bg-[#111927]'
+      }`}>
+        <span className="text-gray-500 whitespace-nowrap">{prefix}:</span>
+        <span className={`font-medium truncate ${isActive ? 'text-blue-300' : 'text-gray-200'}`}>
+          {selectedLabel}
+        </span>
+        <ChevronDown className={`w-3 h-3 ml-auto shrink-0 ${isActive ? 'text-blue-400' : 'text-gray-600'}`} />
       </div>
-
-      {/* Issue title */}
-      <button
-        onClick={() => onOpen(issue)}
-        className="text-left text-gray-900 dark:text-white font-medium leading-snug hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="absolute inset-0 opacity-0 cursor-pointer w-full"
+        aria-label={prefix}
       >
-        {issue.title}
-      </button>
-
-      {/* Labels */}
-      {issue.labels.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {issue.labels.map(label => (
-            <span
-              key={label.name}
-              className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full"
-              style={getLabelColors(label.color)}
-            >
-              {label.name}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-1 mt-auto">
-        <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
-          <span className="flex items-center gap-1">
-            <MessageSquare className="w-3.5 h-3.5" />
-            {issue.commentsCount}
-          </span>
-          <span>{formatRelativeDate(issue.createdAt)}</span>
-          <span>#{issue.number}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onOpen(issue)}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors"
-          >
-            <Sparkles className="w-3 h-3" />
-            Explain
-          </button>
-          <a
-            href={issue.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            title="Open on GitHub"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
-      </div>
+        {options.map(o => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
     </div>
   );
+};
+
+/* ── Issue row ── */
+function IssueRow({ issue, onOpen }: { issue: Issue; onOpen: (issue: Issue) => void }) {
+  const stars = issue.repoStars;
+  const starTier =
+    stars && stars >= 50000 ? 'text-yellow-400 bg-yellow-400/[0.08] border-yellow-400/20' :
+    stars && stars >= 10000 ? 'text-amber-400 bg-amber-400/[0.08] border-amber-400/20' :
+    'text-gray-500 bg-white/[0.04] border-white/[0.06]';
+
+  const [repoOwner, repoName] = (issue.repository?.fullName ?? '').split('/');
+
+  return (
+    <tr className="group hover:bg-white/[0.025] transition-colors duration-100">
+      {/* Title */}
+      <td className="px-6 py-3.5">
+        <button onClick={() => onOpen(issue)} className="text-left w-full cursor-pointer">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors line-clamp-1 leading-snug">
+                {issue.title}
+              </p>
+              <p className="text-xs text-gray-600 mt-0.5">#{issue.number}</p>
+            </div>
+          </div>
+        </button>
+      </td>
+
+      {/* Repository */}
+      <td className="px-4 py-3.5">
+        <button onClick={() => onOpen(issue)} className="text-left w-full cursor-pointer group/repo">
+          {repoOwner && repoName ? (
+            <div className="min-w-0">
+              <p className="text-xs text-gray-600 truncate">{repoOwner}/</p>
+              <p className="text-xs font-medium text-gray-400 group-hover/repo:text-blue-400 transition-colors truncate leading-snug">{repoName}</p>
+            </div>
+          ) : (
+            <span className="text-xs text-gray-600 truncate">{issue.repository?.fullName}</span>
+          )}
+        </button>
+      </td>
+
+      {/* Labels */}
+      <td className="hidden md:table-cell px-4 py-3.5">
+        <div className="flex flex-wrap gap-1">
+          {issue.labels.length > 0
+            ? issue.labels.slice(0, 2).map(label => (
+              <span
+                key={label.name}
+                className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded-md truncate max-w-[100px]"
+                style={getLabelColors(label.color)}
+                title={label.name}
+              >
+                {label.name}
+              </span>
+            ))
+            : <span className="text-[10px] text-gray-700">—</span>}
+          {issue.labels.length > 2 && (
+            <span className="text-[10px] text-gray-600">+{issue.labels.length - 2}</span>
+          )}
+        </div>
+      </td>
+
+      {/* Stars */}
+      <td className="hidden lg:table-cell px-4 py-3.5">
+        {stars ? (
+          <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md border ${starTier}`}>
+            <Star className="w-2.5 h-2.5 fill-current" />
+            {formatStars(stars)}
+          </span>
+        ) : <span className="text-[10px] text-gray-700">—</span>}
+      </td>
+
+      {/* Created */}
+      <td className="hidden lg:table-cell px-4 py-3.5 text-center">
+        <span className="text-xs text-gray-600 whitespace-nowrap">{formatRelativeDate(issue.createdAt)}</span>
+      </td>
+
+      {/* Comments + actions */}
+      <td className="px-4 py-3.5">
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-xs text-gray-600 w-4 text-center">{issue.commentsCount || '—'}</span>
+          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => onOpen(issue)}
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-violet-400 bg-violet-400/[0.08] hover:bg-violet-400/[0.15] transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3" />
+              Explain
+            </button>
+            <a
+              href={issue.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="p-1 text-gray-600 hover:text-gray-300 transition-colors rounded"
+            >
+              <ExternalLink size={13} />
+            </a>
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
 }
 
+/* ── Page ── */
 const SuggestedIssues = () => {
   usePageTitle('Opportunities');
 
@@ -147,14 +203,8 @@ const SuggestedIssues = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
-    allComments,
-    isLoadingComments,
-    hasMoreComments,
-    isLoadingMore,
-    onLoadMore,
-    handleViewComments,
-    handleCloseComments,
-    handleAddComment,
+    allComments, isLoadingComments, hasMoreComments,
+    isLoadingMore, onLoadMore, handleViewComments, handleCloseComments, handleAddComment,
   } = useIssueComments();
 
   const handleOpenIssue = (issue: Issue) => {
@@ -194,131 +244,137 @@ const SuggestedIssues = () => {
   const [owner, repo] = (selectedIssue?.repository?.fullName ?? '').split('/');
 
   return (
-    <div className="w-full p-6 dark:bg-[#0B1222] mt-[64px]">
+    <div className="flex flex-col h-screen overflow-hidden">
+
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <Trophy className="w-5 h-5 text-amber-500" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Open Source Opportunities
-          </h1>
+      <div className="px-6 pt-6 pb-0 shrink-0">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-lg font-bold text-white">Suggested Issues</h1>
+            <p className="text-xs text-gray-600 mt-0.5">
+              {allIssues.length > 0
+                ? `${totalCount.toLocaleString()} issues found · showing ${allIssues.length}`
+                : 'Beginner-friendly issues curated for you'}
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Beginner-friendly issues from real projects — ready to contribute and add to your CV.
-        </p>
-      </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <Filter className="w-4 h-4 text-gray-400 shrink-0" />
-
-          <select
+        {/* Filter bar */}
+        <div className="flex items-center gap-2 pb-4 border-b border-white/[0.05]">
+          <FilterChip
+            prefix="Language"
+            options={LANGUAGES}
             value={language}
-            onChange={e => setLanguage(e.target.value)}
-            className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {LANGUAGES.map(l => (
-              <option key={l.value} value={l.value}>{l.label}</option>
-            ))}
-          </select>
-
-          <select
+            onChange={setLanguage}
+            maxW="max-w-[200px]"
+            defaultValue=""
+          />
+          <FilterChip
+            prefix="Time"
+            options={TIME_FRAMES}
             value={timeFrame}
-            onChange={e => setTimeFrame(e.target.value)}
-            className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {TIME_FRAMES.map(t => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-
-          <select
+            onChange={setTimeFrame}
+            maxW="max-w-[160px]"
+            defaultValue="month"
+          />
+          <FilterChip
+            prefix="Competition"
+            options={COMPETITION}
             value={commentsRange}
-            onChange={e => setCommentsRange(e.target.value)}
-            className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {COMPETITION.map(c => (
-              <option key={c.value} value={c.value}>{c.label}</option>
-            ))}
-          </select>
+            onChange={v => setCommentsRange(v)}
+            maxW="max-w-[210px]"
+            defaultValue="0"
+          />
 
-          <label className="flex items-center gap-2 cursor-pointer select-none ml-auto">
-            <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-              Famous repos only
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={famousOnly}
-              onClick={() => {
-                const next = !famousOnly;
-                setFamousOnly(next);
-                // Famous repos get comments fast — reset competition filter so results aren't empty
-                if (next) setCommentsRange('');
-              }}
-              className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                famousOnly ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                  famousOnly ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </label>
-        </div>
-      </div>
+          {/* Spacer absorbs remaining width */}
+          <div className="flex-1" />
 
-      {/* Results count */}
-      {!isLoading && allIssues.length > 0 && (
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
-          {totalCount.toLocaleString()} issues found · showing {allIssues.length}
-        </p>
-      )}
+          <div className="h-5 w-px bg-white/[0.08]" />
 
-      {/* Content */}
-      {isLoading && <CardSkeletonList count={6} />}
-
-      {!isLoading && error instanceof Error && (
-        <ErrorDisplay
-          title={isRateLimitError ? 'GitHub API rate limit exceeded' : 'Failed to load issues'}
-          error={isRateLimitError ? 'Please wait a few minutes before trying again.' : error.message}
-        />
-      )}
-
-      {!isLoading && !error && allIssues.length === 0 && (
-        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-          <Trophy className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No issues found for these filters. Try widening the time frame or removing the language filter.</p>
-        </div>
-      )}
-
-      {!isLoading && allIssues.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {allIssues.map(issue => (
-            <IssueCard
-              key={`${issue.repository?.fullName}-${issue.number}`}
-              issue={issue}
-              onOpen={handleOpenIssue}
-            />
-          ))}
-        </div>
-      )}
-
-      {hasNextPage && (
-        <div className="flex justify-center mt-8">
+          {/* Famous repos toggle */}
           <button
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
+            onClick={() => {
+              const next = !famousOnly;
+              setFamousOnly(next);
+              if (next) setCommentsRange('');
+            }}
+            className={`flex items-center gap-2 h-8 px-3 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+              famousOnly
+                ? 'border-amber-500/40 bg-amber-500/[0.08] text-amber-300'
+                : 'border-white/[0.10] bg-[#111927] text-gray-400 hover:border-white/[0.18] hover:text-gray-200'
+            }`}
           >
-            {isFetchingNextPage ? 'Loading…' : 'Load more'}
+            <Star className={`w-3 h-3 ${famousOnly ? 'fill-amber-400 text-amber-400' : 'text-gray-600'}`} />
+            Famous only
           </button>
         </div>
-      )}
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
+        {isLoading ? (
+          <div className="p-6"><CardSkeletonList count={6} /></div>
+        ) : error instanceof Error ? (
+          <div className="p-6">
+            <ErrorDisplay
+              title={isRateLimitError ? 'GitHub API rate limit exceeded' : 'Failed to load issues'}
+              error={isRateLimitError ? 'Please wait a few minutes before trying again.' : error.message}
+            />
+          </div>
+        ) : allIssues.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
+              <GitPullRequest className="w-4 h-4 text-gray-600" />
+            </div>
+            <p className="text-sm text-gray-400">No issues found for these filters</p>
+            <p className="text-xs text-gray-600 mt-1">Try widening the time frame or removing the language filter</p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-[#0B1222] border-b border-white/[0.06]">
+                    <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[36%]">Title</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[16%]">Repository</th>
+                    <th className="hidden md:table-cell px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[18%]">Labels</th>
+                    <th className="hidden lg:table-cell px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[10%]">Stars</th>
+                    <th className="hidden lg:table-cell px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[10%]">Created</th>
+                    <th className="px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[10%]">
+                      <MessageSquare className="w-3 h-3 mx-auto" />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {allIssues.map(issue => (
+                    <IssueRow
+                      key={`${issue.repository?.fullName}-${issue.number}`}
+                      issue={issue}
+                      onOpen={handleOpenIssue}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {hasNextPage && (
+              <div className="flex justify-center py-5 border-t border-white/[0.04]">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm text-gray-400 border border-white/[0.08] hover:border-white/[0.15] hover:text-white disabled:opacity-40 transition-all cursor-pointer"
+                >
+                  {isFetchingNextPage ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Loading…</> : 'Load more'}
+                </button>
+              </div>
+            )}
+
+            {!hasNextPage && allIssues.length > 0 && (
+              <p className="text-center text-xs text-gray-700 py-5 border-t border-white/[0.04]">All issues loaded</p>
+            )}
+          </>
+        )}
+      </div>
 
       <IssueDetailsModal
         isOpen={isModalOpen}

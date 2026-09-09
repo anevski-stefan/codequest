@@ -27,10 +27,10 @@ const AppRoutes = () => {
   return <ErrorBoundary resetKey={location.pathname}>
       <Suspense fallback={<PageFallback />}>
       <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/dashboard" element={<PrivateRoute>
                 <Dashboard />
               </PrivateRoute>} />

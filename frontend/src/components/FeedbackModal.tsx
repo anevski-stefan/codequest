@@ -1,82 +1,120 @@
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { X } from 'lucide-react';
+import { X, MessageSquare, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../services/github';
+
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-export default function FeedbackModal({
-  isOpen,
-  onClose
-}: FeedbackModalProps) {
+
+export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
     try {
       setStatus('loading');
       setErrorMessage('');
-      await api.post('/api/feedback', {
-        message
-      });
+      await api.post('/api/feedback', { message });
       setStatus('success');
       setMessage('');
-      setTimeout(() => {
-        onClose();
-        setStatus('idle');
-      }, 2000);
+      setTimeout(() => { onClose(); setStatus('idle'); }, 2000);
     } catch {
       setStatus('error');
-      setErrorMessage('Failed to send feedback. Please try again later.');
+      setErrorMessage('Failed to send feedback. Please try again.');
     }
   };
-  return <Dialog open={isOpen} onClose={onClose} className="relative z-50">
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75" aria-hidden="true" />
 
-      <div className="fixed inset-0 flex items-center justify-center p-4 text-center sm:p-0">
-        <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-          <div className="absolute right-0 top-0 pr-4 pt-4">
-            <button onClick={onClose} aria-label="Close feedback modal" className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none">
-              <X className="h-6 w-6" />
-            </button>
+  return (
+    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <Dialog.Panel className="relative w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#0D1525] shadow-2xl shadow-black/50">
+
+          {/* Close */}
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/[0.05] transition-all cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          {/* Header */}
+          <div className="px-6 pt-6 pb-5 border-b border-white/[0.05]">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                <MessageSquare className="w-4 h-4 text-blue-400" />
+              </div>
+              <div>
+                <Dialog.Title className="text-sm font-semibold text-white">Send Feedback</Dialog.Title>
+                <p className="text-xs text-gray-600 mt-0.5">Your thoughts help us improve Code Quest</p>
+              </div>
+            </div>
           </div>
 
-          <div className="sm:flex sm:items-start">
-            <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
-              <Dialog.Title className="text-lg font-semibold leading-6 text-gray-900 dark:text-white">
-                Send Feedback
-              </Dialog.Title>
-              <div className="mt-2">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  We'd love to hear your thoughts about the app. Your feedback helps us improve!
-                </p>
+          {/* Body */}
+          <div className="px-6 py-5">
+            {status === 'success' ? (
+              <div className="flex flex-col items-center justify-center py-6 gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6 text-green-400" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-white">Thanks for the feedback!</p>
+                  <p className="text-xs text-gray-600 mt-1">We read every message carefully.</p>
+                </div>
               </div>
-
-              <form onSubmit={handleSubmit} className="mt-4">
-                <label htmlFor="feedback-message" className="sr-only">
-                  Your feedback
+            ) : (
+              <form onSubmit={handleSubmit}>
+                <label htmlFor="feedback-message" className="block text-[10px] font-semibold text-gray-600 uppercase tracking-widest mb-2">
+                  Your message
                 </label>
-                <textarea id="feedback-message" value={message} onChange={e => setMessage(e.target.value)} rows={4} className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white p-4" placeholder="Your feedback..." required />
+                <textarea
+                  id="feedback-message"
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  rows={5}
+                  placeholder="What's on your mind? Bug reports, feature ideas, or anything else…"
+                  required
+                  className="w-full rounded-xl bg-[#111927] border border-white/[0.08] text-sm text-gray-300 placeholder-gray-700 p-4 resize-none focus:outline-none focus:border-blue-500/50 transition-all leading-relaxed"
+                />
 
-                {(status === 'error' || status === 'success') && <div className={`mt-2 text-sm ${status === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {status === 'success' ? 'Feedback sent successfully!' : errorMessage}
-                  </div>}
+                {status === 'error' && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-red-400">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    {errorMessage}
+                  </div>
+                )}
 
-                <div className="mt-4 flex justify-end gap-3">
-                  <button type="button" onClick={onClose} className="rounded-md px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <div className="mt-4 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-200 hover:bg-white/[0.05] transition-all cursor-pointer"
+                  >
                     Cancel
                   </button>
-                  <button type="submit" disabled={status === 'loading'} className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-                    {status === 'loading' ? 'Sending...' : status === 'success' ? 'Sent!' : 'Send Feedback'}
+                  <button
+                    type="submit"
+                    disabled={status === 'loading' || !message.trim()}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  >
+                    {status === 'loading' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {status === 'loading' ? 'Sending…' : 'Send Feedback'}
                   </button>
                 </div>
               </form>
-            </div>
+            )}
           </div>
         </Dialog.Panel>
       </div>
-    </Dialog>;
+    </Dialog>
+  );
 }
