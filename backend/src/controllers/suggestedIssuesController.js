@@ -18,23 +18,30 @@ const FAMOUS_ORGS_B = [
 
 // In-process star count cache
 const starsCache = new Map();
+const starsInflight = new Map();
 const STARS_TTL = 60 * 60 * 1000;
 
 async function getRepoStars(accessToken, fullName) {
   const now = Date.now();
   const cached = starsCache.get(fullName);
   if (cached && now - cached.ts < STARS_TTL) return cached.stars;
-  try {
-    const data = await GitHubService.request(accessToken, 'GET', `/repos/${fullName}`);
-    const stars = data?.stargazers_count ?? 0;
-    for (const [key, val] of starsCache) {
-      if (now - val.ts >= STARS_TTL) starsCache.delete(key);
-    }
-    starsCache.set(fullName, { stars, ts: now });
-    return stars;
-  } catch {
-    return 0;
-  }
+
+  if (starsInflight.has(fullName)) return starsInflight.get(fullName);
+
+  const promise = GitHubService.request(accessToken, 'GET', `/repos/${fullName}`)
+    .then(data => {
+      const stars = data?.stargazers_count ?? 0;
+      for (const [key, val] of starsCache) {
+        if (Date.now() - val.ts >= STARS_TTL) starsCache.delete(key);
+      }
+      starsCache.set(fullName, { stars, ts: Date.now() });
+      return stars;
+    })
+    .catch(() => 0)
+    .finally(() => starsInflight.delete(fullName));
+
+  starsInflight.set(fullName, promise);
+  return promise;
 }
 
 function buildBaseQuery({ language, commentsRange, timeFrame }) {
