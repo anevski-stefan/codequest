@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { formatRelativeDate } from '../utils/formatDate';
 import { getLabelColors } from '../features/dashboard/utils/filterUtils';
 import { CommentsList } from './comments/CommentsList';
+import { useCommentSorting } from '../hooks/useCommentSorting';
 import { explainIssue } from '../services/github';
 import type { Issue } from '../types/github';
 import type { Comment } from '../types/comments';
@@ -59,6 +60,7 @@ export default function IssueDetailsModal({
   isOpen, onClose, issue, comments, isLoadingComments, hasMoreComments,
   isLoadingMore, onLoadMore, onAddComment, owner, repo, repoLanguage, repoDescription,
 }: Props) {
+  const sortedComments = useCommentSorting(comments);
   const [explanation, setExplanation] = useState('');
   const [isExplaining, setIsExplaining] = useState(false);
   const [explainError, setExplainError] = useState<string | null>(null);
@@ -219,7 +221,7 @@ export default function IssueDetailsModal({
                     </div>
                   ) : (
                     <CommentsList
-                      comments={comments}
+                      comments={sortedComments}
                       isLoading={false}
                       hasMoreComments={hasMoreComments}
                       isLoadingMore={isLoadingMore}
