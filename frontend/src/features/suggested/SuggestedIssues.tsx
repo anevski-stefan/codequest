@@ -38,9 +38,9 @@ const TIME_FRAMES = [
 ];
 
 const COMPETITION = [
+  { value: '', label: 'Any' },
   { value: '0', label: 'No Competition' },
   { value: '1-5', label: 'Low (1–5)' },
-  { value: '', label: 'Any' },
 ];
 
 /* ── Issue row ── */
@@ -126,7 +126,7 @@ const SuggestedIssues = () => {
 
   const [language, setLanguage] = useState('');
   const [timeFrame, setTimeFrame] = useState('month');
-  const [commentsRange, setCommentsRange] = useState('0');
+  const [commentsRange, setCommentsRange] = useState('');
   const [famousOnly, setFamousOnly] = useState(false);
 
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
@@ -221,11 +221,7 @@ const SuggestedIssues = () => {
 
           {/* Famous repos toggle */}
           <button
-            onClick={() => {
-              const next = !famousOnly;
-              setFamousOnly(next);
-              if (next) setCommentsRange('');
-            }}
+            onClick={() => setFamousOnly(prev => !prev)}
             className={`flex items-center gap-2 h-8 px-3 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
               famousOnly
                 ? 'border-amber-500/40 bg-amber-500/[0.08] text-amber-300'
