@@ -157,6 +157,11 @@ class GitHubService {
     return response.status === 200;
   }
 
+  static invalidate(token, path, params) {
+    const key = GitHubService.cacheKey(token, 'GET', path, params);
+    cache.del(key);
+  }
+
   static async searchIssues(token, query, options = {}) {
     return GitHubService.request(token, 'GET', '/search/issues', {
       params: {
