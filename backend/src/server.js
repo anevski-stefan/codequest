@@ -27,6 +27,7 @@ const {
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const aiKeysRoutes = require('./routes/aiKeysRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const SupabaseSessionStore = require('./utils/supabaseSessionStore');
 const app = express();
 
@@ -130,6 +131,7 @@ app.use('/api/hackathons', hackathonRoutes);
 app.use('/api/newsletter', newsletterLimiter, newsletterRoutes);
 app.use('/api/feedback', feedbackLimiter, feedbackRoutes);
 app.use('/api/ai-keys', aiKeysLimiter, aiKeysRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not found'
