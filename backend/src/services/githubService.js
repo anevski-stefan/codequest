@@ -125,6 +125,9 @@ class GitHubService {
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
       }
+      if (staleEntry && isRetryableStatus(lastError?.response?.status)) {
+        return staleEntry;
+      }
       throw new (require('../utils/httpError').GitHubApiError)('GitHub API request failed', lastError);
     };
 
