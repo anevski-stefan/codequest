@@ -49,7 +49,7 @@ const MyAssignedIssues = () => {
   const issues: Issue[] = data?.issues ?? [];
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
 
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-white/[0.05] shrink-0">

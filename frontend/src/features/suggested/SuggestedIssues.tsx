@@ -171,7 +171,7 @@ const SuggestedIssues = () => {
   const [owner, repo] = (selectedIssue?.repository?.fullName ?? '').split('/');
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
 
       <div className="px-6 pt-6 pb-0 shrink-0">
         <div className="flex items-center justify-between mb-4">
