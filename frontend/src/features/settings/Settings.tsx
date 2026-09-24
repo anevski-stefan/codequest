@@ -108,10 +108,10 @@ export default function SettingsPage() {
             return (
               <div
                 key={value}
-                className={`flex items-start gap-8 px-6 py-6 transition-colors ${active ? 'bg-blue-500/[0.02]' : ''}`}
+                className={`flex flex-col sm:flex-row items-start gap-4 sm:gap-8 px-6 py-6 transition-colors ${active ? 'bg-blue-500/[0.02]' : ''}`}
               >
                 {/* Left: info */}
-                <div className="w-64 shrink-0">
+                <div className="w-full sm:w-64 sm:shrink-0">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-sm font-medium text-gray-200">{label}</p>
                     {badge && (
@@ -131,7 +131,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Right: controls */}
-                <div className="flex-1 flex items-start gap-4">
+                <div className="w-full sm:flex-1 flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
                   <button
                     onClick={() => setSelectedService(value)}
                     className={`flex items-center gap-2.5 px-4 py-2 rounded-lg border text-sm font-medium cursor-pointer transition-all shrink-0 ${

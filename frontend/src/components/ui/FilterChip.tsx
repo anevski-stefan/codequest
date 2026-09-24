@@ -19,7 +19,7 @@ const FilterChip = ({ prefix, options, value, onChange, maxW = '', defaultValue 
   const isActive = value !== defaultValue;
 
   return (
-    <div className={`relative flex-1 min-w-[110px] ${maxW} h-8`}>
+    <div className={`relative flex-1 min-w-[100px] ${maxW} h-9`}>
       <div className={`absolute inset-0 flex items-center gap-1.5 px-3 rounded-lg border text-xs transition-all pointer-events-none ${
         isActive
           ? 'border-blue-500/40 bg-blue-500/[0.08]'

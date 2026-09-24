@@ -296,7 +296,7 @@ const Explore = () => {
           {/* Contributors cards */}
           {mode === 'contributors' && (
             isLoading && contributors.length === 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 p-6">
                 {[...Array(10)].map((_, i) => (
                   <div key={i} className="animate-pulse flex flex-col items-center gap-2.5 p-5 rounded-xl bg-[#0D1525] border border-white/[0.06]">
                     <div className="w-14 h-14 rounded-full bg-white/[0.06]" />
@@ -307,7 +307,7 @@ const Explore = () => {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 p-6">
                   {contributors.map((user: GithubUser) => (
                     <div
                       key={user.id}

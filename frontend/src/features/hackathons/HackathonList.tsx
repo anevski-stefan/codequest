@@ -125,7 +125,7 @@ export default function HackathonList() {
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 border border-white/[0.08] rounded-lg hover:border-white/[0.15] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
-                  Previous
+                  <span className="hidden sm:inline">Previous</span>
                 </button>
                 <span className="text-xs text-gray-600">
                   Page {data.currentPage} of {data.totalPages}
@@ -135,7 +135,7 @@ export default function HackathonList() {
                   disabled={page >= data.totalPages}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 border border-white/[0.08] rounded-lg hover:border-white/[0.15] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                 >
-                  Next
+                  <span className="hidden sm:inline">Next</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
