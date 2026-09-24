@@ -8,6 +8,7 @@ import {
 import type { RootState } from '../store';
 import { useState, ReactNode } from 'react';
 import FeedbackModal from './FeedbackModal';
+import { NotificationsDropdown } from './ui/NotificationsDropdown';
 
 interface LayoutProps {
   children?: ReactNode;
@@ -159,8 +160,11 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </div>
         {user && (
-          <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10">
-            <img src={user.avatar_url} alt={user.login} className="w-full h-full object-cover" />
+          <div className="flex items-center gap-3">
+            <NotificationsDropdown />
+            <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-white/10">
+              <img src={user.avatar_url} alt={user.login} className="w-full h-full object-cover" />
+            </div>
           </div>
         )}
       </header>
@@ -177,7 +181,12 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* Main content */}
       <div className="lg:pl-56 flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 pt-14 lg:pt-0 w-full">
+        {/* Desktop Header */}
+        <header className="hidden lg:flex h-14 items-center justify-end px-6 border-b border-white/[0.05]" style={{ background: '#0B1222' }}>
+          <NotificationsDropdown />
+        </header>
+
+        <main className="flex-1 flex flex-col w-full h-[calc(100vh-3.5rem)] lg:pt-0 pt-14">
           {children || <Outlet />}
         </main>
       </div>

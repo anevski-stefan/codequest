@@ -19,6 +19,7 @@ const AssignedIssuesPage = lazyWithRetry(() => import('./features/assigned/MyAss
 const StarredRepos = lazyWithRetry(() => import('./features/starred/StarredRepos'));
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'));
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'));
+const NotificationsPage = lazyWithRetry(() => import('./features/notifications/NotificationsPage').then(module => ({ default: module.NotificationsPage })));
 const PageFallback = () => <div className="flex items-center justify-center min-h-screen">
     <LoadingSpinner />
   </div>;
@@ -60,6 +61,9 @@ const AppRoutes = () => {
               </PrivateRoute>} />
           <Route path="/starred" element={<PrivateRoute>
                 <StarredRepos />
+              </PrivateRoute>} />
+          <Route path="/notifications" element={<PrivateRoute>
+                <NotificationsPage />
               </PrivateRoute>} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
