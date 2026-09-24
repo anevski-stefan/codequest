@@ -72,7 +72,7 @@ export default function SettingsPage() {
   const setKeyFor = (s: AIService, v: string) => s === 'gemini' ? setGeminiKey(v) : setChatgptKey(v);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
 
       {/* Header */}
       <div className="px-6 pt-6 pb-0 shrink-0">

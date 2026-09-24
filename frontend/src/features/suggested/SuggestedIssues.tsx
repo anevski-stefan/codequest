@@ -172,7 +172,7 @@ const SuggestedIssues = () => {
   const [owner, repo] = (selectedIssue?.repository?.fullName ?? '').split('/');
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
 
       {/* Header */}
       <div className="px-6 pt-6 pb-0 shrink-0">

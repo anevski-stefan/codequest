@@ -172,7 +172,7 @@ const RepositoryDetails = () => {
     : { label: 'Low', cls: 'text-green-400 bg-green-500/10 border-green-500/20', tip: 'Contributions are spread across many people.' };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Repo header ── */}
       <div className="shrink-0 border-b border-white/[0.05] px-6 pt-5 pb-4">
