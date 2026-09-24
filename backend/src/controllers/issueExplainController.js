@@ -14,6 +14,20 @@ const MAX_BODY_CHARS = 6000;
 
 const SKIP_FILE_PATTERNS = [/\.d\.ts$/, /types?\.(ts|js)$/, /interfaces?\.(ts|js)$/, /\.lock$/, /\.snap$/, /\.min\.(js|css)$/, /\.map$/];
 
+const searchBucket = { count: 0, resetAt: 0 };
+const SEARCH_MAX_PER_MIN = 25;
+
+function canSearch() {
+  const now = Date.now();
+  if (now > searchBucket.resetAt) {
+    searchBucket.count = 0;
+    searchBucket.resetAt = now + 60000;
+  }
+  if (searchBucket.count >= SEARCH_MAX_PER_MIN) return false;
+  searchBucket.count++;
+  return true;
+}
+
 function isSkippableFile(path) {
   return SKIP_FILE_PATTERNS.some(re => re.test(path));
 }
@@ -66,10 +80,13 @@ async function fetchFileContent(accessToken, owner, repo, filePath) {
 }
 
 async function searchRelevantFiles(accessToken, owner, repo, keywords, excludePaths) {
-  if (!keywords.length) return [];
+  if (!keywords.length || !canSearch()) return [];
   try {
     const q = `${keywords.join(' ')} repo:${owner}/${repo}`;
-    const result = await GitHubService.request(accessToken, 'GET', '/search/code', { params: { q, per_page: 10 } });
+    const result = await GitHubService.request(accessToken, 'GET', '/search/code', {
+      params: { q, per_page: 10 },
+      cacheTtlMs: 60 * 60 * 1000,
+    });
     if (!Array.isArray(result?.items)) return [];
     return result.items
       .map(item => item.path)
@@ -90,7 +107,6 @@ exports.explainIssue = asyncHandler(async (req, res) => {
     return sendError(res, 402, 'No Gemini key configured. Add your Gemini API key in Settings to use this feature.');
   }
 
-  // Phase 1: extract backtick paths + keywords, fetch README + backtick files in parallel
   const backtickPaths = extractFilePaths(issueBody || '');
   const keywords = extractKeywords(issueTitle);
 
@@ -107,7 +123,6 @@ exports.explainIssue = asyncHandler(async (req, res) => {
     .map(r => r.value);
   const fetchedPaths = new Set(fetchedByBacktick.map(f => f.path));
 
-  // Phase 2: code search for additional relevant files not already fetched
   const searchPaths = await searchRelevantFiles(req.user.accessToken, owner, repo, keywords, fetchedPaths);
   const searchResults = await Promise.allSettled(
     searchPaths.map(p =>

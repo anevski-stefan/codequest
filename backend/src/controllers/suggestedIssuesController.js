@@ -1,10 +1,8 @@
 const GitHubService = require('../services/githubService');
 const { asyncHandler, sendError } = require('../utils/httpError');
 
-// Comma-separated label values = OR in GitHub search
 const LABEL_OR = '"good first issue","good-first-issue","help wanted","help-wanted","beginner","first-timers-only","easy","up-for-grabs"';
 
-// 30 well-known orgs, split into two batches so each query stays under GitHub's length limit
 const FAMOUS_ORGS_A = [
   'microsoft', 'google', 'facebook', 'meta', 'vercel',
   'vuejs', 'sveltejs', 'angular', 'tailwindlabs', 'vitejs',
@@ -16,32 +14,9 @@ const FAMOUS_ORGS_B = [
   'prisma', 'storybookjs', 'mozilla', 'huggingface', 'langchain-ai',
 ];
 
-// In-process star count cache
-const starsCache = new Map();
-const starsInflight = new Map();
-const STARS_TTL = 60 * 60 * 1000;
-
 async function getRepoStars(accessToken, fullName) {
-  const now = Date.now();
-  const cached = starsCache.get(fullName);
-  if (cached && now - cached.ts < STARS_TTL) return cached.stars;
-
-  if (starsInflight.has(fullName)) return starsInflight.get(fullName);
-
-  const promise = GitHubService.request(accessToken, 'GET', `/repos/${fullName}`)
-    .then(data => {
-      const stars = data?.stargazers_count ?? 0;
-      for (const [key, val] of starsCache) {
-        if (Date.now() - val.ts >= STARS_TTL) starsCache.delete(key);
-      }
-      starsCache.set(fullName, { stars, ts: Date.now() });
-      return stars;
-    })
-    .catch(() => 0)
-    .finally(() => starsInflight.delete(fullName));
-
-  starsInflight.set(fullName, promise);
-  return promise;
+  const data = await GitHubService.request(accessToken, 'GET', `/repos/${fullName}`).catch(() => null);
+  return data?.stargazers_count ?? 0;
 }
 
 function buildBaseQuery({ language, commentsRange, timeFrame }) {

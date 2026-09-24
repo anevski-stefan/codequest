@@ -1,7 +1,7 @@
 const GitHubService = require('../services/githubService');
 const { sendError } = require('../utils/httpError');
 
-const TOKEN_VALIDITY_WINDOW_MS = 60 * 1000;
+const TOKEN_VALIDITY_WINDOW_MS = 10 * 60 * 1000;
 
 const requireAuth = (req, res, next) => {
   if (!req.user || !req.user.accessToken) {
