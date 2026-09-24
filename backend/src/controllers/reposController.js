@@ -52,12 +52,14 @@ exports.starRepo = asyncHandler(async (req, res) => {
     data: '',
     headers: { 'Content-Length': '0' },
   });
+  githubService.invalidate(req.user.accessToken, `/user/starred/${owner}/${repo}`);
   res.status(204).end();
 });
 
 exports.unstarRepo = asyncHandler(async (req, res) => {
   const { owner, repo } = req.params;
   await githubService.request(req.user.accessToken, 'DELETE', `/user/starred/${owner}/${repo}`);
+  githubService.invalidate(req.user.accessToken, `/user/starred/${owner}/${repo}`);
   res.status(204).end();
 });
 
