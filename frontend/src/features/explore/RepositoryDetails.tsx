@@ -292,7 +292,7 @@ const RepositoryDetails = () => {
         )}
 
         {/* Metric cards */}
-        <div className="grid grid-cols-3 gap-4 px-6 pt-5 pb-0">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 px-6 pt-5 pb-0">
 
           {/* Contributor Confidence */}
           <div className="rounded-xl bg-[#0D1525] border border-white/[0.07] p-5 flex flex-col">
@@ -386,7 +386,7 @@ const RepositoryDetails = () => {
           </div>
         </div>
 
-        <div className="flex gap-0 mt-5">
+        <div className="flex flex-col lg:flex-row gap-0 mt-5">
 
           <div className="flex-1 min-w-0 px-6 pb-8">
 
