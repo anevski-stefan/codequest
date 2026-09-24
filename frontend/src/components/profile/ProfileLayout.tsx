@@ -57,77 +57,80 @@ const ProfileLayout = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'repositories'>('overview');
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
 
       {/* Hero */}
-      <div className="shrink-0 border-b border-white/[0.05] px-8 pt-7 pb-6">
-        <div className="flex items-start gap-6">
+      <div className="shrink-0 border-b border-white/[0.05] px-4 sm:px-8 pt-7 pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6">
 
-          <img
-            src={user.avatar_url}
-            alt={user.name || user.login}
-            width={72} height={72}
-            decoding="async"
-            className="w-[72px] h-[72px] rounded-2xl ring-2 ring-white/[0.08] shrink-0"
-          />
+          <div className="flex items-start gap-4 sm:contents">
+            <img
+              src={user.avatar_url}
+              alt={user.name || user.login}
+              width={72} height={72}
+              decoding="async"
+              className="w-[72px] h-[72px] rounded-2xl ring-2 ring-white/[0.08] shrink-0"
+            />
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-bold text-white leading-tight">{user.name ?? user.login}</h1>
-              <span className="text-sm text-gray-600">@{user.login}</span>
-              {user.hireable && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-green-500/10 border border-green-500/20 text-green-400">
-                  <Briefcase className="w-2.5 h-2.5" />
-                  Available for hire
-                </span>
+            <div className="flex-1 min-w-0 sm:flex-1">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-xl font-bold text-white leading-tight">{user.name ?? user.login}</h1>
+                <span className="text-sm text-gray-600">@{user.login}</span>
+                {user.hireable && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-green-500/10 border border-green-500/20 text-green-400">
+                    <Briefcase className="w-2.5 h-2.5" />
+                    Available for hire
+                  </span>
+                )}
+              </div>
+
+              {user.bio && (
+                <p className="mt-1.5 text-sm text-gray-500 leading-relaxed max-w-xl">{user.bio}</p>
               )}
-            </div>
 
-            {user.bio && (
-              <p className="mt-1.5 text-sm text-gray-500 leading-relaxed max-w-xl">{user.bio}</p>
-            )}
-
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              {user.company && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                {user.company && (
+                  <span className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <Building className="w-3.5 h-3.5 text-gray-700" />{user.company}
+                  </span>
+                )}
+                {user.location && (
+                  <span className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <MapPin className="w-3.5 h-3.5 text-gray-700" />{user.location}
+                  </span>
+                )}
+                {user.blog && (
+                  <a href={formatUrl(user.blog)} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                    <LinkIcon className="w-3.5 h-3.5" />{formatDisplayUrl(user.blog)}
+                  </a>
+                )}
+                {user.twitter_username && (
+                  <a href={`https://twitter.com/${user.twitter_username}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                    <XIcon className="w-3.5 h-3.5" />@{user.twitter_username}
+                  </a>
+                )}
                 <span className="flex items-center gap-1.5 text-xs text-gray-600">
-                  <Building className="w-3.5 h-3.5 text-gray-700" />{user.company}
+                  <Calendar className="w-3.5 h-3.5 text-gray-700" />
+                  Joined {new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </span>
-              )}
-              {user.location && (
-                <span className="flex items-center gap-1.5 text-xs text-gray-600">
-                  <MapPin className="w-3.5 h-3.5 text-gray-700" />{user.location}
-                </span>
-              )}
-              {user.blog && (
-                <a href={formatUrl(user.blog)} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors">
-                  <LinkIcon className="w-3.5 h-3.5" />{formatDisplayUrl(user.blog)}
+                <a href={`https://github.com/${user.login}`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition-colors">
+                  <ExternalLink className="w-3.5 h-3.5" />GitHub
                 </a>
-              )}
-              {user.twitter_username && (
-                <a href={`https://twitter.com/${user.twitter_username}`} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors">
-                  <XIcon className="w-3.5 h-3.5" />@{user.twitter_username}
-                </a>
-              )}
-              <span className="flex items-center gap-1.5 text-xs text-gray-600">
-                <Calendar className="w-3.5 h-3.5 text-gray-700" />
-                Joined {new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </span>
-              <a href={`https://github.com/${user.login}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition-colors">
-                <ExternalLink className="w-3.5 h-3.5" />GitHub
-              </a>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-px shrink-0 rounded-xl overflow-hidden border border-white/[0.07]">
+          {/* Stats — below avatar+info on mobile, inline on sm+ */}
+          <div className="flex items-center gap-px shrink-0 rounded-xl overflow-hidden border border-white/[0.07] self-start">
             {statItems.map(({ label, value, onClick }) => (
               <button
                 key={label}
                 onClick={onClick}
                 disabled={!onClick}
-                className={`flex flex-col items-center px-5 py-3 bg-[#0D1525] border-r border-white/[0.07] last:border-r-0 transition-colors ${
+                className={`flex flex-col items-center px-4 sm:px-5 py-3 bg-[#0D1525] border-r border-white/[0.07] last:border-r-0 transition-colors ${
                   onClick ? 'hover:bg-white/[0.04] cursor-pointer' : 'cursor-default'
                 }`}
               >
@@ -145,7 +148,7 @@ const ProfileLayout = ({
       <div className="flex flex-1 overflow-hidden">
 
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <div className="px-6 border-b border-white/[0.05] shrink-0">
+          <div className="px-4 sm:px-6 border-b border-white/[0.05] shrink-0">
             <div className="flex items-center gap-1">
               {(['overview', 'repositories'] as const).map(tab => (
                 <button
@@ -162,18 +165,18 @@ const ProfileLayout = ({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-5">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
             {activeTab === 'overview' ? (
               <>
                 <p className="text-[10px] font-semibold text-gray-700 uppercase tracking-widest mb-4">Popular Repositories</p>
                 {reposLoading ? (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[...Array(6)].map((_, i) => (
                       <div key={i} className="animate-pulse p-4 rounded-xl bg-[#0D1525] border border-white/[0.06] h-28" />
                     ))}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {(repos ?? []).slice(0, 6).map(repo => {
                       const langColor = LANGUAGE_COLORS[repo.language ?? ''] ?? '#6b7280';
                       return (
@@ -244,7 +247,7 @@ const ProfileLayout = ({
         </div>
 
         {/* Activity sidebar */}
-        <div className="w-80 shrink-0 border-l border-white/[0.05] flex flex-col overflow-hidden">
+        <div className="hidden lg:flex w-80 shrink-0 border-l border-white/[0.05] flex-col overflow-hidden">
           <div className="px-5 pt-5 pb-3 shrink-0">
             <div className="flex items-center gap-2">
               <Activity className="w-3.5 h-3.5 text-gray-700" />

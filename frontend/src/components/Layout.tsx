@@ -136,7 +136,7 @@ const Layout = ({ children }: LayoutProps) => {
   const { user } = useSelector((state: RootState) => state.auth);
 
   return (
-    <div className="min-h-screen flex bg-[#0B1222]">
+    <div className="h-screen flex overflow-hidden bg-[#0B1222]">
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-56 lg:z-40 border-r border-white/[0.05]" style={{ background: '#080D18' }}>
@@ -180,7 +180,7 @@ const Layout = ({ children }: LayoutProps) => {
       )}
 
       {/* Main content */}
-      <div className="lg:pl-56 flex-1 flex flex-col min-h-screen">
+      <div className="lg:pl-56 flex-1 flex flex-col min-w-0 min-h-0">
         {/* Desktop Header */}
         <header className="hidden lg:flex h-14 items-center justify-end px-6 border-b border-white/[0.05]" style={{ background: '#0B1222' }}>
           <NotificationsDropdown />
