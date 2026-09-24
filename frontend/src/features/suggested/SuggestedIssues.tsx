@@ -188,7 +188,7 @@ const SuggestedIssues = () => {
         </div>
 
         {/* Filter bar */}
-        <div className="flex items-center gap-2 pb-4 border-b border-white/[0.05]">
+        <div className="flex flex-wrap items-center gap-2 pb-4 border-b border-white/[0.05]">
           <FilterChip
             prefix="Language"
             options={LANGUAGES}
@@ -222,7 +222,7 @@ const SuggestedIssues = () => {
           {/* Famous repos toggle */}
           <button
             onClick={() => setFamousOnly(prev => !prev)}
-            className={`flex items-center gap-2 h-8 px-3 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-2 h-9 px-3 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
               famousOnly
                 ? 'border-amber-500/40 bg-amber-500/[0.08] text-amber-300'
                 : 'border-white/[0.10] bg-[#111927] text-gray-400 hover:border-white/[0.18] hover:text-gray-200'

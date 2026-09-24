@@ -106,7 +106,7 @@ const Login = () => {
 
       {/* Main content */}
       <div className="absolute inset-0 flex items-center justify-center px-4 sm:px-6 pt-20">
-        <div className="w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+        <div className="w-full max-w-6xl mx-auto grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-20 items-center">
 
           {/* Left — Hero */}
           <div className="flex flex-col gap-8">

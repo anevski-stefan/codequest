@@ -163,7 +163,7 @@ const Dashboard = () => {
       {isMobileFiltersOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileFiltersOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-64 bg-[#0B1222] border-r border-white/[0.05] overflow-y-auto">
+          <aside className="absolute inset-y-0 left-0 w-[min(16rem,calc(100vw-3rem))] bg-[#0B1222] border-r border-white/[0.05] overflow-y-auto">
             <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.05]">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Filters</p>
               <button onClick={() => setIsMobileFiltersOpen(false)} className="p-1.5 rounded-lg text-gray-600 hover:text-white hover:bg-white/5 transition-all cursor-pointer">
