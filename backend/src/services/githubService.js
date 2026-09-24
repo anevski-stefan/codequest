@@ -7,18 +7,22 @@ const API_BASE = 'https://api.github.com';
 const CACHE_ENABLED = process.env.GITHUB_CACHE_ENABLED !== 'false';
 const DEFAULT_TTL_MS = (() => {
   const raw = parseInt(process.env.GITHUB_CACHE_TTL_MS, 10);
-  return Number.isInteger(raw) && raw >= 0 ? raw : 60 * 1000;
+  return Number.isInteger(raw) && raw >= 0 ? raw : 5 * 60 * 1000;
 })();
 const MAX_ENTRIES = (() => {
   const raw = parseInt(process.env.GITHUB_CACHE_MAX_ENTRIES, 10);
-  return Number.isInteger(raw) && raw > 0 ? raw : 500;
+  return Number.isInteger(raw) && raw > 0 ? raw : 1000;
 })();
+
+const TOKEN_VALIDATION_TTL_MS = 10 * 60 * 1000;
 
 const VALIDATION_HEADERS = ['link', 'etag', 'last-modified', 'x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset', 'x-oauth-scopes', 'x-poll-interval'];
 const STORED_HEADERS = [...VALIDATION_HEADERS, 'cache-control'];
 
 const cache = createCache({ maxEntries: MAX_ENTRIES });
 cache.setEnabled(CACHE_ENABLED);
+
+const inflight = new Map();
 
 class GitHubService {
   static buildHeaders(token) {
@@ -61,7 +65,7 @@ class GitHubService {
     const isReadOnly = method === 'GET' || method === 'HEAD';
     const shouldCache = isReadOnly && options.cache !== false;
     const ttlMs = options.cacheTtlMs ?? DEFAULT_TTL_MS;
-    const key = GitHubService.cacheKey(token, method, path, options.params);
+    const key = shouldCache ? GitHubService.cacheKey(token, method, path, options.params) : null;
     let staleEntry = null;
 
     if (shouldCache && ttlMs > 0) {
@@ -69,6 +73,12 @@ class GitHubService {
       if (cached) {
         return GitHubService.toCaller(cached, options.fullResponse);
       }
+
+      if (inflight.has(key)) {
+        const stored = await inflight.get(key);
+        return GitHubService.toCaller(stored, options.fullResponse);
+      }
+
       staleEntry = cache.getStale(key);
       if (staleEntry) {
         const etag = staleEntry.headers && staleEntry.headers.etag;
@@ -78,50 +88,53 @@ class GitHubService {
       }
     }
 
-    const maxAttempts = 1 + (options.maxRetries ?? (isReadOnly ? 2 : 0));
-    let lastError;
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const response = await axios({
-          method,
-          url: `${API_BASE}${path}`,
-          params: options.params,
-          data: options.data,
-          headers,
-          timeout: options.timeout || 15000
-        });
-        if (response.status === 304) {
-          if (staleEntry) {
-            cache.setFresh(key, staleEntry, ttlMs);
-            return GitHubService.toCaller(staleEntry, options.fullResponse);
+    const fetchAndCache = async () => {
+      const maxAttempts = 1 + (options.maxRetries ?? (isReadOnly ? 2 : 0));
+      let lastError;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const response = await axios({
+            method,
+            url: `${API_BASE}${path}`,
+            params: options.params,
+            data: options.data,
+            headers,
+            timeout: options.timeout || 15000
+          });
+          if (response.status === 304) {
+            if (staleEntry) {
+              cache.setFresh(key, staleEntry, ttlMs);
+              return staleEntry;
+            }
+            throw new (require('../utils/httpError').GitHubApiError)('GitHub returned 304 with no cached body', response);
           }
-          throw new (require('../utils/httpError').GitHubApiError)('GitHub returned 304 with no cached body', response);
-        }
-        if (shouldCache && GitHubService.isCacheable(response)) {
           const stored = {
             status: response.status,
             data: response.data,
             headers: GitHubService.pickHeaders(response.headers)
           };
-          cache.set(key, stored, ttlMs);
+          if (shouldCache && GitHubService.isCacheable(response)) {
+            cache.set(key, stored, ttlMs);
+          }
+          return stored;
+        } catch (error) {
+          lastError = error;
+          const status = error.response?.status;
+          if (!isRetryableStatus(status) || attempt >= maxAttempts) break;
+          const delayMs = getRetryDelayMs(error.response?.headers, attempt, { fallbackBaseMs: 1000, fallbackCapMs: 10000 });
+          await new Promise(resolve => setTimeout(resolve, delayMs));
         }
-        if (options.fullResponse) {
-          return {
-            status: response.status,
-            data: response.data,
-            headers: response.headers
-          };
-        }
-        return response.data;
-      } catch (error) {
-        lastError = error;
-        const status = error.response?.status;
-        if (!isRetryableStatus(status) || attempt >= maxAttempts) break;
-        const delayMs = getRetryDelayMs(error.response?.headers, attempt, { fallbackBaseMs: 1000, fallbackCapMs: 10000 });
-        await new Promise(resolve => setTimeout(resolve, delayMs));
       }
+      throw new (require('../utils/httpError').GitHubApiError)('GitHub API request failed', lastError);
+    };
+
+    const promise = fetchAndCache();
+    if (shouldCache && ttlMs > 0) {
+      inflight.set(key, promise);
+      promise.finally(() => inflight.delete(key));
     }
-    throw new (require('../utils/httpError').GitHubApiError)('GitHub API request failed', lastError);
+    const stored = await promise;
+    return GitHubService.toCaller(stored, options.fullResponse);
   }
 
   static toCaller(stored, fullResponse) {
@@ -139,7 +152,7 @@ class GitHubService {
     const response = await GitHubService.request(token, 'GET', '/user', {
       fullResponse: true,
       timeout: 10000,
-      cache: false
+      cacheTtlMs: TOKEN_VALIDATION_TTL_MS
     });
     return response.status === 200;
   }
