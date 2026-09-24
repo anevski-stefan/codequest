@@ -69,6 +69,10 @@ function createCache({ maxEntries = DEFAULT_MAX_ENTRIES } = {}) {
     });
   }
 
+  function del(key) {
+    store.delete(key);
+  }
+
   function clear() {
     store.clear();
   }
@@ -82,6 +86,7 @@ function createCache({ maxEntries = DEFAULT_MAX_ENTRIES } = {}) {
     getStale,
     set,
     setFresh,
+    del,
     clear,
     size,
     setEnabled
