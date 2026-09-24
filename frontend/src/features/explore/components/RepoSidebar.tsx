@@ -10,7 +10,7 @@ interface RepoSidebarProps {
 
 export function RepoSidebar({ repository, topContributors }: RepoSidebarProps) {
   return (
-    <div className="w-64 shrink-0 pr-6 pt-0 pb-8 space-y-4">
+    <div className="hidden lg:block w-64 shrink-0 pr-6 pt-0 pb-8 space-y-4">
 
       <div className="rounded-xl bg-[#0D1525] border border-white/[0.07] p-4">
         <p className="text-[10px] font-semibold text-gray-700 uppercase tracking-widest mb-3">About</p>

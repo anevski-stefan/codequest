@@ -37,7 +37,7 @@ export const NotificationsDropdown = () => {
             leaveFrom="opacity-100 translate-y-0 scale-100"
             leaveTo="opacity-0 translate-y-1 scale-95"
           >
-            <Popover.Panel className="absolute right-0 z-50 mt-2 w-80 lg:w-96 rounded-2xl bg-[#0F172A] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <Popover.Panel className="absolute right-0 z-50 mt-2 w-[calc(100vw-1rem)] max-w-sm lg:max-w-md rounded-2xl bg-[#0F172A] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
               <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5">
                 <h3 className="text-sm font-semibold text-white">Notifications</h3>
                 {unreadCount > 0 && (

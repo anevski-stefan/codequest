@@ -175,7 +175,7 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
           <TransitionChild as={Fragment}
             enter="ease-out duration-200" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
             leave="ease-in duration-150" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-            <DialogPanel className="w-full max-w-5xl max-h-[88vh] flex flex-col rounded-2xl border border-white/[0.08] bg-[#0D1525] shadow-2xl shadow-black/60">
+            <DialogPanel className="w-full max-w-full sm:max-w-3xl lg:max-w-5xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-2xl border border-white/[0.08] bg-[#0D1525] shadow-2xl shadow-black/60">
 
               {/* Header */}
               <div className="px-6 pt-5 pb-4 border-b border-white/[0.06] shrink-0">
