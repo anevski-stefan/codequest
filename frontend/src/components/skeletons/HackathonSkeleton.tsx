@@ -1,43 +1,25 @@
-import { Skeleton } from '../ui/Skeleton';
 export function HackathonSkeleton() {
-  return <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-      <div className="space-y-6">
-        {}
-        <div className="flex justify-between items-start">
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-[250px]" />
-            <Skeleton className="h-4 w-[180px]" />
-          </div>
-          <Skeleton className="h-8 w-24 rounded-full" />
-        </div>
-
-        {}
-        <div className="grid md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-5 w-32" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-5 w-32" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-5 w-32" />
-          </div>
-        </div>
-
-        {}
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-[90%]" />
-          <Skeleton className="h-4 w-[75%]" />
-        </div>
-
-        {}
-        <div className="flex flex-wrap gap-2">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-6 w-20 rounded-full" />)}
-        </div>
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-[#2E3245] p-5 ">
+      {/* Title row */}
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="h-4 skeleton rounded w-3/5" />
+        <div className="h-5 skeleton rounded-md w-16 shrink-0" />
       </div>
-    </div>;
+      {/* Description */}
+      <div className="h-3 skeleton rounded w-4/5 mb-4" />
+      {/* Meta pills */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="h-5 skeleton rounded-md w-20" />
+        <div className="h-3 skeleton rounded w-24" />
+        <div className="h-3 skeleton rounded w-16" />
+      </div>
+      {/* Tags */}
+      <div className="flex gap-1.5">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-4 skeleton rounded-md w-16" />
+        ))}
+      </div>
+    </div>
+  );
 }
