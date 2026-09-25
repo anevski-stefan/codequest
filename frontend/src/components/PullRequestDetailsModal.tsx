@@ -42,7 +42,8 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
   const toggleFile = useCallback((filename: string) => {
     setExpandedFiles(prev => {
       const next = new Set(prev);
-      next.has(filename) ? next.delete(filename) : next.add(filename);
+      if (next.has(filename)) next.delete(filename);
+      else next.add(filename);
       return next;
     });
   }, []);
