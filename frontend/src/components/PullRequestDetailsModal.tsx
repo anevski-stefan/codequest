@@ -59,7 +59,7 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
 
   const tabContent = useMemo(() => {
     if (isLoading) return (
-      <div className="flex items-center justify-center py-16 gap-2 text-xs text-gray-700">
+      <div className="flex items-center justify-center py-16 gap-2 text-xs text-gray-500">
         <Loader2 className="w-4 h-4 animate-spin" />Loading…
       </div>
     );
@@ -82,9 +82,9 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-3">
                   <span className="text-xs font-medium text-gray-200 truncate leading-snug">{commit.commit.message.split('\n')[0]}</span>
-                  <span className="text-[10px] text-gray-700 whitespace-nowrap shrink-0">{formatDate(commit.commit.author.date)}</span>
+                  <span className="text-[10px] text-gray-500 whitespace-nowrap shrink-0">{formatDate(commit.commit.author.date)}</span>
                 </div>
-                <div className="mt-1 flex items-center gap-2 text-[10px] text-gray-700">
+                <div className="mt-1 flex items-center gap-2 text-[10px] text-gray-500">
                   <span className="font-mono text-gray-600">{commit.sha.substring(0, 7)}</span>
                   <span>·</span>
                   <span className="text-gray-500">{commit.author?.login || commit.commit.author.name}</span>
@@ -131,7 +131,7 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
                 </div>
               </button>
               {isExpanded && file.patch && (
-                <div className="border-t border-white/[0.05] overflow-x-auto bg-[#080E1A]">
+                <div className="border-t border-white/[0.05] overflow-x-auto bg-[#252836]">
                   <pre className="text-[11px] font-mono leading-5 p-3">
                     {file.patch.split('\n').map((line, i) => {
                       if (line.startsWith('@@')) {
@@ -168,14 +168,15 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
         <TransitionChild as={Fragment}
           enter="ease-out duration-200" enterFrom="opacity-0" enterTo="opacity-100"
           leave="ease-in duration-150" leaveFrom="opacity-100" leaveTo="opacity-0">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-[#0f111a]/60 backdrop-blur-[2px]" />
         </TransitionChild>
 
-        <div className="fixed inset-0 flex items-center justify-center p-4">
+        {/* Same right-hand slide-over as the issue panel, wider for diffs */}
+        <div className="fixed inset-y-0 right-0 flex max-w-full sm:pl-10">
           <TransitionChild as={Fragment}
-            enter="ease-out duration-200" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
-            leave="ease-in duration-150" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-            <DialogPanel className="w-full max-w-full sm:max-w-3xl lg:max-w-5xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-2xl border border-white/[0.08] bg-[#0D1525] shadow-2xl shadow-black/60">
+            enter="transform transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-500" enterFrom="translate-x-full" enterTo="translate-x-0"
+            leave="transform transition ease-in duration-200" leaveFrom="translate-x-0" leaveTo="translate-x-full">
+            <DialogPanel className="w-screen sm:max-w-[880px] h-[100dvh] flex flex-col bg-[#2A2E40] border-l border-white/[0.08] shadow-[-24px_0_64px_-16px_rgba(0,0,0,0.6)]">
 
               {/* Header */}
               <div className="px-6 pt-5 pb-4 border-b border-white/[0.06] shrink-0">
@@ -193,7 +194,7 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
                           isMerged
-                            ? 'text-violet-400 bg-violet-500/10 border-violet-500/20'
+                            ? 'text-blue-400 bg-blue-500/10 border-blue-500/20'
                             : pr.state === 'open'
                               ? 'text-green-400 bg-green-500/10 border-green-500/20'
                               : 'text-red-400 bg-red-500/10 border-red-500/20'

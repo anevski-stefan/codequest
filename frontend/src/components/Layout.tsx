@@ -232,7 +232,7 @@ const Breadcrumb = () => {
       {rest.length > 0 && root !== 'contributors' ? (
         <Link to={`/${root}`} className="text-gray-500 hover:text-gray-300 transition-colors">{rootTitle}</Link>
       ) : (
-        <span className="text-gray-200 font-semibold">{rootTitle}</span>
+        <span className={rest.length > 0 ? 'text-gray-500' : 'text-gray-200 font-semibold'}>{rootTitle}</span>
       )}
       {rest.length > 0 && (
         <>

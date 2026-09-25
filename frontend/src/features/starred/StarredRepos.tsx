@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Star, GitFork, AlertCircle, ExternalLink, Search } from 'lucide-react';
+import { Star, GitFork, CircleDot, ExternalLink, Search } from 'lucide-react';
 import { getStarredRepos, type StarredRepo } from '../../services/github';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
@@ -20,13 +20,17 @@ function RepoRow({ repo }: { repo: StarredRepo }) {
 
   return (
     <div
-      className="group rounded-xl border border-white/[0.07] bg-[#2E3245] p-4 hover:border-white/[0.14] hover:bg-[#31364C] hover:-translate-y-px hover:shadow-[0_12px_24px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] active:translate-y-0 transition-[background-color,border-color,box-shadow,transform] duration-200 cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+      role="link"
+      tabIndex={0}
+      onKeyDown={e => { if (e.key === 'Enter') navigate(`/explore/${owner}/${repoName}`); }}
+      className="group flex flex-col rounded-xl border border-white/[0.07] bg-[#2E3245] p-4 hover:border-white/[0.14] hover:bg-[#31364C] hover:-translate-y-px hover:shadow-[0_12px_24px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] active:translate-y-0 transition-[background-color,border-color,box-shadow,transform] duration-200 cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
       onClick={() => navigate(`/explore/${owner}/${repoName}`)}
     >
       {/* Row 1: name + stats */}
       <div className="flex items-start justify-between gap-3 mb-1.5">
-        <p className="text-sm font-semibold text-gray-200 group-hover:text-white transition-colors leading-snug">
-          <span className="text-gray-500 font-normal">{owner}/</span>{repoName}
+        <p className="flex items-center gap-2 min-w-0 text-sm font-semibold text-gray-100 group-hover:text-white transition-colors leading-snug">
+          <img src={repo.owner.avatar_url} alt="" width={20} height={20} loading="lazy" className="w-5 h-5 rounded-md shrink-0 bg-white/[0.06]" />
+          <span className="truncate"><span className="text-gray-500 font-normal">{owner}/</span>{repoName}</span>
         </p>
         <div className="flex items-center gap-2.5 shrink-0">
           {repo.language && (
@@ -44,11 +48,11 @@ function RepoRow({ repo }: { repo: StarredRepo }) {
 
       {/* Description */}
       {repo.description && (
-        <p className="text-xs text-gray-400 line-clamp-1 mb-3 leading-relaxed">{repo.description}</p>
+        <p className="text-[13px] text-gray-400 line-clamp-2 mb-3 leading-relaxed">{repo.description}</p>
       )}
 
       {/* Row 3: topics + meta inline */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mt-auto">
         <div className="flex items-center gap-1.5 flex-1 min-w-0 overflow-hidden">
           {repo.topics?.slice(0, 3).map(topic => (
             <span
@@ -70,9 +74,9 @@ function RepoRow({ repo }: { repo: StarredRepo }) {
             </span>
           )}
           {repo.open_issues_count > 0 && (
-            <span className="flex items-center gap-1 text-[11px] text-amber-600">
-              <AlertCircle className="w-3 h-3" />
-              {repo.open_issues_count}
+            <span className="flex items-center gap-1 text-[11px] text-gray-500 tabular" title={`${repo.open_issues_count} open issues`}>
+              <CircleDot className="w-3 h-3 text-green-400/70" />
+              {formatCount(repo.open_issues_count)}
             </span>
           )}
           <span className="text-[11px] text-gray-400 hidden sm:block">{formatRelativeDate(repo.updated_at)}</span>
@@ -81,7 +85,8 @@ function RepoRow({ repo }: { repo: StarredRepo }) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
-            className="p-1 rounded-md text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-all opacity-0 group-hover:opacity-100"
+            aria-label="Open on GitHub"
+            className="w-7 h-7 -my-1 flex items-center justify-center rounded-md text-gray-500 hover:text-white hover:bg-white/[0.06] transition-all [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           >
             <ExternalLink size={13} />
           </a>
@@ -127,7 +132,7 @@ const StarredRepos = () => {
         <div className="flex items-center justify-between mb-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-400/80 mb-1.5">Workspace</p>
-            <h1 className="text-xl font-bold tracking-tight text-white">Starred Repositories</h1>
+            <h1 className="text-xl font-bold tracking-tight text-white">Starred</h1>
             <p className="text-sm text-gray-500 mt-0.5">
               {allRepos.length > 0
                 ? `${allRepos.length}${hasNextPage ? '+' : ''} repos${search && filtered.length !== allRepos.length ? ` · ${filtered.length} matching` : ''}`

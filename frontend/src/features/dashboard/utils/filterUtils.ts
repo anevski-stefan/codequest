@@ -4,13 +4,13 @@ export const isHexColor = (color: string): boolean => /^[0-9a-fA-F]{6}$/.test(co
 
 // The palette has a single blue accent and no violet. Label colors are repo
 // data, but a violet "good first issue" pill still reads as a purple accent,
-// so hues in the violet band (250–320°) are rotated onto the brand blue.
+// so hues in the violet band (240–320°) are rotated onto the brand blue.
 const shiftVioletToBlue = (r: number, g: number, b: number): [number, number, number] => {
   const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
   if (d === 0) return [r, g, b];
   let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
   h = (h * 60 + 360) % 360;
-  if (h < 250 || h > 320) return [r, g, b];
+  if (h < 240 || h > 320) return [r, g, b];
   const l = (max + min) / 510, s = d / 255 / (1 - Math.abs(2 * l - 1) || 1);
   const target = 220; // brand blue hue (#3B7BFF)
   const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((target / 60) % 2) - 1)), m = l - c / 2;

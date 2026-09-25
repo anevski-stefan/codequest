@@ -18,6 +18,14 @@ const QUICK_TOPICS = [
   'Machine Learning', 'CLI tools', 'Open Source',
 ];
 
+const STARTER_REPOS = [
+  { name: 'rust-lang/rustlings', why: 'Small, well-scoped exercises and docs fixes' },
+  { name: 'freeCodeCamp/freeCodeCamp', why: 'Huge maintainer team, clear contributing guide' },
+  { name: 'vercel/next.js', why: 'Frequent good first issues in docs and examples' },
+  { name: 'supabase/supabase', why: 'Active triage, friendly to new contributors' },
+  { name: 'django/django', why: 'Mentored tickets and detailed review' },
+];
+
 const Explore = () => {
   const navigate = useNavigate();
   usePageTitle('Explore');
@@ -125,21 +133,28 @@ const Explore = () => {
               </button>
             </div>
 
-            {/* Right — 2 cols: stat cards */}
-            <div className="hidden lg:flex lg:col-span-2 flex-col gap-3">
-              {[
-                { value: '330M+', label: 'Repositories indexed', icon: Globe },
-                { value: '100M+', label: 'Active developers', icon: Users },
-                { value: '4B+', label: 'Total contributions', icon: Star },
-              ].map(({ value, label, icon: Icon }, i) => (
-                <div key={label} style={{ '--i': 3 + i * 2 } as CSSProperties} className="reveal flex items-center gap-4 px-5 py-4 rounded-xl bg-[#2E3245] border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                  <Icon className="w-4 h-4 text-gray-600 shrink-0" />
-                  <div>
-                    <div className="text-xl font-bold tabular-nums text-white tracking-tight">{value}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{label}</div>
-                  </div>
-                </div>
-              ))}
+            {/* Right — 2 cols: curated starting points */}
+            <div className="hidden lg:block lg:col-span-2 reveal" style={{ '--i': 3 } as CSSProperties}>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 mb-3">Popular with first-time contributors</p>
+              <div className="rounded-xl border border-white/[0.07] bg-[#2E3245] divide-y divide-white/[0.05] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                {STARTER_REPOS.map(r => {
+                  const [o] = r.name.split('/');
+                  return (
+                    <button
+                      key={r.name}
+                      onClick={() => navigate(`/explore/${r.name}`)}
+                      className="group w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.03] transition-colors cursor-pointer"
+                    >
+                      <img src={`https://github.com/${o}.png?size=48`} alt="" width={24} height={24} loading="lazy" className="w-6 h-6 rounded-md bg-white/[0.06] shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-gray-200 group-hover:text-white truncate transition-colors">{r.name}</p>
+                        <p className="text-[11px] text-gray-500 truncate">{r.why}</p>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-300 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
           </div>

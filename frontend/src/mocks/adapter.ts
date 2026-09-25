@@ -3,7 +3,7 @@ import { AxiosError } from 'axios';
 import {
   ME, REPOS, ISSUES, ASSIGNED_OPEN, ASSIGNED_CLOSED, STARRED, USER_REPOS, SEARCH_USERS, HACKATHONS,
   NOTIFICATIONS, findRepo, commentsFor, topContributorsFor, lotteryFor, confidenceFor, pullsFor,
-  pullDetails, activityFor, userProfile, avatar, daysAgo, type MockIssue,
+  pullDetails, activityFor, userProfile, avatar, daysAgo, makeIssue, type MockIssue,
 } from './data';
 
 /**
@@ -51,7 +51,16 @@ const filterIssues = (q: string, items: MockIssue[]) => {
   return out;
 };
 
-const repoFrom = (owner: string, name: string) => findRepo(`${owner}/${name}`);
+// Unknown repositories get a generated stand-in so any link works in mock mode.
+const repoFrom = (owner: string, name: string) => findRepo(`${owner}/${name}`) ?? {
+  ...REPOS[0],
+  id: 9000 + owner.length * 31 + name.length,
+  name,
+  full_name: `${owner}/${name}`,
+  description: `Mock stand-in for ${owner}/${name}`,
+  html_url: `https://github.com/${owner}/${name}`,
+  owner: { login: owner, avatar_url: `https://github.com/${owner}.png?size=80` },
+};
 
 const routes: [string, RegExp, Handler][] = [
   // Auth
@@ -62,7 +71,13 @@ const routes: [string, RegExp, Handler][] = [
   ['get', /^\/api\/github\/search\/issues$/, (_, p) => {
     const page = Number(p.page || 1);
     const perPage = Number(p.per_page || 100);
-    const items = filterIssues(p.q ?? '', ISSUES);
+    let items = filterIssues(p.q ?? '', ISSUES);
+    const repoQ = (p.q ?? '').match(/repo:(\S+)/)?.[1];
+    if (repoQ && items.length === 0) {
+      const [o, n] = repoQ.split('/');
+      const repo = repoFrom(o, n);
+      items = Array.from({ length: 8 }, (_, i) => makeIssue(repo, 300 + i * 17, i * 3));
+    }
     const sorted = p.sort === 'comments' ? [...items].sort((a, b) => b.comments - a.comments)
       : p.order === 'asc' ? [...items].reverse() : items;
     return { items: paginate(sorted, page, perPage).slice, total_count: items.length };
@@ -117,7 +132,7 @@ const routes: [string, RegExp, Handler][] = [
     const { slice, hasMore } = paginate(all, page, 10);
     return { pullRequests: slice, hasMore, nextPage: hasMore ? page + 1 : null, totalCount: all.length };
   }],
-  ['get', /^\/api\/repos\/([^/]+)\/([^/]+)$/, m => repoFrom(m[1], m[2]) ?? status(404, { error: 'Not Found' })],
+  ['get', /^\/api\/repos\/([^/]+)\/([^/]+)$/, m => (m[1] === 'missing' ? status(404, { error: 'Not Found' }) : repoFrom(m[1], m[2]))],
 
   // GitHub proxy
   ['get', /^\/api\/github\/search\/repositories$/, (_, p) => {

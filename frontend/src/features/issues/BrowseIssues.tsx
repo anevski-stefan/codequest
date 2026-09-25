@@ -18,19 +18,21 @@ import LoadMoreButton from '../../components/ui/LoadMoreButton';
 import PageHeader from '../../components/ui/PageHeader';
 import { AnimatePresence, motion } from 'framer-motion';
 
+const DEFAULT_FILTER: IssueParams = {
+  language: '',
+  sort: 'created',
+  direction: 'desc',
+  state: 'open',
+  page: 1,
+  timeFrame: 'all',
+  unassigned: false,
+  commentsRange: '',
+  labels: []
+};
+
 const BrowseIssues = () => {
   usePageTitle('Browse issues');
-  const [filter, setFilter] = useState<IssueParams>({
-    language: '',
-    sort: 'created',
-    direction: 'desc',
-    state: 'open',
-    page: 1,
-    timeFrame: 'all',
-    unassigned: false,
-    commentsRange: '',
-    labels: []
-  });
+  const [filter, setFilter] = useState<IssueParams>(DEFAULT_FILTER);
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
@@ -154,6 +156,14 @@ const BrowseIssues = () => {
             <span className={`w-1.5 h-1.5 rounded-full transition-colors ${filter.unassigned ? 'bg-blue-400' : 'bg-gray-600'}`} />
             Unassigned
           </button>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={() => { debouncedSetFilter.cancel(); setFilter(DEFAULT_FILTER); }}
+              className="h-8 px-2.5 rounded-lg text-[11px] font-semibold text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+            >
+              Clear ({activeFilterCount})
+            </button>
+          )}
         </div>
 
         {/* Mobile filter button */}
