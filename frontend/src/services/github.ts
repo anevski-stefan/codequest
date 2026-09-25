@@ -528,6 +528,8 @@ export const getUserStarredCount = async (username?: string) => {
   });
   const links = response.headers['link'];
   const match = links?.match(/page=(\d+)>; rel="last"/);
-  return match ? parseInt(match[1]) : 0;
+  // No "last" link means everything fit on one page (per_page=1 → 0 or 1).
+  if (match) return parseInt(match[1]);
+  return Array.isArray(response.data) ? response.data.length : 0;
 };
 

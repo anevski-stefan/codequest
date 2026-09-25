@@ -43,7 +43,7 @@ const COMPETITION = [
 
 /* ── Page ── */
 const SuggestedIssues = () => {
-  usePageTitle('Opportunities');
+  usePageTitle('For you');
 
   const [language, setLanguage] = useState('');
   const [timeFrame, setTimeFrame] = useState('month');
@@ -100,7 +100,7 @@ const SuggestedIssues = () => {
         <div className="flex items-center justify-between mb-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-400/80 mb-1.5">Workspace</p>
-            <h1 className="text-xl font-bold tracking-tight text-white">Suggested Issues</h1>
+            <h1 className="text-xl font-bold tracking-tight text-white">For you</h1>
             <p className="text-sm text-gray-500 mt-0.5">
               {allIssues.length > 0
                 ? `${totalCount.toLocaleString()} issues found · showing ${allIssues.length}`

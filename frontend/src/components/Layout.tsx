@@ -2,7 +2,7 @@ import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import useAuth from '../hooks/useAuth';
 import {
-  LayoutDashboard, GitPullRequest, Sparkles, Star, Compass,
+  LayoutDashboard, GitPullRequest, Sparkles, Star, Compass, ListFilter,
   Trophy, Settings, LogOut, Zap, Menu, X, Search, MessageSquareText, User, Bell,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -25,21 +25,23 @@ interface NavEntry {
 }
 
 const WORKSPACE: NavEntry[] = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { to: '/assigned', icon: GitPullRequest, label: 'Assigned Issues' },
-  { to: '/suggested', icon: Sparkles, label: 'Suggested Issues' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Overview', exact: true },
+  { to: '/suggested', icon: Sparkles, label: 'For You' },
+  { to: '/assigned', icon: GitPullRequest, label: 'Assigned' },
   { to: '/starred', icon: Star, label: 'Starred' },
 ];
 
 const DISCOVER: NavEntry[] = [
+  { to: '/issues', icon: ListFilter, label: 'Browse Issues' },
   { to: '/explore', icon: Compass, label: 'Explore' },
   { to: '/hackathons', icon: Trophy, label: 'Hackathons' },
 ];
 
 const ROUTE_TITLES: Record<string, string> = {
-  dashboard: 'Dashboard',
-  assigned: 'Assigned Issues',
-  suggested: 'Suggested Issues',
+  dashboard: 'Overview',
+  issues: 'Browse Issues',
+  assigned: 'Assigned',
+  suggested: 'For You',
   starred: 'Starred',
   explore: 'Explore',
   hackathons: 'Hackathons',
@@ -49,6 +51,13 @@ const ROUTE_TITLES: Record<string, string> = {
   contributors: 'Contributors',
   privacy: 'Privacy Policy',
   terms: 'Terms of Service',
+};
+
+const KEYWORDS: Record<string, string> = {
+  '/dashboard': 'home dashboard',
+  '/suggested': 'suggested issues recommendations',
+  '/issues': 'open issues search filter',
+  '/assigned': 'my issues work',
 };
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -144,7 +153,7 @@ const SidebarContent = ({ onClose, onFeedback, onSearch, layoutGroup }: { onClos
             <NavSection title="Discover" entries={DISCOVER} onClose={onClose} layoutGroup={layoutGroup} />
           </>
         ) : (
-          <NavSection title="Discover" entries={[DISCOVER[1]]} onClose={onClose} layoutGroup={layoutGroup} />
+          <NavSection title="Discover" entries={[DISCOVER[2]]} onClose={onClose} layoutGroup={layoutGroup} />
         )}
       </nav>
 
@@ -256,6 +265,7 @@ const Layout = ({ children }: LayoutProps) => {
   const commands = useMemo<CommandItem[]>(() => [
     ...[...WORKSPACE, ...DISCOVER].map(n => ({
       id: n.to, label: n.label, group: 'Navigate', icon: n.icon as CommandItem['icon'], run: () => navigate(n.to),
+      keywords: KEYWORDS[n.to],
     })),
     { id: '/notifications', label: 'Notifications', group: 'Navigate', icon: Bell, run: () => navigate('/notifications') },
     { id: '/profile', label: 'Your profile', group: 'Navigate', icon: User, run: () => navigate('/profile') },
