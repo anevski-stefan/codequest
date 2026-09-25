@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData, useMutation } from '@tanstack/react-query';
 import {
   GitFork, GitPullRequest, CircleDot, ExternalLink, BookOpen, ChevronDown, ChevronUp,
-  Sparkles, Star, Eye, Scale, Tag, Loader2,
+  Sparkles, Star, Eye, Scale, Tag,
 } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { formatRelativeDate } from '../../utils/formatDate';
@@ -15,6 +15,9 @@ import IssueDetailsModal from '../../components/IssueDetailsModal';
 import useIssueComments from '../../hooks/useIssueComments';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { RepositorySkeleton } from '../../components/skeletons';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
+import { motion } from 'framer-motion';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
 import { formatCount } from '../../utils/formatCount';
 import type { GitHubRepository as Repository } from '../../types/github';
@@ -35,7 +38,7 @@ const RepositoryDetails = () => {
   const queryClient = useQueryClient();
   usePageTitle(`${owner}/${repo}`);
 
-  const { data: repository, isLoading: repoLoading } = useQuery<Repository>({
+  const { data: repository, isLoading: repoLoading, error: repoError, refetch: refetchRepo } = useQuery<Repository>({
     queryKey: ['repository', owner, repo],
     queryFn: () => getRepositoryDetails(owner!, repo!),
     enabled: !!owner && !!repo, staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000,
@@ -85,6 +88,7 @@ const RepositoryDetails = () => {
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [onboardingError, setOnboardingError] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const onboardingRef = useRef<HTMLDivElement>(null);
 
   const { data: isStarred, isLoading: starredLoading } = useQuery<boolean>({
     queryKey: ['repo-starred', owner, repo],
@@ -114,6 +118,7 @@ const RepositoryDetails = () => {
   const handleOnboard = () => {
     if (!owner || !repo) return;
     setOnboarding(''); setOnboardingError(null); setIsOnboarding(true); setShowOnboarding(true);
+    requestAnimationFrame(() => onboardingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     onboardRepo({ owner, repo, onChunk: t => setOnboarding(prev => prev + t), onDone: () => setIsOnboarding(false), onError: err => { setOnboardingError(err); setIsOnboarding(false); } });
   };
 
@@ -154,7 +159,22 @@ const RepositoryDetails = () => {
   };
 
   if (repoLoading) return <RepositorySkeleton />;
-  if (!repository || !owner || !repo) return null;
+  if (!repository || !owner || !repo) {
+    const status = (repoError as { response?: { status?: number } } | null)?.response?.status;
+    return (
+      <div className="p-6 max-w-2xl">
+        <ErrorDisplay
+          title={status === 404 ? 'Repository not found' : status === 429 || status === 403 ? 'GitHub rate limit reached' : "Couldn't load this repository"}
+          error={status === 404
+            ? `${owner}/${repo} doesn't exist or is private.`
+            : status === 429 || status === 403
+              ? 'GitHub is limiting requests right now. Wait a minute and try again.'
+              : extractErrorMessage(repoError)}
+          onRetry={status === 404 ? undefined : () => refetchRepo()}
+        />
+      </div>
+    );
+  }
 
   const langColor = LANGUAGE_COLORS[repository.language] ?? '#6b7280';
   const pct = contributorConfidence?.percentage ?? 0;
@@ -237,7 +257,7 @@ const RepositoryDetails = () => {
             <button
               onClick={() => starMutation.mutate(!isStarred)}
               disabled={starredLoading || starMutation.isPending}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium border transition-all cursor-pointer disabled:opacity-50 ${
+              className={`flex items-center gap-2 h-9 px-3.5 rounded-lg text-[13px] font-semibold border active:scale-[0.97] transition-all cursor-pointer disabled:opacity-50 ${
                 isStarred
                   ? 'border-amber-500/30 bg-amber-500/[0.08] text-amber-400 hover:bg-amber-500/[0.14]'
                   : 'border-white/[0.10] bg-[#363B52] text-gray-400 hover:text-white hover:border-white/[0.18]'
@@ -249,7 +269,7 @@ const RepositoryDetails = () => {
             <button
               onClick={handleOnboard}
               disabled={isOnboarding}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium border border-blue-500/30 bg-blue-500/[0.08] text-blue-400 hover:bg-blue-500/[0.14] disabled:opacity-50 transition-all cursor-pointer"
+              className="lg:hidden flex items-center gap-2 h-9 px-3.5 rounded-lg text-[13px] font-semibold border border-blue-500/30 bg-blue-500/[0.08] text-blue-300 hover:bg-blue-500/[0.14] disabled:opacity-50 transition-all cursor-pointer"
             >
               <BookOpen className="w-3.5 h-3.5" />
               {isOnboarding ? 'Generating…' : 'Onboarding'}
@@ -264,14 +284,14 @@ const RepositoryDetails = () => {
 
         {/* Onboarding panel */}
         {showOnboarding && (
-          <div className="mx-6 mt-5 rounded-xl border border-blue-500/20 overflow-hidden">
+          <div ref={onboardingRef} className="mx-6 mt-5 rounded-xl border border-blue-500/20 overflow-hidden scroll-mt-4">
             <button
               onClick={() => setShowOnboarding(v => !v)}
               className="w-full flex items-center justify-between px-5 py-3 bg-blue-500/[0.06] hover:bg-blue-500/[0.10] text-xs font-semibold text-blue-300 transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2">
                 <BookOpen className="w-3.5 h-3.5" />
-                AI Onboarding Guide — {repository.full_name}
+                Onboarding guide
               </span>
               <span className="flex items-center gap-2">
                 {isOnboarding && <span className="text-blue-400 animate-pulse">Generating…</span>}
@@ -282,98 +302,84 @@ const RepositoryDetails = () => {
               {onboardingError ? (
                 <p className="text-xs text-red-400">{onboardingError}</p>
               ) : onboarding ? (
-                <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed">
+                <div className="prose prose-sm prose-invert max-w-[75ch] text-[13px] leading-relaxed prose-p:text-gray-300 prose-li:text-gray-300 prose-headings:text-white prose-headings:font-semibold prose-h1:text-base prose-h2:text-[15px] prose-h3:text-sm prose-code:text-blue-200 prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[#1D2030]">
                   <ReactMarkdown>{onboarding}</ReactMarkdown>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 py-3 text-xs text-gray-600">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Reading README, CONTRIBUTING.md, recent PRs…
+                <div className="space-y-2.5" role="status" aria-label="Generating onboarding guide">
+                  <p className="text-[12px] text-gray-500 mb-3">Reading the README, CONTRIBUTING guide and recent pull requests</p>
+                  <Skeleton className="h-3 w-3/4" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-5/6" />
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Metric strip */}
-        <div className="mx-6 mt-4 rounded-xl bg-[#2E3245] border border-white/[0.07] flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06]">
-
-          {/* Contributor Confidence */}
-          <div className="flex-1 p-3.5 flex items-center gap-3">
-            <div className="relative w-11 h-11 shrink-0">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                <path d="M 50,50 m 0,-38 a 38,38 0 1 1 0,76 a 38,38 0 1 1 0,-76"
-                  fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="11" />
-                <path d="M 50,50 m 0,-38 a 38,38 0 1 1 0,76 a 38,38 0 1 1 0,-76"
-                  fill="none" stroke={confidenceTier.color} strokeWidth="11" strokeLinecap="round"
-                  strokeDasharray={`${pct * 2.39} 239`} />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[10px] font-bold text-white">{pct}%</span>
-              </div>
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <p className="text-[11px] font-semibold text-gray-300">Contributor Confidence</p>
-                <span className={`text-[10px] font-semibold px-1.5 py-px rounded-full border ${confidenceTier.cls}`}>
-                  {confidenceTier.label}
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-500 line-clamp-1">{contributorConfidence?.message}</p>
-              <div className="flex items-center gap-4 mt-1.5">
-                {[
-                  { val: topContributors?.length ?? '—', label: 'top' },
-                  { val: topContributors?.[0] ? `${topContributors[0].percentage}%` : '—', label: 'lead share' },
-                  { val: lottery.length || '—', label: 'core' },
-                ].map(({ val, label }) => (
-                  <div key={label} className="flex items-baseline gap-1">
-                    <span className="text-sm font-bold text-white tabular-nums">{val}</span>
-                    <span className="text-[9px] text-gray-500">{label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {/* Contribution health */}
+        <section aria-label="Contribution health" className="mx-6 mt-5 rounded-xl bg-[#2E3245] border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+          <div className="flex items-center gap-2 px-4 pt-3.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">Should you contribute here?</p>
           </div>
-
-          {/* OpenSSF Score */}
-          <div className="flex-1 p-3.5">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-[11px] font-semibold text-gray-300">OpenSSF Scorecard</p>
-              <span className="text-[10px] font-semibold px-1.5 py-px rounded-full border text-gray-500 bg-white/[0.03] border-white/[0.07]">N/A</span>
-            </div>
-            <p className="text-[11px] text-gray-500 leading-snug">Security scorecard not yet available for this repository.</p>
-          </div>
-
-          {/* Lottery Factor */}
-          <div className="flex-1 p-3.5">
-            <div className="flex items-center gap-2 mb-2">
-              <p className="text-[11px] font-semibold text-gray-300">Lottery Factor</p>
-              <span className={`text-[10px] font-semibold px-1.5 py-px rounded-full border ${lotteryRisk.cls}`}>
-                {lotteryRisk.label}
-              </span>
-            </div>
-            {lottery.length > 0 && (
-              <div className="flex h-1 rounded-full overflow-hidden gap-px mb-2">
-                {lottery.map((c, i) => (
-                  <div key={c.login} title={`${c.login}: ${c.percentage}%`}
-                    style={{ width: `${c.percentage}%`, backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }} />
-                ))}
-                {(() => { const rest = Math.max(0, 100 - lottery.reduce((s, c) => s + c.percentage, 0)); return rest > 0 ? <div style={{ width: `${rest}%` }} className="bg-white/[0.05]" /> : null; })()}
-              </div>
-            )}
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              {lottery.slice(0, 3).map((c, i) => (
-                <div key={c.login} className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }} />
-                  <img src={c.avatar_url} alt={c.login} width={16} height={16} loading="lazy" decoding="async" className="w-4 h-4 rounded-full shrink-0" />
-                  <span className="text-[11px] text-gray-300">{c.login}</span>
-                  <span className="text-[10px] text-gray-500 tabular-nums">{c.percentage}%</span>
+          <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
+            {/* Contributor Confidence */}
+            <div className="p-4 flex items-center gap-4">
+              <div className="relative w-14 h-14 shrink-0">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="9" />
+                  <circle cx="50" cy="50" r="40" fill="none" stroke={confidenceTier.color} strokeWidth="9" strokeLinecap="round"
+                    strokeDasharray={`${pct * 2.513} 251.3`} className="transition-[stroke-dasharray] duration-1000" />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-[13px] font-bold text-white tabular">{contributorConfidence ? `${pct}%` : '–'}</span>
                 </div>
-              ))}
-              {lottery.length === 0 && <p className="text-[11px] text-gray-500">No recent PR data.</p>}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-[13px] font-semibold text-gray-100">Contributor confidence</p>
+                  {contributorConfidence && (
+                    <span className={`text-[10px] font-semibold px-1.5 py-px rounded-md border ${confidenceTier.cls}`}>{confidenceTier.label}</span>
+                  )}
+                </div>
+                <p className="text-[12px] text-gray-400 mt-1 leading-relaxed line-clamp-2">
+                  {contributorConfidence?.message ?? 'How often outside contributors get their pull requests merged.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Lottery Factor */}
+            <div className="p-4">
+              <div className="flex items-center gap-2">
+                <p className="text-[13px] font-semibold text-gray-100">Lottery factor</p>
+                {lottery.length > 0 && (
+                  <span className={`text-[10px] font-semibold px-1.5 py-px rounded-md border ${lotteryRisk.cls}`}>{lotteryRisk.label} risk</span>
+                )}
+              </div>
+              <p className="text-[12px] text-gray-400 mt-1">{lottery.length > 0 ? lotteryRisk.tip : 'Not enough recent pull request activity to measure.'}</p>
+              {lottery.length > 0 && (
+                <>
+                  <div className="flex h-1.5 rounded-full overflow-hidden gap-px mt-3">
+                    {lottery.map((c, i) => (
+                      <div key={c.login} title={`${c.login}: ${c.percentage}%`}
+                        style={{ width: `${c.percentage}%`, backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }} />
+                    ))}
+                    {(() => { const rest = Math.max(0, 100 - lottery.reduce((sum, c) => sum + c.percentage, 0)); return rest > 0 ? <div style={{ width: `${rest}%` }} className="bg-white/[0.06]" /> : null; })()}
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2.5">
+                    {lottery.slice(0, 4).map((c, i) => (
+                      <div key={c.login} className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }} />
+                        <span className="text-[12px] text-gray-300">{c.login}</span>
+                        <span className="text-[11px] text-gray-500 tabular">{c.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Main grid: issues/PRs + sidebar */}
         <div className="flex flex-col lg:flex-row gap-0 mt-5">
@@ -382,18 +388,22 @@ const RepositoryDetails = () => {
           <div className="flex-1 min-w-0 px-6 pb-8">
 
             {/* Tab bar */}
-            <div className="flex items-center gap-1 mb-4 border-b border-white/[0.05]">
+            <div className="flex items-center gap-1 mb-4 border-b border-white/[0.06]" role="tablist">
               {[
                 { id: 'issues' as const, icon: CircleDot, label: 'Issues', count: issuesData?.pages[0]?.totalCount ?? 0, iconCls: 'text-green-400' },
-                { id: 'pullrequests' as const, icon: GitPullRequest, label: 'Pull Requests', count: currentTotalCount, iconCls: 'text-blue-400' },
+                { id: 'pullrequests' as const, icon: GitPullRequest, label: 'Pull requests', count: currentTotalCount, iconCls: 'text-blue-400' },
               ].map(({ id, icon: Icon, label, count, iconCls }) => (
-                <button key={id} onClick={() => setActiveTab(id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all cursor-pointer -mb-px ${
-                    activeTab === id ? 'border-blue-500 text-white' : 'border-transparent text-gray-500 hover:text-gray-300'
+                <button key={id} onClick={() => setActiveTab(id)} role="tab" aria-selected={activeTab === id}
+                  className={`relative flex items-center gap-2 px-3 h-10 text-[13px] font-semibold transition-colors cursor-pointer ${
+                    activeTab === id ? 'text-white' : 'text-gray-500 hover:text-gray-300'
                   }`}>
                   <Icon className={`w-3.5 h-3.5 ${activeTab === id ? iconCls : 'text-gray-600'}`} />
                   {label}
-                  <span className="text-[10px] text-gray-500 ml-0.5">{count}</span>
+                  {count > 0 && <span className="px-1.5 h-[18px] inline-flex items-center rounded-full bg-white/[0.06] text-[10px] text-gray-400 tabular">{formatCount(count)}</span>}
+                  {activeTab === id && (
+                    <motion.span layoutId="repo-tab" className="absolute left-0 right-0 -bottom-px h-0.5 rounded-full bg-blue-400"
+                      transition={{ type: 'spring', stiffness: 500, damping: 40 }} />
+                  )}
                 </button>
               ))}
             </div>
@@ -437,7 +447,7 @@ const RepositoryDetails = () => {
           </div>
 
           {/* Sidebar */}
-          <RepoSidebar repository={repository} topContributors={topContributors} />
+          <RepoSidebar repository={repository} topContributors={topContributors} onOnboard={handleOnboard} isOnboarding={isOnboarding} />
         </div>
       </div>
 

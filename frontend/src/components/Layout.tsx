@@ -12,6 +12,7 @@ import FeedbackModal from './FeedbackModal';
 import CommandPalette, { type CommandItem } from './CommandPalette';
 import { NotificationsDropdown } from './ui/NotificationsDropdown';
 import { easeOut } from '../lib/motion';
+import { USE_MOCK_DATA } from '../mocks/flag';
 
 interface LayoutProps {
   children?: ReactNode;
@@ -210,6 +211,16 @@ const SidebarContent = ({ onClose, onFeedback, onSearch, layoutGroup }: { onClos
   );
 };
 
+const MockBadge = () => (
+  <span
+    title="VITE_USE_MOCK_DATA is on: all data comes from src/mocks"
+    className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md border border-amber-400/25 bg-amber-400/[0.08] text-[11px] font-semibold text-amber-300"
+  >
+    <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
+    Mock data
+  </span>
+);
+
 const Breadcrumb = () => {
   const location = useLocation();
   const parts = location.pathname.split('/').filter(Boolean);
@@ -358,7 +369,10 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="lg:pl-60 flex-1 flex flex-col min-w-0 min-h-0">
         <header className="hidden lg:flex h-14 shrink-0 items-center justify-between gap-4 px-6 lg:px-8 border-b border-white/[0.05]">
           <Breadcrumb />
-          {user && <NotificationsDropdown />}
+          <div className="flex items-center gap-3">
+            {USE_MOCK_DATA && <MockBadge />}
+            {user && <NotificationsDropdown />}
+          </div>
         </header>
 
         <main id="main" tabIndex={-1} className="flex-1 flex flex-col w-full min-h-0 pt-14 lg:pt-0 outline-none">

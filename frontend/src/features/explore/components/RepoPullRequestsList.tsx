@@ -46,7 +46,7 @@ export function RepoPullRequestsList({
               disabled={prState === s || isSwitching}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                 prState === s
-                  ? 'bg-[#0D1525] text-white border border-white/[0.08] shadow-sm'
+                  ? 'bg-[#2E3245] text-white border border-white/[0.08] shadow-sm'
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
@@ -59,12 +59,12 @@ export function RepoPullRequestsList({
       {isSwitching || (isLoading && pullRequests.length === 0) ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="animate-pulse h-20 rounded-xl bg-[#0D1525] border border-white/[0.05]" />
+            <div key={i} className="animate-pulse h-20 rounded-xl bg-[#2E3245] border border-white/[0.05]" />
           ))}
         </div>
       ) : pullRequests.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <GitPullRequest className="w-8 h-8 text-gray-700 mb-3" />
+          <GitPullRequest className="w-8 h-8 text-gray-500 mb-3" />
           <p className="text-sm text-gray-500">No {prState} pull requests found</p>
         </div>
       ) : (
@@ -72,7 +72,7 @@ export function RepoPullRequestsList({
           {pullRequests.map(pr => (
             <div
               key={pr.id}
-              className="group flex flex-col gap-3 px-4 py-4 rounded-xl bg-[#0D1525] border border-white/[0.06] hover:border-white/[0.12] hover:bg-[#111927] transition-all"
+              className="group flex flex-col gap-3 px-4 py-4 rounded-xl bg-[#2E3245] border border-white/[0.06] hover:border-white/[0.12] hover:bg-[#363B52] transition-all"
             >
               <div className="flex items-start gap-3">
                 <img src={pr.user.avatar_url} alt={pr.user.login} width={24} height={24}
@@ -94,7 +94,7 @@ export function RepoPullRequestsList({
                       )}
                       <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full border ${
                         pr.merged_at
-                          ? 'text-violet-400 bg-violet-500/10 border-violet-500/20'
+                          ? 'text-blue-400 bg-blue-500/10 border-blue-500/20'
                           : pr.state === 'open'
                             ? 'text-green-400 bg-green-500/10 border-green-500/20'
                             : 'text-gray-400 bg-white/[0.05] border-white/[0.08]'
@@ -103,7 +103,7 @@ export function RepoPullRequestsList({
                       </span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-700 mt-0.5">
+                  <p className="text-[10px] text-gray-500 mt-0.5">
                     #{pr.number} · {pr.user.login} · {formatRelativeDate(pr.created_at)}
                   </p>
                 </div>
@@ -128,7 +128,7 @@ export function RepoPullRequestsList({
                   <MessageSquare className="w-3 h-3" />
                   {((pr.comments || 0) + (pr.review_comments || 0)).toLocaleString()}
                 </span>
-                <span className="flex items-center gap-1 text-[11px] font-mono text-gray-700">
+                <span className="flex items-center gap-1 text-[11px] font-mono text-gray-500">
                   {pr.base.ref} ← {pr.head.ref}
                 </span>
               </div>
@@ -149,7 +149,7 @@ export function RepoPullRequestsList({
 
               {pr.requested_reviewers?.length > 0 && (
                 <div className="flex items-center gap-2 pl-9">
-                  <span className="text-[10px] text-gray-700">Reviewers:</span>
+                  <span className="text-[10px] text-gray-500">Reviewers:</span>
                   <div className="flex -space-x-1.5">
                     {pr.requested_reviewers.map((r: { login: string; avatar_url: string }) => (
                       <img
@@ -161,7 +161,7 @@ export function RepoPullRequestsList({
                         height={20}
                         loading="lazy"
                         decoding="async"
-                        className="w-5 h-5 rounded-full ring-1 ring-[#0D1525]"
+                        className="w-5 h-5 rounded-full ring-1 ring-[#2E3245]"
                       />
                     ))}
                   </div>

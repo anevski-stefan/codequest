@@ -2,6 +2,7 @@ import axios from 'axios';
 import { store } from '../store';
 import { logout } from '../features/auth/authSlice';
 import type { IssueParams, IssueResponse, Issue, GithubUser } from '../types/github';
+import { USE_MOCK_DATA } from '../mocks/flag';
 const resolveApiBaseUrl = () => {
   const base = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
   const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(base);
@@ -24,6 +25,10 @@ export const api = axios.create({
   },
   withCredentials: true
 });
+if (USE_MOCK_DATA) {
+  // Loaded lazily so fixtures never ship in a build with mocks disabled.
+  api.defaults.adapter = async config => (await import('../mocks/adapter')).mockAdapter(config);
+}
 api.interceptors.response.use(
   response => response,
   error => {
@@ -294,6 +299,10 @@ export const explainIssue = async ({
   onDone: () => void;
   onError: (error: string) => void;
 }): Promise<void> => {
+  if (USE_MOCK_DATA) {
+    const { streamExplain } = await import('../mocks/stream');
+    return streamExplain(issueTitle, `${owner}/${repo}`, onChunk, onDone);
+  }
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/issues/explain/${owner}/${repo}`, {
@@ -356,6 +365,10 @@ export const onboardRepo = async ({
   onDone: () => void;
   onError: (error: string) => void;
 }): Promise<void> => {
+  if (USE_MOCK_DATA) {
+    const { streamOnboarding } = await import('../mocks/stream');
+    return streamOnboarding(`${owner}/${repo}`, onChunk, onDone);
+  }
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/repos/${owner}/${repo}/onboard`, {

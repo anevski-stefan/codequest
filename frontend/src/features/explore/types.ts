@@ -51,4 +51,4 @@ export interface PullRequestCounts {
   closed: number;
 }
 
-export const BAR_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444'];
+export const BAR_COLORS = ['#60A5FA', '#F59E0B', '#34D399', '#F87171', '#94A3B8'];

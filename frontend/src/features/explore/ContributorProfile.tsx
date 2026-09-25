@@ -120,7 +120,7 @@ const ContributorProfile = () => {
 
   const headerExtra = organizations?.length > 0 ? (
     <div className="mt-5 flex items-center gap-3">
-      <span className="text-[10px] font-semibold text-gray-700 uppercase tracking-widest shrink-0">Orgs</span>
+      <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest shrink-0">Orgs</span>
       <div className="flex items-center gap-2 flex-wrap">
         {organizations.map((org: { id: number; avatar_url: string; login: string }) => (
           <a key={org.id} href={`https://github.com/${org.login}`} target="_blank" rel="noopener noreferrer"
