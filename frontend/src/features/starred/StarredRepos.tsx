@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Star, GitFork, AlertCircle, ExternalLink, Search } from 'lucide-react';
@@ -19,91 +19,75 @@ function RepoRow({ repo }: { repo: StarredRepo }) {
   const langColor = LANGUAGE_COLORS[repo.language ?? ''] ?? '#6b7280';
 
   return (
-    <tr className="group hover:bg-white/[0.025] transition-colors duration-100">
-      {/* Repository */}
-      <td className="px-6 py-3.5">
-        <button
-          onClick={() => navigate(`/explore/${owner}/${repoName}`)}
-          className="text-left w-full cursor-pointer"
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors leading-snug">
-              <span className="text-gray-600 font-normal">{owner}/</span>{repoName}
-            </p>
-            {repo.description && (
-              <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">{repo.description}</p>
-            )}
-          </div>
-        </button>
-      </td>
+    <div
+      className="group rounded-xl border border-white/[0.07] bg-[#2E3245] p-4 hover:border-white/[0.14] hover:bg-[#31364C] hover:-translate-y-px hover:shadow-[0_12px_24px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] active:translate-y-0 transition-[background-color,border-color,box-shadow,transform] duration-200 cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+      onClick={() => navigate(`/explore/${owner}/${repoName}`)}
+    >
+      {/* Row 1: name + stats */}
+      <div className="flex items-start justify-between gap-3 mb-1.5">
+        <p className="text-sm font-semibold text-gray-200 group-hover:text-white transition-colors leading-snug">
+          <span className="text-gray-500 font-normal">{owner}/</span>{repoName}
+        </p>
+        <div className="flex items-center gap-2.5 shrink-0">
+          {repo.language && (
+            <span className="flex items-center gap-1.5 text-[11px] text-gray-400">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: langColor }} />
+              {repo.language}
+            </span>
+          )}
+          <span className="flex items-center gap-1 text-[11px] text-amber-400 font-medium">
+            <Star className="w-3 h-3 fill-amber-400" />
+            {formatCount(repo.stargazers_count)}
+          </span>
+        </div>
+      </div>
 
-      {/* Topics */}
-      <td className="hidden md:table-cell px-4 py-3.5">
-        <div className="flex flex-wrap gap-1">
+      {/* Description */}
+      {repo.description && (
+        <p className="text-xs text-gray-400 line-clamp-1 mb-3 leading-relaxed">{repo.description}</p>
+      )}
+
+      {/* Row 3: topics + meta inline */}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-1 min-w-0 overflow-hidden">
           {repo.topics?.slice(0, 3).map(topic => (
             <span
               key={topic}
-              className="px-1.5 py-0.5 text-[10px] font-medium rounded-md bg-blue-500/[0.08] border border-blue-500/[0.15] text-blue-400 truncate max-w-[90px]"
+              className="px-2 py-0.5 text-[10px] font-medium rounded-md bg-blue-500/[0.08] border border-blue-500/[0.15] text-blue-400 truncate max-w-[90px] shrink-0"
             >
               {topic}
             </span>
           ))}
           {(repo.topics?.length ?? 0) > 3 && (
-            <span className="text-[10px] text-gray-600">+{repo.topics.length - 3}</span>
+            <span className="text-[10px] text-gray-500 shrink-0">+{repo.topics.length - 3}</span>
           )}
-          {!repo.topics?.length && <span className="text-[10px] text-gray-700">—</span>}
         </div>
-      </td>
-
-      {/* Language */}
-      <td className="hidden lg:table-cell px-4 py-3.5">
-        {repo.language ? (
-          <span className="flex items-center gap-1.5 text-xs text-gray-500">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: langColor }} />
-            {repo.language}
-          </span>
-        ) : <span className="text-[10px] text-gray-700">—</span>}
-      </td>
-
-      {/* Stars */}
-      <td className="px-4 py-3.5 text-center">
-        <span className="flex items-center justify-center gap-1 text-xs text-gray-500">
-          <Star className="w-3 h-3 text-amber-500" />
-          {formatCount(repo.stargazers_count)}
-        </span>
-      </td>
-
-      {/* Forks */}
-      <td className="hidden lg:table-cell px-4 py-3.5 text-center">
-        <span className="flex items-center justify-center gap-1 text-xs text-gray-600">
-          <GitFork className="w-3 h-3" />
-          {repo.forks_count}
-        </span>
-      </td>
-
-      {/* Issues */}
-      <td className="hidden lg:table-cell px-4 py-3.5 text-center">
-        <span className={`flex items-center justify-center gap-1 text-xs ${repo.open_issues_count > 0 ? 'text-amber-600' : 'text-gray-700'}`}>
-          <AlertCircle className="w-3 h-3" />
-          {repo.open_issues_count || '—'}
-        </span>
-      </td>
-
-      {/* Updated + actions */}
-      <td className="px-4 py-3.5">
-        <div className="flex items-center justify-end gap-2">
-          <span className="text-xs text-gray-700 whitespace-nowrap hidden xl:block">{formatRelativeDate(repo.updated_at)}</span>
+        <div className="flex items-center gap-3 shrink-0 ml-auto">
+          {repo.forks_count > 0 && (
+            <span className="flex items-center gap-1 text-[11px] text-gray-500">
+              <GitFork className="w-3 h-3" />
+              {formatCount(repo.forks_count)}
+            </span>
+          )}
+          {repo.open_issues_count > 0 && (
+            <span className="flex items-center gap-1 text-[11px] text-amber-600">
+              <AlertCircle className="w-3 h-3" />
+              {repo.open_issues_count}
+            </span>
+          )}
+          <span className="text-[11px] text-gray-400 hidden sm:block">{formatRelativeDate(repo.updated_at)}</span>
           <a
             href={repo.html_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1 text-gray-700 hover:text-gray-300 transition-colors rounded opacity-0 group-hover:opacity-100"
+            onClick={e => e.stopPropagation()}
+            className="p-1 rounded-md text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-all opacity-0 group-hover:opacity-100"
           >
             <ExternalLink size={13} />
           </a>
         </div>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
 
@@ -139,14 +123,15 @@ const StarredRepos = () => {
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* Header */}
-      <div className="px-6 pt-6 pb-0 shrink-0">
-        <div className="flex items-center justify-between mb-4">
+      <div className="px-6 lg:px-8 pt-7 pb-0 shrink-0">
+        <div className="flex items-center justify-between mb-5">
           <div>
-            <h1 className="text-lg font-bold text-white">Starred Repositories</h1>
-            <p className="text-xs text-gray-600 mt-0.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-400/80 mb-1.5">Workspace</p>
+            <h1 className="text-xl font-bold tracking-tight text-white">Starred Repositories</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
               {allRepos.length > 0
                 ? `${allRepos.length}${hasNextPage ? '+' : ''} repos${search && filtered.length !== allRepos.length ? ` · ${filtered.length} matching` : ''}`
-                : 'Your GitHub starred repos — contribution watchlist'}
+                : 'Your GitHub watchlist — repos worth contributing to'}
             </p>
           </div>
         </div>
@@ -160,7 +145,7 @@ const StarredRepos = () => {
               placeholder="Filter by name, language, topic…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full h-full pl-8 pr-3 text-xs bg-[#111927] border border-white/[0.10] rounded-lg text-gray-300 placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:bg-[#0D1525] transition-all"
+              className="w-full h-full pl-8 pr-3 text-[11px] bg-[#363B52] border border-white/[0.09] rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2E3245] transition-all"
             />
           </div>
         </div>
@@ -169,34 +154,21 @@ const StarredRepos = () => {
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="p-6"><CardSkeletonList count={9} /></div>
+          <div className="px-4 lg:px-6 xl:px-8 py-4"><CardSkeletonList count={8} /></div>
         ) : error instanceof Error ? (
           <div className="p-6"><ErrorDisplay title="Failed to load starred repos" error={error.message} /></div>
         ) : allRepos.length === 0 ? (
-          <EmptyState icon={Star} title="No starred repositories yet" subtitle="Star a repo from the Explore page to see it here" />
+          <EmptyState icon={Star} title="No starred repositories yet" subtitle="Star repositories on GitHub or from Explore, and they will show up here as your watchlist." />
         ) : filtered.length === 0 ? (
           <EmptyState icon={Search} title={`No repos match "${search}"`} />
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="sticky top-0 z-10">
-                  <tr className="bg-[#0B1222] border-b border-white/[0.06]">
-                    <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[32%]">Repository</th>
-                    <th className="hidden md:table-cell px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[22%]">Topics</th>
-                    <th className="hidden lg:table-cell px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[12%]">Language</th>
-                    <th className="px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Stars</th>
-                    <th className="hidden lg:table-cell px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Forks</th>
-                    <th className="hidden lg:table-cell px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Issues</th>
-                    <th className="px-4 py-3 text-right text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[10%]">Updated</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.04]">
-                  {filtered.map(repo => (
-                    <RepoRow key={repo.id} repo={repo} />
-                  ))}
-                </tbody>
-              </table>
+            <div className="px-4 lg:px-6 xl:px-8 py-4 grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+              {filtered.map((repo, i) => (
+                <div key={repo.id} className="reveal flex [&>*]:flex-1 [&>*]:min-w-0" style={{ '--i': i % 30 } as CSSProperties}>
+                  <RepoRow repo={repo} />
+                </div>
+              ))}
             </div>
 
             {hasNextPage && !search && (
@@ -204,7 +176,7 @@ const StarredRepos = () => {
             )}
 
             {!hasNextPage && filtered.length > 0 && (
-              <p className="text-center text-xs text-gray-700 py-5 border-t border-white/[0.04]">All repos loaded</p>
+              <p className="flex items-center justify-center gap-3 text-[11px] text-gray-600 py-6 before:h-px before:w-12 before:bg-white/[0.06] after:h-px after:w-12 after:bg-white/[0.06]">End of results</p>
             )}
           </>
         )}

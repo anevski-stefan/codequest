@@ -1,9 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Search, Users, Star, GitFork, Globe, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import { ExploreTableSkeleton } from '../../components/skeletons';
 import { useDebounce } from '../../hooks/useDebounce';
 import { api, searchTopContributors } from '../../services/github';
 import type { GithubUser, GitHubRepository as Repository } from '../../types/github';
@@ -71,65 +70,88 @@ const Explore = () => {
 
       {/* ── Hero / Search header ── */}
       {showHero ? (
-        <div className="flex flex-col items-center justify-center flex-1 px-6 pb-16">
-          {/* Glow orb behind search */}
-          <div className="relative mb-10 text-center">
-            <div className="absolute -inset-x-32 -inset-y-16 rounded-full bg-blue-500/[0.06] blur-3xl pointer-events-none" />
-            <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-widest mb-3">Open Source Discovery</p>
-            <h1 className="text-3xl font-bold text-white mb-2 relative">
-              Explore the world's code
-            </h1>
-            <p className="text-sm text-gray-600 relative">
-              Search 330M+ repositories and top contributors on GitHub
-            </p>
-          </div>
+        <div className="flex flex-1 items-center px-6 lg:px-10 py-6">
+          <div className="w-full max-w-5xl mx-auto grid lg:grid-cols-5 gap-8 lg:gap-14 items-center">
 
-          {/* Search bar — large */}
-          <div className="relative w-full max-w-xl mb-4">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
-            <input
-              type="text"
-              autoFocus
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search repositories…"
-              className="w-full h-12 pl-11 pr-4 text-sm bg-[#0D1525] border border-white/[0.10] rounded-xl text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:bg-[#111927] shadow-lg shadow-black/30 transition-all"
-            />
-            {isLoading && (
-              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 animate-spin" />
-            )}
-          </div>
+            {/* Left — 3 cols: label + heading + search + topics + mode */}
+            <div className="lg:col-span-3 flex flex-col gap-5">
+              <div className="reveal" style={{ '--i': 0 } as CSSProperties}>
+                <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-widest mb-2">Open Source Discovery</p>
+                <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight">
+                  Explore the world's code
+                </h1>
+                <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                  Search 330M+ repositories and top contributors on GitHub
+                </p>
+              </div>
 
-          {/* Quick topics */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {QUICK_TOPICS.map(topic => (
+              {/* Search bar */}
+              <div className="relative reveal" style={{ '--i': 2 } as CSSProperties}>
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search repositories…"
+                  className="w-full h-12 pl-11 pr-4 text-sm bg-[#2E3245] border border-white/[0.10] rounded-xl text-gray-200 placeholder-gray-500 focus:outline-none focus-visible:outline-none focus:border-blue-500/50 focus:bg-[#363B52] focus:shadow-[0_0_0_4px_rgba(59,123,255,0.12)] shadow-lg shadow-black/30 transition-all"
+                />
+                {isLoading && (
+                  <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 animate-spin" />
+                )}
+              </div>
+
+              {/* Quick topics */}
+              <div className="flex flex-wrap gap-2 reveal" style={{ '--i': 4 } as CSSProperties}>
+                {QUICK_TOPICS.map(topic => (
+                  <button
+                    key={topic}
+                    onClick={() => setSearchQuery(topic)}
+                    className="h-8 px-3 text-xs font-medium rounded-full bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-gray-100 hover:border-white/[0.16] hover:bg-white/[0.07] active:scale-[0.96] transition-all cursor-pointer"
+                  >
+                    {topic}
+                  </button>
+                ))}
+              </div>
+
+              {/* Mode switch */}
               <button
-                key={topic}
-                onClick={() => setSearchQuery(topic)}
-                className="px-3 py-1.5 text-xs font-medium rounded-full bg-white/[0.04] border border-white/[0.08] text-gray-500 hover:text-gray-200 hover:border-white/[0.16] hover:bg-white/[0.07] transition-all cursor-pointer"
+                onClick={() => switchMode('contributors')}
+                className="flex items-center gap-2 text-xs text-gray-600 hover:text-gray-300 transition-colors cursor-pointer group w-fit"
               >
-                {topic}
+                <Users className="w-3.5 h-3.5" />
+                Browse top contributors instead
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
               </button>
-            ))}
-          </div>
+            </div>
 
-          {/* Mode switch */}
-          <button
-            onClick={() => switchMode('contributors')}
-            className="flex items-center gap-2 text-xs text-gray-600 hover:text-gray-300 transition-colors cursor-pointer group"
-          >
-            <Users className="w-3.5 h-3.5" />
-            Browse top contributors instead
-            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-          </button>
+            {/* Right — 2 cols: stat cards */}
+            <div className="hidden lg:flex lg:col-span-2 flex-col gap-3">
+              {[
+                { value: '330M+', label: 'Repositories indexed', icon: Globe },
+                { value: '100M+', label: 'Active developers', icon: Users },
+                { value: '4B+', label: 'Total contributions', icon: Star },
+              ].map(({ value, label, icon: Icon }, i) => (
+                <div key={label} style={{ '--i': 3 + i * 2 } as CSSProperties} className="reveal flex items-center gap-4 px-5 py-4 rounded-xl bg-[#2E3245] border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <Icon className="w-4 h-4 text-gray-600 shrink-0" />
+                  <div>
+                    <div className="text-xl font-bold tabular-nums text-white tracking-tight">{value}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
         </div>
       ) : (
         /* ── Compact header when results are shown ── */
-        <div className="px-6 pt-6 pb-0 shrink-0">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-6 lg:px-8 pt-7 pb-0 shrink-0">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <h1 className="text-lg font-bold text-white">Explore</h1>
-              <p className="text-xs text-gray-600 mt-0.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-400/80 mb-1.5">Discover</p>
+              <h1 className="text-xl font-bold tracking-tight text-white">Explore</h1>
+              <p className="text-sm text-gray-500 mt-0.5">
                 {mode === 'repos' && repos.length > 0
                   ? `${repoData?.total_count?.toLocaleString() ?? 0} repositories found`
                   : mode === 'contributors' && contributors.length > 0
@@ -141,16 +163,16 @@ const Explore = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pb-4 border-b border-white/[0.05]">
+          <div className="flex items-center gap-2 pb-4 border-b border-white/[0.05] flex-wrap">
             {/* Mode toggle tabs */}
-            <div className="flex items-center rounded-lg bg-[#111927] border border-white/[0.08] p-0.5 shrink-0">
+            <div className="flex items-center rounded-lg bg-[#363B52] border border-white/[0.08] p-0.5 shrink-0">
               {(['repos', 'contributors'] as const).map(m => (
                 <button
                   key={m}
                   onClick={() => switchMode(m)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                     mode === m
-                      ? 'bg-[#0D1525] text-white shadow-sm border border-white/[0.08]'
+                      ? 'bg-[#2E3245] text-white shadow-sm border border-white/[0.08]'
                       : 'text-gray-500 hover:text-gray-300'
                   }`}
                 >
@@ -168,17 +190,17 @@ const Explore = () => {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder={mode === 'repos' ? 'Search repositories…' : 'Filter contributors…'}
-                className="w-full h-full pl-8 pr-3 text-xs bg-[#111927] border border-white/[0.10] rounded-lg text-gray-300 placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:bg-[#0D1525] transition-all"
+                className="w-full h-full pl-8 pr-3 text-[11px] bg-[#363B52] border border-white/[0.09] rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-[#2E3245] transition-all"
               />
             </div>
 
-            {isLoading && <Loader2 className="w-4 h-4 text-gray-700 animate-spin shrink-0" />}
+            {isLoading && <Loader2 className="w-4 h-4 text-gray-500 animate-spin shrink-0" />}
 
             {/* Back to hero */}
             {mode === 'repos' && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="text-xs text-gray-700 hover:text-gray-400 transition-colors cursor-pointer shrink-0"
+                className="text-xs text-gray-500 hover:text-gray-400 transition-colors cursor-pointer shrink-0"
               >
                 Clear
               </button>
@@ -200,95 +222,81 @@ const Explore = () => {
             </div>
           )}
 
-          {/* Repos table */}
+          {/* Repos cards */}
           {mode === 'repos' && (
             isLoading ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="sticky top-0 z-10 bg-[#0B1222] border-b border-white/[0.06]">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Repository</th>
-                      <th className="hidden lg:table-cell px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[12%]">Language</th>
-                      <th className="px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Stars</th>
-                      <th className="hidden md:table-cell px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Forks</th>
-                    </tr>
-                  </thead>
-                  <ExploreTableSkeleton />
-                </table>
+              <div className="px-4 lg:px-6 xl:px-8 py-4 grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="animate-pulse rounded-xl border border-white/[0.07] bg-[#2E3245] p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-7 h-7 rounded-full bg-white/[0.07] shrink-0" />
+                      <div className="h-4 bg-white/[0.07] rounded w-2/5" />
+                      <div className="ml-auto h-4 bg-white/[0.05] rounded w-12" />
+                    </div>
+                    <div className="h-3 bg-white/[0.05] rounded w-4/5 mb-3" />
+                    <div className="flex gap-2">
+                      <div className="h-4 bg-white/[0.05] rounded-full w-16" />
+                      <div className="h-4 bg-white/[0.04] rounded w-10" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : repos.length === 0 && debouncedQuery ? (
               <EmptyState title={`No repositories found for "${debouncedQuery}"`} subtitle="Try a different search term" />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="sticky top-0 z-10">
-                    <tr className="bg-[#0B1222] border-b border-white/[0.06]">
-                      <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Repository</th>
-                      <th className="hidden lg:table-cell px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[12%]">Language</th>
-                      <th className="px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Stars</th>
-                      <th className="hidden md:table-cell px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Forks</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
-                    {repos.map(repo => {
-                      const [owner, name] = repo.full_name.split('/');
-                      const langColor = LANGUAGE_COLORS[repo.language] ?? '#6b7280';
-                      return (
-                        <tr
-                          key={repo.id}
-                          onClick={() => navigate(`/explore/${owner}/${name}`)}
-                          className="group hover:bg-white/[0.025] transition-colors duration-100 cursor-pointer"
-                        >
-                          <td className="px-6 py-3.5">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <img
-                                src={repo.owner.avatar_url}
-                                alt={repo.owner.login}
-                                width={28}
-                                height={28}
-                                loading="lazy"
-                                decoding="async"
-                                className="w-7 h-7 rounded-full shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors truncate leading-snug">
-                                  <span className="text-gray-600 font-normal">{owner}/</span><span className="text-gray-200 group-hover:text-white">{name}</span>
-                                </p>
-                                {repo.description && (
-                                  <p className="text-xs text-gray-600 mt-0.5 truncate">{repo.description}</p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="hidden lg:table-cell px-4 py-3.5">
-                            {repo.language ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border" style={{
-                                backgroundColor: `${langColor}14`,
-                                borderColor: `${langColor}30`,
-                                color: langColor,
-                              }}>
-                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: langColor }} />
-                                {repo.language}
-                              </span>
-                            ) : <span className="text-[10px] text-gray-700">—</span>}
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <span className="flex items-center justify-center gap-1 text-xs text-gray-500">
-                              <Star className="w-3 h-3 text-amber-500/80" />
-                              {formatCount(repo.stargazers_count)}
-                            </span>
-                          </td>
-                          <td className="hidden md:table-cell px-4 py-3.5">
-                            <span className="flex items-center justify-center gap-1 text-xs text-gray-600">
-                              <GitFork className="w-3 h-3" />
-                              {formatCount(repo.forks_count)}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="px-4 lg:px-6 xl:px-8 py-4 grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                {repos.map(repo => {
+                  const [owner, name] = repo.full_name.split('/');
+                  const langColor = LANGUAGE_COLORS[repo.language] ?? '#6b7280';
+                  return (
+                    <div
+                      key={repo.id}
+                      onClick={() => navigate(`/explore/${owner}/${name}`)}
+                      className="group rounded-xl border border-white/[0.07] bg-[#2E3245] p-4 hover:border-white/[0.14] hover:bg-[#31364C] hover:-translate-y-px hover:shadow-[0_12px_24px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] active:translate-y-0 transition-[background-color,border-color,box-shadow,transform] duration-200 cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                    >
+                      {/* Row 1: avatar + name + stars */}
+                      <div className="flex items-center gap-3 mb-2">
+                        <img
+                          src={repo.owner.avatar_url}
+                          alt={repo.owner.login}
+                          width={28}
+                          height={28}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-7 h-7 rounded-full shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
+                        />
+                        <p className="text-sm font-semibold text-gray-200 group-hover:text-white transition-colors truncate flex-1 leading-snug">
+                          <span className="text-gray-500 font-normal">{owner}/</span>{name}
+                        </p>
+                        <span className="flex items-center gap-1 text-[11px] text-amber-400 font-medium shrink-0">
+                          <Star className="w-3 h-3 fill-amber-400" />
+                          {formatCount(repo.stargazers_count)}
+                        </span>
+                      </div>
+
+                      {/* Description */}
+                      {repo.description && (
+                        <p className="text-xs text-gray-400 line-clamp-1 mb-3 leading-relaxed">{repo.description}</p>
+                      )}
+
+                      {/* Language + forks */}
+                      <div className="flex items-center gap-3">
+                        {repo.language && (
+                          <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-400">
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: langColor }} />
+                            {repo.language}
+                          </span>
+                        )}
+                        {repo.forks_count > 0 && (
+                          <span className="flex items-center gap-1 text-[11px] text-gray-500">
+                            <GitFork className="w-3 h-3" />
+                            {formatCount(repo.forks_count)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )
           )}
@@ -298,7 +306,7 @@ const Explore = () => {
             isLoading && contributors.length === 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 p-6">
                 {[...Array(10)].map((_, i) => (
-                  <div key={i} className="animate-pulse flex flex-col items-center gap-2.5 p-5 rounded-xl bg-[#0D1525] border border-white/[0.06]">
+                  <div key={i} className="animate-pulse flex flex-col items-center gap-2.5 p-5 rounded-xl bg-[#2E3245] border border-white/[0.06]">
                     <div className="w-14 h-14 rounded-full bg-white/[0.06]" />
                     <div className="h-3 bg-white/[0.05] rounded w-20" />
                     <div className="h-2.5 bg-white/[0.03] rounded w-14" />
@@ -312,7 +320,7 @@ const Explore = () => {
                     <div
                       key={user.id}
                       onClick={() => navigate(`/contributors/${user.login}`)}
-                      className="group flex flex-col items-center gap-2.5 p-5 rounded-xl bg-[#0D1525] border border-white/[0.06] hover:border-white/[0.14] hover:bg-[#111927] transition-all cursor-pointer relative"
+                      className="group flex flex-col items-center gap-2.5 p-5 rounded-xl bg-[#2E3245] border border-white/[0.06] hover:border-white/[0.14] hover:bg-[#363B52] transition-all cursor-pointer relative"
                     >
                       <img
                         src={user.avatar_url}
@@ -325,14 +333,14 @@ const Explore = () => {
                       />
                       <div className="text-center min-w-0 w-full">
                         <p className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors truncate">{user.login}</p>
-                        <p className="text-[10px] text-gray-700 mt-0.5">{user.public_repos} repos</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">{user.public_repos} repos</p>
                       </div>
                       <a
                         href={`https://github.com/${user.login}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
-                        className="absolute top-2.5 right-2.5 p-1 rounded text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-all"
+                        className="absolute top-2.5 right-2.5 p-1 rounded text-gray-500 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-all"
                       >
                         <ExternalLink className="w-3 h-3" />
                       </a>
