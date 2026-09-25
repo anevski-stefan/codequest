@@ -1,11 +1,18 @@
-import { CircleDot, ExternalLink, Loader2 } from 'lucide-react';
+import type { CSSProperties } from 'react';
+import { CircleDot, ArrowUpRight, MessageSquare } from 'lucide-react';
 import { formatRelativeDate } from '../../../utils/formatDate';
 import { getLabelColors } from '../../dashboard/utils/filterUtils';
 import type { Issue } from '../../../types/github';
+import { Skeleton } from '../../../components/ui/Skeleton';
+import { ErrorDisplay } from '../../../components/ui/ErrorDisplay';
+import EmptyState from '../../../components/ui/EmptyState';
+import LoadMoreButton from '../../../components/ui/LoadMoreButton';
 
 interface RepoIssuesListProps {
   issues: Issue[];
   isLoading: boolean;
+  isError?: boolean;
+  error?: string;
   focusedIssueNumber: number | null;
   focusedIssueRef: React.Ref<HTMLDivElement>;
   onSelectIssue: (issue: Issue) => void;
@@ -14,101 +21,91 @@ interface RepoIssuesListProps {
   fetchNextPage: () => void;
 }
 
+// Dense, GitHub-style list: inside a repository the repo name is implied,
+// so rows spend their width on the title and signals instead.
 export function RepoIssuesList({
-  issues,
-  isLoading,
-  focusedIssueNumber,
-  focusedIssueRef,
-  onSelectIssue,
-  hasNextPage,
-  isFetchingNextPage,
-  fetchNextPage,
+  issues, isLoading, isError, error, focusedIssueNumber, focusedIssueRef,
+  onSelectIssue, hasNextPage, isFetchingNextPage, fetchNextPage,
 }: RepoIssuesListProps) {
   if (isLoading) {
     return (
-      <div className="space-y-2">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="animate-pulse h-16 rounded-xl bg-[#0D1525] border border-white/[0.05]" />
+      <div className="rounded-xl border border-white/[0.07] bg-[#2E3245]/60 divide-y divide-white/[0.05]" role="status" aria-label="Loading issues">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex gap-3 px-4 py-3.5">
+            <Skeleton className="w-3.5 h-3.5 rounded-full mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-3.5 w-2/3" />
+              <Skeleton className="h-3 w-1/4" />
+            </div>
+          </div>
         ))}
       </div>
     );
   }
 
+  if (isError) {
+    return <ErrorDisplay title="Couldn't load issues" error={error ?? 'Please try again.'} />;
+  }
+
   if (issues.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <CircleDot className="w-8 h-8 text-gray-700 mb-3" />
-        <p className="text-sm text-gray-500">No open issues found</p>
-      </div>
-    );
+    return <EmptyState icon={CircleDot} title="No open issues" subtitle="This repository has no open issues right now. Check the pull requests tab to see what's being worked on." />;
   }
 
   return (
-    <div className="space-y-1.5">
-      {issues.map(issue => {
-        const isFocused = issue.number === focusedIssueNumber;
-        return (
-          <div
-            key={issue.id}
-            ref={isFocused ? focusedIssueRef : undefined}
-            onClick={() => onSelectIssue(issue)}
-            className={`group flex items-start gap-3 px-4 py-3.5 rounded-xl border cursor-pointer transition-all ${
-              isFocused
-                ? 'border-blue-500/40 bg-blue-500/[0.06] ring-1 ring-blue-500/20'
-                : 'border-white/[0.06] bg-[#0D1525] hover:border-white/[0.12] hover:bg-[#111927]'
-            }`}
-          >
-            <CircleDot className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-2">
-                <span className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors leading-snug flex-1">
+    <>
+      <div className="rounded-xl border border-white/[0.07] bg-[#2E3245] divide-y divide-white/[0.05] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+        {issues.map((issue, i) => {
+          const isFocused = issue.number === focusedIssueNumber;
+          return (
+            <div
+              key={issue.id}
+              ref={isFocused ? focusedIssueRef : undefined}
+              role="button"
+              tabIndex={0}
+              style={{ '--i': i % 30 } as CSSProperties}
+              onClick={() => onSelectIssue(issue)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectIssue(issue); } }}
+              className={`reveal group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors ${
+                isFocused ? 'bg-blue-500/[0.07]' : 'hover:bg-white/[0.03]'
+              }`}
+            >
+              {isFocused && <span className="absolute left-0 inset-y-0 w-[3px] bg-blue-400" aria-hidden="true" />}
+              <CircleDot className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold text-gray-100 group-hover:text-white leading-snug transition-colors">
                   {issue.title}
-                </span>
-                <span className="text-[10px] text-gray-700 shrink-0">#{issue.number}</span>
-              </div>
-              {issue.labels?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {issue.labels.map((label: { name: string; color: string }) => (
+                  {issue.labels?.map(label => (
                     <span
                       key={label.name}
-                      className="px-1.5 py-0.5 text-[10px] font-medium rounded-full"
+                      className="inline-block align-middle ml-1.5 px-1.5 py-px text-[10px] font-semibold rounded-md"
                       style={getLabelColors(label.color)}
                     >
                       {label.name}
                     </span>
                   ))}
-                </div>
-              )}
-              <p className="text-[10px] text-gray-700 mt-1.5">
-                Opened {formatRelativeDate(issue.createdAt)} · {issue.commentsCount} comments
-              </p>
+                </p>
+                <p className="mt-1 text-[12px] text-gray-500">
+                  <span className="font-mono">#{issue.number}</span> opened {formatRelativeDate(issue.createdAt)} by {issue.user?.login}
+                </p>
+              </div>
+              <span className={`flex items-center gap-1 text-[12px] shrink-0 mt-0.5 tabular ${issue.commentsCount === 0 ? 'text-green-400/80' : 'text-gray-500'}`}>
+                <MessageSquare className="w-3.5 h-3.5" />{issue.commentsCount}
+              </span>
+              <a
+                href={issue.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                aria-label="Open on GitHub"
+                className="-my-1 w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-white hover:bg-white/[0.06] [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all shrink-0"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </a>
             </div>
-            <a
-              href={issue.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              className="text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-all shrink-0 mt-0.5"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        );
-      })}
-
-      {hasNextPage && (
-        <div className="flex justify-center pt-3">
-          <button
-            onClick={fetchNextPage}
-            disabled={isFetchingNextPage}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs text-gray-400 border border-white/[0.08] hover:border-white/[0.15] hover:text-white disabled:opacity-40 transition-all cursor-pointer"
-          >
-            {isFetchingNextPage
-              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Loading…</>
-              : 'Load more issues'}
-          </button>
-        </div>
-      )}
-    </div>
+          );
+        })}
+      </div>
+      {hasNextPage && <LoadMoreButton onClick={fetchNextPage} isLoading={isFetchingNextPage} />}
+    </>
   );
 }
