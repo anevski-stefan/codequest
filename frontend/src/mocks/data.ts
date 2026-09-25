@@ -78,6 +78,18 @@ const REPO_SEEDS: RepoSeed[] = [
   { full_name: 'kestrel-io/queue', description: 'Durable background jobs for Go services', language: 'Go', stars: 2140, forks: 187, topics: ['go', 'jobs', 'queue'], license: 'MIT License' },
   { full_name: 'lumen-ui/lumen', description: 'Accessible React primitives with zero runtime styles', language: 'TypeScript', stars: 4870, forks: 312, topics: ['react', 'a11y', 'components'], license: 'MIT License' },
   { full_name: 'tidewater/ledger-cli', description: 'Plain-text accounting in your terminal', language: 'Python', stars: 912, forks: 64, topics: ['cli', 'finance', 'python'], license: 'GPL-3.0' },
+  { full_name: 'freeCodeCamp/freeCodeCamp', description: "freeCodeCamp.org's open-source codebase and curriculum. Learn to code for free.", language: 'TypeScript', stars: 408000, forks: 39000, topics: ['education', 'curriculum', 'react'], license: 'BSD 3-Clause' },
+  { full_name: 'facebook/react', description: 'The library for web and native user interfaces', language: 'JavaScript', stars: 233000, forks: 47600, topics: ['react', 'ui', 'frontend'], license: 'MIT License' },
+  { full_name: 'rust-lang/rust', description: 'Empowering everyone to build reliable and efficient software', language: 'Rust', stars: 101000, forks: 13000, topics: ['rust', 'compiler', 'language'], license: 'Apache License 2.0' },
+  { full_name: 'astral-sh/ruff', description: 'An extremely fast Python linter and code formatter, written in Rust', language: 'Rust', stars: 36400, forks: 1200, topics: ['python', 'linter', 'cli'], license: 'MIT License' },
+  { full_name: 'charmbracelet/bubbletea', description: 'A powerful little TUI framework', language: 'Go', stars: 29100, forks: 830, topics: ['tui', 'cli', 'go'], license: 'MIT License' },
+  { full_name: 'cli/cli', description: "GitHub's official command line tool", language: 'Go', stars: 38200, forks: 6100, topics: ['cli', 'github', 'go'], license: 'MIT License' },
+  { full_name: 'pytorch/pytorch', description: 'Tensors and dynamic neural networks in Python with strong GPU acceleration', language: 'Python', stars: 88100, forks: 23600, topics: ['machine-learning', 'deep-learning', 'python'], license: 'BSD 3-Clause' },
+  { full_name: 'godotengine/godot', description: 'Multi-platform 2D and 3D game engine', language: 'C++', stars: 94200, forks: 21300, topics: ['game-engine', 'gamedev', 'cpp'], license: 'MIT License' },
+  { full_name: 'excalidraw/excalidraw', description: 'Virtual whiteboard for sketching hand-drawn like diagrams', language: 'TypeScript', stars: 88900, forks: 8100, topics: ['whiteboard', 'react', 'canvas'], license: 'MIT License' },
+  { full_name: 'withastro/astro', description: 'The web framework for content-driven websites', language: 'TypeScript', stars: 48700, forks: 2600, topics: ['static-site', 'framework', 'frontend'], license: 'MIT License' },
+  { full_name: 'duckdb/duckdb', description: 'An in-process SQL OLAP database management system', language: 'C++', stars: 27400, forks: 2300, topics: ['database', 'sql', 'analytics'], license: 'MIT License' },
+  { full_name: 'spring-projects/spring-boot', description: 'Spring Boot helps you create stand-alone, production-grade Spring applications', language: 'Java', stars: 76300, forks: 41000, topics: ['java', 'framework', 'web'], license: 'Apache License 2.0' },
 ];
 
 export const REPOS = REPO_SEEDS.map((r, i) => {
