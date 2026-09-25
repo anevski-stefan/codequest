@@ -28,19 +28,17 @@ interface LabelsCellProps {
 }
 
 export const LabelsCellContent = ({ labels }: LabelsCellProps) => (
-  <div className="flex flex-wrap gap-1">
-    {labels.length > 0
-      ? labels.slice(0, 2).map(label => (
+  <div className="flex flex-wrap gap-1 min-w-0">
+    {labels.slice(0, 2).map(label => (
         <span
           key={label.name}
-          className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded-md truncate max-w-[100px]"
+          className="inline-flex items-center px-1.5 py-px text-[10px] font-semibold rounded-md truncate max-w-[140px]"
           style={getLabelColors(label.color)}
           title={label.name}
         >
           {label.name}
         </span>
-      ))
-      : <span className="text-[10px] text-gray-700">—</span>}
+      ))}
     {labels.length > 2 && (
       <span className="text-[10px] text-gray-600">+{labels.length - 2}</span>
     )}
