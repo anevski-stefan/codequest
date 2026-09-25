@@ -1,6 +1,6 @@
-import { useState, useMemo, type CSSProperties } from 'react';
+import { useState, useMemo } from 'react';
 import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
-import { Star, ExternalLink, Sparkles, GitPullRequest } from 'lucide-react';
+import { Star, GitPullRequest } from 'lucide-react';
 import { getSuggestedIssues } from '../../services/github';
 import type { Issue } from '../../types/github';
 import { CardSkeletonList } from '../../components/skeletons';
@@ -8,9 +8,7 @@ import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
-import { LabelsCellContent } from '../../components/ui/IssueTableCells';
-import { formatRelativeDate } from '../../utils/formatDate';
-import { formatCount } from '../../utils/formatCount';
+import IssueCard from '../../components/issues/IssueCard';
 import FilterChip from '../../components/ui/FilterChip';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
@@ -42,76 +40,6 @@ const COMPETITION = [
   { value: '0', label: 'No Competition' },
   { value: '1-5', label: 'Low (1–5)' },
 ];
-
-/* ── Issue card ── */
-function IssueRow({ issue, onOpen }: { issue: Issue; onOpen: (issue: Issue) => void }) {
-  const stars = issue.repoStars;
-  const starTier =
-    stars && stars >= 50000 ? 'text-yellow-400 bg-yellow-400/[0.08] border-yellow-400/20' :
-    stars && stars >= 10000 ? 'text-amber-400 bg-amber-400/[0.08] border-amber-400/20' :
-    'text-gray-500 bg-white/[0.04] border-white/[0.06]';
-
-  const [repoOwner, repoName] = (issue.repository?.fullName ?? '').split('/');
-
-  return (
-    <div
-      className="group rounded-xl border border-white/[0.07] bg-[#2E3245] p-4 hover:border-white/[0.14] hover:bg-[#31364C] hover:-translate-y-px hover:shadow-[0_12px_24px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] active:translate-y-0 transition-[background-color,border-color,box-shadow,transform] duration-200 cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-      onClick={() => onOpen(issue)}
-    >
-      {/* Row 1: title + star badge */}
-      <div className="flex items-start gap-3 mb-2">
-        <p className="text-sm font-semibold text-gray-200 group-hover:text-white transition-colors line-clamp-2 leading-snug flex-1">
-          {issue.title}
-        </p>
-        {stars ? (
-          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md border shrink-0 ${starTier}`}>
-            <Star className="w-2.5 h-2.5 fill-current" />
-            {formatCount(stars)}
-          </span>
-        ) : null}
-      </div>
-
-      {/* Row 2: number · repo · date */}
-      <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-3">
-        <span className="font-mono text-gray-400">#{issue.number}</span>
-        <span className="text-gray-600">·</span>
-        {repoOwner && repoName ? (
-          <span className="truncate">
-            <span className="text-gray-500">{repoOwner}/</span>
-            <span className="text-gray-300 font-medium">{repoName}</span>
-          </span>
-        ) : (
-          <span className="text-gray-400 truncate">{issue.repository?.fullName}</span>
-        )}
-        <span className="ml-auto text-gray-400 whitespace-nowrap shrink-0">{formatRelativeDate(issue.createdAt)}</span>
-      </div>
-
-      {/* Row 3: labels + actions */}
-      <div className="flex items-center gap-2">
-        <LabelsCellContent labels={issue.labels} />
-        <div className="ml-auto flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-          <button
-            onClick={e => { e.stopPropagation(); onOpen(issue); }}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-semibold text-blue-400 bg-blue-400/[0.08] hover:bg-blue-400/[0.15] border border-blue-400/20 transition-all cursor-pointer"
-          >
-            <Sparkles className="w-3 h-3" />
-            Explain
-          </button>
-          <a
-            href={issue.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-            className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] transition-all"
-            aria-label="Open on GitHub"
-          >
-            <ExternalLink size={13} />
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ── Page ── */
 const SuggestedIssues = () => {
@@ -245,9 +173,7 @@ const SuggestedIssues = () => {
           <>
             <div className="px-4 lg:px-6 xl:px-8 py-4 grid grid-cols-1 lg:grid-cols-2 gap-2.5">
               {allIssues.map((issue, i) => (
-                <div key={`${issue.repository?.fullName}-${issue.number}`} className="reveal flex [&>*]:flex-1 [&>*]:min-w-0" style={{ '--i': i % 30 } as CSSProperties}>
-                  <IssueRow issue={issue} onOpen={handleOpenIssue} />
-                </div>
+                <IssueCard key={`${issue.repository?.fullName}-${issue.number}`} issue={issue} index={i} onOpen={handleOpenIssue} />
               ))}
             </div>
 

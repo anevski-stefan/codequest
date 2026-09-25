@@ -4,12 +4,12 @@ import { getIssues } from '../../services/github';
 import type { IssueParams, Language, IssueResponse } from '../../types/github';
 import debounce from '../../utils/debounce';
 import { SlidersHorizontal, X, Loader2, ChevronDown } from 'lucide-react';
-import CommentsModal from '../../components/CommentsModal';
+import IssueDetailsModal from '../../components/IssueDetailsModal';
+import IssueCard from '../../components/issues/IssueCard';
 import LabelsFilter from '../../components/LabelsFilter';
 import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from './constants/filterOptions';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
-import IssueTable from './components/IssueTable';
 import { CardSkeletonList } from '../../components/skeletons';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import FilterChip from '../../components/ui/FilterChip';
@@ -257,7 +257,17 @@ const Dashboard = () => {
             )}
 
             {allIssues.length > 0 && (
-              <IssueTable issues={allIssues} onViewComments={handleViewComments} onPrefetchComments={prefetchComments} />
+              <div className="px-4 lg:px-6 xl:px-8 py-4 grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                {allIssues.map((issue, i) => (
+                  <IssueCard
+                    key={`${issue.repository?.fullName}-${issue.number}`}
+                    issue={issue}
+                    index={i}
+                    onOpen={handleViewComments}
+                    onPrefetch={prefetchComments}
+                  />
+                ))}
+              </div>
             )}
 
             {!isLoading && hasNextPage && allIssues.length > 0 && (
@@ -271,16 +281,16 @@ const Dashboard = () => {
         )}
       </div>
 
-      <CommentsModal
+      <IssueDetailsModal
         isOpen={isCommentsModalOpen}
         onClose={handleCloseComments}
+        issue={selectedIssue}
         comments={allComments}
-        isLoading={isLoadingComments}
-        onAddComment={handleAddComment}
-        onLoadMore={onLoadMore}
+        isLoadingComments={isLoadingComments}
         hasMoreComments={hasMoreComments}
         isLoadingMore={isLoadingMore}
-        issue={selectedIssue}
+        onLoadMore={onLoadMore}
+        onAddComment={handleAddComment}
       />
     </div>
   );
