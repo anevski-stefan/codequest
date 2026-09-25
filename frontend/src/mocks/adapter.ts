@@ -132,9 +132,22 @@ const routes: [string, RegExp, Handler][] = [
   ['get', /^\/api\/repos\/([^/]+)\/([^/]+)$/, m => (m[1] === 'missing' ? status(404, { error: 'Not Found' }) : repoFrom(m[1], m[2]))],
 
   ['get', /^\/api\/github\/search\/repositories$/, (_, p) => {
+    // Supports plain text plus language:, topic: and stars:> qualifiers.
     const q = (p.q ?? '').toLowerCase();
-    const items = REPOS.filter(r => `${r.full_name} ${r.description} ${r.language} ${r.topics.join(' ')}`.toLowerCase().includes(q));
-    return { items, total_count: items.length };
+    const lang = q.match(/language:("?)([^"\s]+)\1/)?.[2];
+    const topic = q.match(/topic:(\S+)/)?.[1];
+    const minStars = Number(q.match(/stars:>=?(\d+)/)?.[1] ?? 0);
+    const text = q.replace(/(language|topic|stars|good-first-issues):\S+/g, '').trim();
+    let items = REPOS.filter(r =>
+      (!lang || r.language.toLowerCase() === lang.replace('%2b', '+')) &&
+      (!topic || r.topics.includes(topic)) &&
+      r.stargazers_count >= minStars &&
+      (!text || `${r.full_name} ${r.description} ${r.language} ${r.topics.join(' ')}`.toLowerCase().includes(text)));
+    if (p.sort === 'stars') items = [...items].sort((a, b) => b.stargazers_count - a.stargazers_count);
+    if (p.sort === 'updated') items = [...items].sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+    const page = Number(p.page || 1);
+    const perPage = Number(p.per_page || 30);
+    return { items: paginate(items, page, perPage).slice, total_count: items.length };
   }],
   ['get', /^\/api\/github\/search\/users$/, (_, p) => {
     const page = Number(p.page || 1);
