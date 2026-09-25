@@ -98,7 +98,7 @@ const SearchTrigger = ({ onClick, className = '' }: { onClick: () => void; class
   >
     <Search className="w-3.5 h-3.5 shrink-0" />
     <span className="flex-1 text-left truncate">Search</span>
-    <span className="flex items-center gap-0.5">
+    <span className="hidden lg:flex items-center gap-0.5">
       <span className="kbd">{isMac ? '⌘' : 'Ctrl'}</span>
       <span className="kbd">K</span>
     </span>
