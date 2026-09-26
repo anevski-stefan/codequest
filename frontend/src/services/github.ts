@@ -142,6 +142,10 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
       const encodedLabel = label.includes(' ') ? `"${label}"` : label;
       searchQuery += `label:${encodedLabel} `;
     });
+  } else if (params.labelAnyOf && params.labelAnyOf.length > 0) {
+    // Comma-separated values inside one `label:` qualifier mean OR. Every value is quoted,
+    // matching the format the backend already uses for suggested issues.
+    searchQuery += `label:${params.labelAnyOf.map(label => `"${label}"`).join(',')} `;
   }
   if (params.timeFrame && params.timeFrame !== 'all') {
     const now = new Date();

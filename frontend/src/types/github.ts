@@ -43,6 +43,7 @@ export interface IssueParams {
   unassigned: boolean;
   commentsRange: string;
   labels: string[];
+  labelAnyOf?: string[];
 }
 export interface ActivityPayload {
   action?: string;
