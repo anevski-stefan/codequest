@@ -256,13 +256,18 @@ export const lotteryFor = (fullName: string) => {
   const pct = [31, 24, 18, 9];
   return people.map((login, i) => ({ login, avatar_url: avatar(login), pull_requests: pct[i] * 3, percentage: pct[i] }));
 };
-export const confidenceFor = (fullName: string) => {
-  const p = 48 + (fullName.length * 7) % 44;
+export const likelihoodFor = (fullName: string) => {
+  const h = [...fullName].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 0);
+  const sample = 8 + (h % 40);
+  const merged = Math.round(sample * (0.25 + (h % 60) / 100));
+  const rate = Math.round((merged / sample) * 100);
   return {
-    percentage: p,
-    message: p >= 75 ? 'Strong and active contributor community with consistent engagement.'
-      : p >= 50 ? 'Moderate contributor activity with room for growth.'
-      : 'Few stargazers and forkers come back later on to a meaningful contribution.',
+    likelihood: rate >= 60 ? 'high' : rate >= 35 ? 'medium' : 'low',
+    merge_rate: rate,
+    median_days_to_merge: 1 + (h % 12),
+    sample_size: sample,
+    merged_count: merged,
+    waiting_count: h % 4,
   };
 };
 

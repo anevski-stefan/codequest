@@ -1,4 +1,5 @@
 const githubService = require('../services/githubService');
+const { getMergeLikelihood } = require('../services/mergeLikelihoodService');
 const { badRequest, asyncHandler } = require('../utils/httpError');
 const { buildPagination, clampPage } = require('../utils/pagination');
 const { isValidNumber, isValidState } = require('../utils/validateParams');
@@ -109,49 +110,9 @@ exports.getLotteryContributors = asyncHandler(async (req, res) => {
   contributors.forEach(c => c.percentage = Math.round(c.pull_requests / total * 100));
   res.json(contributors.slice(0, 4));
 });
-exports.getContributorConfidence = asyncHandler(async (req, res) => {
+exports.getMergeLikelihood = asyncHandler(async (req, res) => {
   const { owner, repo } = req.params;
-  const [contributorsResponse, commitsResponse, prResponse] = await Promise.all([
-    githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/contributors`, { params: { per_page: 100 } }),
-    githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/commits`, { params: { per_page: 100 } }),
-    githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/pulls`, { params: { state: 'all', per_page: 100 } })
-  ]);
-  const contributors = contributorsResponse;
-  const commits = commitsResponse;
-  const prs = prResponse;
-  const totalContributors = contributors.length;
-  const activeContributors = contributors.filter(c => c.contributions >= 10).length;
-  const recentCommits = commits.filter(c => {
-    const commitDate = new Date(c.commit.author.date);
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    return commitDate > threeMonthsAgo;
-  }).length;
-  const mergedPRs = prs.filter(pr => pr.merged_at).length;
-  const uniquePRAuthors = new Set(prs.map(pr => pr.user.login)).size;
-  const weights = {
-    activeContributorsRatio: 0.3,
-    recentActivityRatio: 0.3,
-    prSuccessRatio: 0.2,
-    contributorDiversityRatio: 0.2
-  };
-  const scores = {
-    activeContributor: Math.min(activeContributors / totalContributors * 100, 100),
-    recentActivity: Math.min(commits.length ? recentCommits / commits.length * 100 : 0, 100),
-    prSuccess: Math.min(mergedPRs / prs.length * 100 || 0, 100),
-    contributorDiversity: Math.min(uniquePRAuthors / totalContributors * 100, 100)
-  };
-  const confidenceScore = Math.round(scores.activeContributor * weights.activeContributorsRatio + scores.recentActivity * weights.recentActivityRatio + scores.prSuccess * weights.prSuccessRatio + scores.contributorDiversity * weights.contributorDiversityRatio);
-  let message = "Few stargazers and forkers come back later on to a meaningful contribution.";
-  if (confidenceScore >= 75) {
-    message = "Strong and active contributor community with consistent engagement.";
-  } else if (confidenceScore >= 50) {
-    message = "Moderate contributor activity with room for growth.";
-  }
-  res.json({
-    percentage: confidenceScore,
-    message
-  });
+  res.json(await getMergeLikelihood(req.user.accessToken, owner, repo));
 });
 exports.getPulls = asyncHandler(async (req, res) => {
   const { owner, repo } = req.params;

@@ -12,7 +12,7 @@ import ClaimBadge from './issues/ClaimBadge';
 import useIssueClaims, { claimFor } from '../hooks/useIssueClaims';
 import type { IssueClaim } from '../types/github';
 import { useCommentSorting } from '../hooks/useCommentSorting';
-import { explainIssue } from '../services/github';
+import { explainIssue, trackOutcome } from '../services/github';
 import type { Issue } from '../types/github';
 import type { Comment } from '../types/comments';
 
@@ -34,6 +34,8 @@ interface Props {
   hideRepoLink?: boolean;
 }
 
+type DraftKind = 'claim' | 'checkin';
+
 const CLAIM_COPY: Record<string, { tone: string; hint: string }> = {
   free: { tone: 'border-green-500/20 bg-green-500/[0.05]', hint: 'Comment to claim it before you start, so nobody duplicates your work.' },
   requested: { tone: 'border-amber-400/20 bg-amber-400/[0.05]', hint: 'Someone asked first. Check whether a maintainer answered before you start.' },
@@ -47,7 +49,7 @@ const staleCheckIn = (who?: string) =>
   `Hi${who ? ` @${who}` : ''}, are you still working on this? If not, I'd be happy to pick it up.`;
 
 function ClaimBanner({ claim, loading, error, onRetry, onDraft }: {
-  claim?: IssueClaim; loading: boolean; error: boolean; onRetry: () => void; onDraft: (text: string) => void;
+  claim?: IssueClaim; loading: boolean; error: boolean; onRetry: () => void; onDraft: (text: string, kind: DraftKind) => void;
 }) {
   if (loading && !claim) return <Skeleton className="h-[72px] w-full rounded-2xl" />;
   if (error && !claim) {
@@ -73,13 +75,13 @@ function ClaimBanner({ claim, loading, error, onRetry, onDraft }: {
           <p className="text-[12px] text-gray-400 mt-0.5 leading-relaxed">{copy.hint}</p>
         </div>
         {claim.status === 'free' && (
-          <button onClick={() => onDraft(claimRequest())}
+          <button onClick={() => onDraft(claimRequest(), 'claim')}
             className="shrink-0 h-8 px-3 rounded-lg bg-white/[0.08] border border-white/[0.1] text-[12px] font-semibold text-white hover:bg-white/[0.12] active:scale-[0.97] transition-all cursor-pointer">
             Ask to work on it
           </button>
         )}
         {claim.status === 'stale' && (
-          <button onClick={() => onDraft(staleCheckIn(claim.claimant))}
+          <button onClick={() => onDraft(staleCheckIn(claim.claimant), 'checkin')}
             className="shrink-0 h-8 px-3 rounded-lg bg-white/[0.08] border border-white/[0.1] text-[12px] font-semibold text-white hover:bg-white/[0.12] active:scale-[0.97] transition-all cursor-pointer">
             Draft a check-in
           </button>
@@ -112,12 +114,22 @@ export default function IssueDetailsModal({
   // animation doesn't slide out an empty panel.
   const [lastIssue, setLastIssue] = useState<Issue | null>(issueProp);
   useEffect(() => { if (issueProp) setLastIssue(issueProp); }, [issueProp]);
+
+  // Record each issue opening once. issueProp gets a new object identity on
+  // every refetch, so key on the issue itself rather than the object.
+  const openedKey = issueProp && isOpen ? `${issueProp.repository?.fullName}#${issueProp.number}` : null;
+  useEffect(() => {
+    if (!openedKey || !issueProp) return;
+    const [o, r] = (issueProp.repository?.fullName ?? '').split('/');
+    trackOutcome('opened_issue', owner ?? o, repo ?? r, issueProp.number);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openedKey]);
   const issue = issueProp ?? lastIssue;
   const [explanation, setExplanation] = useState('');
   const [isExplaining, setIsExplaining] = useState(false);
   const [explainError, setExplainError] = useState<string | null>(null);
 
-  const [draft, setDraft] = useState<{ text: string; n: number } | null>(null);
+  const [draft, setDraft] = useState<{ text: string; n: number; kind: DraftKind } | null>(null);
   const claimTarget = useMemo(() => (issue && issue.state === 'open' ? [issue] : []), [issue]);
   const { claims, loading: claimLoading, error: claimError, retry: retryClaim } = useIssueClaims(claimTarget, isOpen);
   const claim = issue ? claimFor(claims, issue) : undefined;
@@ -132,9 +144,21 @@ export default function IssueDetailsModal({
   const resolvedOwner = owner ?? issueOwner;
   const resolvedRepo = repo ?? issueRepo;
 
+  // Count a claim only when the comment is actually posted, not when drafted.
+  const submitComment = async (text: string) => {
+    await onAddComment(text);
+    if (draft && issue && resolvedOwner && resolvedRepo) {
+      trackOutcome(draft.kind === 'claim' ? 'asked_to_work' : 'checked_in', resolvedOwner, resolvedRepo, issue.number);
+      setDraft(null);
+    }
+  };
+
   const handleExplain = async () => {
     if (!issue || !resolvedOwner || !resolvedRepo) return;
     setIsExplaining(true); setExplainError(null); setExplanation('');
+    
+    trackOutcome('explained_with_ai', resolvedOwner, resolvedRepo, issue.number);
+
     await explainIssue({
       owner: resolvedOwner, repo: resolvedRepo,
       issueTitle: issue.title,
@@ -233,13 +257,13 @@ export default function IssueDetailsModal({
                         </header>
 
                         {issue.state === 'open' && (claim || claimLoading || claimError) && (
-                          <ClaimBanner
-                            claim={claim}
-                            loading={claimLoading}
-                            error={claimError}
-                            onRetry={retryClaim}
-                            onDraft={text => setDraft(d => ({ text, n: (d?.n ?? 0) + 1 }))}
-                          />
+                            <ClaimBanner
+                              claim={claim}
+                              loading={claimLoading}
+                              error={claimError}
+                              onRetry={retryClaim}
+                              onDraft={(text, kind) => setDraft(d => ({ text, kind, n: (d?.n ?? 0) + 1 }))}
+                            />
                         )}
 
                         {/* AI explanation — the primary action on this panel */}
@@ -332,7 +356,7 @@ export default function IssueDetailsModal({
 
                     {/* Composer */}
                     <div className="shrink-0 px-4 sm:px-6 py-3.5 border-t border-white/[0.06] bg-[#262A3B] pb-[max(0.875rem,env(safe-area-inset-bottom))]">
-                      <CommentForm key={draft?.n ?? 0} onSubmit={onAddComment} initialValue={draft?.text} autoFocus={!!draft} />
+                      <CommentForm key={draft?.n ?? 0} onSubmit={submitComment} initialValue={draft?.text} autoFocus={!!draft} />
                     </div>
                   </>
                 )}

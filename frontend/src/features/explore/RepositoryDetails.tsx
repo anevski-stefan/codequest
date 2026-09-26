@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { formatRelativeDate } from '../../utils/formatDate';
-import { getRepositoryDetails, getTopContributors, getLotteryContributors, getContributorConfidence, getRepositoryPullRequests, getPullRequestDetails, getRepositoryIssues, onboardRepo, checkRepoStarred, starRepo, unstarRepo } from '../../services/github';
+import { getRepositoryDetails, getTopContributors, getLotteryContributors, getMergeLikelihood, getRepositoryPullRequests, getPullRequestDetails, getRepositoryIssues, onboardRepo, checkRepoStarred, starRepo, unstarRepo, trackOutcome } from '../../services/github';
 import ReactMarkdown from 'react-markdown';
 import PullRequestDetailsModal from '../../components/PullRequestDetailsModal';
 import type { PullRequestDetails } from '../../types/github';
@@ -22,7 +22,7 @@ import { LANGUAGE_COLORS } from '../../constants/languageColors';
 import { formatCount } from '../../utils/formatCount';
 import type { GitHubRepository as Repository } from '../../types/github';
 import { extractErrorMessage } from '../../utils/extractErrorMessage';
-import type { TopContributor, LotteryContributor, ContributorConfidence, PullRequest, PullRequestsResult, PullRequestCounts } from './types';
+import type { TopContributor, LotteryContributor, MergeLikelihood, PullRequest, PullRequestsResult, PullRequestCounts } from './types';
 import { BAR_COLORS } from './types';
 import { RepoSidebar } from './components/RepoSidebar';
 import { RepoIssuesList } from './components/RepoIssuesList';
@@ -53,9 +53,9 @@ const RepositoryDetails = () => {
     queryFn: () => getLotteryContributors(owner!, repo!),
     enabled: !!owner && !!repo && !!repository, staleTime: 15 * 60 * 1000, gcTime: 60 * 60 * 1000,
   });
-  const { data: contributorConfidence } = useQuery<ContributorConfidence>({
-    queryKey: ['contributor-confidence', owner, repo],
-    queryFn: () => getContributorConfidence(owner!, repo!),
+  const { data: mergeLikelihood } = useQuery<MergeLikelihood>({
+    queryKey: ['merge-likelihood', owner, repo],
+    queryFn: () => getMergeLikelihood(owner!, repo!),
     enabled: !!owner && !!repo && !!repository, staleTime: 15 * 60 * 1000, gcTime: 60 * 60 * 1000,
   });
   const { data: issuesData, isLoading: issuesLoading, isError: issuesError, error: issuesErrorObj, fetchNextPage: fetchNextIssues, hasNextPage: hasNextIssues, isFetchingNextPage: isFetchingNextIssues } =
@@ -89,6 +89,14 @@ const RepositoryDetails = () => {
   const [onboardingError, setOnboardingError] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const onboardingRef = useRef<HTMLDivElement>(null);
+
+  // Record the first look at this repo's pull requests, not every tab switch.
+  const trackedPrsFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (activeTab !== 'pullrequests' || !owner || !repo || trackedPrsFor.current === `${owner}/${repo}`) return;
+    trackedPrsFor.current = `${owner}/${repo}`;
+    trackOutcome('opened_prs', owner, repo);
+  }, [activeTab, owner, repo]);
 
   const { data: isStarred, isLoading: starredLoading } = useQuery<boolean>({
     queryKey: ['repo-starred', owner, repo],
@@ -177,11 +185,14 @@ const RepositoryDetails = () => {
   }
 
   const langColor = LANGUAGE_COLORS[repository.language] ?? '#6b7280';
-  const pct = contributorConfidence?.percentage ?? 0;
-  const confidenceTier = pct >= 75 ? { label: 'Strong', color: '#22c55e', cls: 'text-green-400 bg-green-500/10 border-green-500/20' }
-    : pct >= 50 ? { label: 'Good', color: '#3b82f6', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20' }
-    : pct >= 25 ? { label: 'Moderate', color: '#f59e0b', cls: 'text-amber-400 bg-amber-500/10 border-amber-500/20' }
-    : { label: 'Low', color: '#ef4444', cls: 'text-red-400 bg-red-500/10 border-red-500/20' };
+  
+  const likelihood = mergeLikelihood?.likelihood ?? 'unknown';
+  const likelihoodTier = likelihood === 'high' ? { label: 'High', cls: 'text-green-300 bg-green-500/10 border-green-500/25' }
+    : likelihood === 'medium' ? { label: 'Medium', cls: 'text-amber-300 bg-amber-400/10 border-amber-400/25' }
+    : likelihood === 'low' ? { label: 'Low', cls: 'text-red-300 bg-red-500/10 border-red-500/25' }
+    : { label: 'Not enough data', cls: 'text-gray-400 bg-white/[0.04] border-white/[0.1]' };
+  const days = mergeLikelihood?.median_days_to_merge;
+  const daysLabel = days === null || days === undefined ? null : days < 1 ? '<1 day' : `${Math.round(days)} day${Math.round(days) === 1 ? '' : 's'}`;
 
   const lottery = lotteryContributors ?? [];
   const topLotteryPct = lottery[0]?.percentage ?? 0;
@@ -323,27 +334,31 @@ const RepositoryDetails = () => {
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">Should you contribute here?</p>
           </div>
           <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
-            {/* Contributor Confidence */}
+            {/* Merge Likelihood */}
             <div className="p-4 flex items-center gap-4">
-              <div className="relative w-14 h-14 shrink-0">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="9" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke={confidenceTier.color} strokeWidth="9" strokeLinecap="round"
-                    strokeDasharray={`${pct * 2.513} 251.3`} className="transition-[stroke-dasharray] duration-1000" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[13px] font-bold text-white tabular">{contributorConfidence ? `${pct}%` : '–'}</span>
-                </div>
+              <div className="w-14 h-14 shrink-0 rounded-full bg-white/[0.03] border border-white/[0.07] flex flex-col items-center justify-center">
+                <span className="text-[15px] font-bold text-white tabular leading-none">
+                  {mergeLikelihood && mergeLikelihood.merge_rate !== null && likelihood !== 'unknown' ? `${mergeLikelihood.merge_rate}%` : '–'}
+                </span>
+                <span className="text-[9px] text-gray-500 mt-1">merged</span>
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-[13px] font-semibold text-gray-100">Contributor confidence</p>
-                  {contributorConfidence && (
-                    <span className={`text-[10px] font-semibold px-1.5 py-px rounded-md border ${confidenceTier.cls}`}>{confidenceTier.label}</span>
+                  <p className="text-[13px] font-semibold text-gray-100">Merge likelihood</p>
+                  {mergeLikelihood && (
+                    <span className={`text-[10px] font-semibold px-1.5 py-px rounded-md border ${likelihoodTier.cls}`}>{likelihoodTier.label}</span>
                   )}
                 </div>
-                <p className="text-[12px] text-gray-400 mt-1 leading-relaxed line-clamp-2">
-                  {contributorConfidence?.message ?? 'How often outside contributors get their pull requests merged.'}
+                <p className="text-[12px] text-gray-400 mt-1 leading-relaxed">
+                  {!mergeLikelihood
+                    ? 'How often outside contributors get their pull requests merged.'
+                    : likelihood === 'unknown'
+                      ? `Only ${mergeLikelihood.sample_size} recent PR${mergeLikelihood.sample_size === 1 ? '' : 's'} from outside contributors, too few to judge.`
+                      : <>
+                          {mergeLikelihood.merged_count} of {mergeLikelihood.sample_size} recent outside PRs merged
+                          {daysLabel && <>, usually within <span className="text-gray-200 font-semibold">{daysLabel}</span></>}.
+                          {mergeLikelihood.waiting_count > 0 && <> {mergeLikelihood.waiting_count} waiting 30+ days.</>}
+                        </>}
                 </p>
               </div>
             </div>

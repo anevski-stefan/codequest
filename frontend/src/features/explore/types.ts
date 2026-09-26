@@ -12,9 +12,14 @@ export interface LotteryContributor {
   percentage: number;
 }
 
-export interface ContributorConfidence {
-  percentage: number;
-  message: string;
+/** Outside (non-maintainer, non-bot) pull requests; see mergeLikelihoodService. */
+export interface MergeLikelihood {
+  likelihood: 'high' | 'medium' | 'low' | 'unknown';
+  merge_rate: number | null;          // 0–100
+  median_days_to_merge: number | null;
+  sample_size: number;
+  merged_count: number;
+  waiting_count: number;              // open 30+ days, counted as not merged
 }
 
 export interface PullRequest {

@@ -239,6 +239,17 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
   });
   return response.data;
 };
+export type OutcomeEvent = 'opened_issue' | 'explained_with_ai' | 'asked_to_work' | 'checked_in' | 'opened_prs';
+
+/** Fire-and-forget product analytics; never throws and never blocks the UI. */
+export const trackOutcome = (eventType: OutcomeEvent, owner?: string, repo?: string, issueNumber?: number) => {
+  if (!isAuthenticated()) return;
+  const body: Record<string, string | number> = { event_type: eventType };
+  if (owner) body.owner = owner;
+  if (repo) body.repo = repo;
+  if (issueNumber) body.issue_number = issueNumber;
+  api.post('/api/activity/track', body).catch(() => { /* analytics only */ });
+};
 export const getAssignedIssues = async (state?: string): Promise<IssueResponse> => {
   try {
     if (!isAuthenticated()) {
@@ -463,10 +474,10 @@ export const getLotteryContributors = async (owner: string, repo: string) => {
   } = await api.get(`/api/repos/${owner}/${repo}/lottery-contributors`);
   return data;
 };
-export const getContributorConfidence = async (owner: string, repo: string) => {
+export const getMergeLikelihood = async (owner: string, repo: string) => {
   const {
     data
-  } = await api.get(`/api/repos/${owner}/${repo}/contributor-confidence`);
+  } = await api.get(`/api/repos/${owner}/${repo}/merge-likelihood`);
   return data;
 };
 export const getRepositoryPullRequests = async (owner: string, repo: string, state: 'open' | 'closed', page: number = 1) => {

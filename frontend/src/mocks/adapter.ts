@@ -2,7 +2,7 @@ import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from 'ax
 import { AxiosError } from 'axios';
 import {
   ME, REPOS, ISSUES, ASSIGNED_OPEN, ASSIGNED_CLOSED, STARRED, USER_REPOS, SEARCH_USERS, HACKATHONS,
-  NOTIFICATIONS, findRepo, commentsFor, topContributorsFor, lotteryFor, confidenceFor, pullsFor,
+  NOTIFICATIONS, findRepo, commentsFor, topContributorsFor, lotteryFor, likelihoodFor, pullsFor,
   pullDetails, activityFor, userProfile, avatar, daysAgo, makeIssue, type MockIssue,
 } from './data';
 
@@ -137,7 +137,7 @@ const routes: [string, RegExp, Handler][] = [
   ['delete', /^\/api\/repos\/([^/]+)\/([^/]+)\/starred$/, m => { state.starred.delete(`${m[1]}/${m[2]}`); return { starred: false }; }],
   ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/contributors\/stats$/, m => topContributorsFor(`${m[1]}/${m[2]}`)],
   ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/lottery-contributors$/, m => lotteryFor(`${m[1]}/${m[2]}`)],
-  ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/contributor-confidence$/, m => confidenceFor(`${m[1]}/${m[2]}`)],
+  ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/merge-likelihood$/, m => likelihoodFor(`${m[1]}/${m[2]}`)],
   ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/pulls\/(\d+)$/, m => {
     const repo = repoFrom(m[1], m[2]);
     return repo ? pullDetails(repo, Number(m[3])) : status(404);
@@ -233,6 +233,7 @@ const routes: [string, RegExp, Handler][] = [
   ['get', /^\/api\/ai-keys$/, () => ({ ...state.aiKeys })],
   ['put', /^\/api\/ai-keys\/(gemini|chatgpt)$/, m => { state.aiKeys[m[1] as 'gemini' | 'chatgpt'] = true; return { ok: true }; }],
   ['delete', /^\/api\/ai-keys\/(gemini|chatgpt)$/, m => { state.aiKeys[m[1] as 'gemini' | 'chatgpt'] = false; return { ok: true }; }],
+  ['post', /^\/api\/activity\/track$/, () => ({ __status: 204, data: null })],
   ['post', /^\/api\/feedback$/, () => ({ message: 'Thanks for the feedback!' })],
   ['post', /^\/api\/newsletter\/subscribe$/, () => ({ message: "You're subscribed. First email arrives on Monday." })],
 ];
