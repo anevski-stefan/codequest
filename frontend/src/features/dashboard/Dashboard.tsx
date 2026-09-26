@@ -1,262 +1,384 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
-import { getIssues } from '../../services/github';
-import type { IssueParams, Language, IssueResponse } from '../../types/github';
-import debounce from '../../utils/debounce';
-import { SlidersHorizontal, X, Loader2, ChevronDown } from 'lucide-react';
-import CommentsModal from '../../components/CommentsModal';
-import LabelsFilter from '../../components/LabelsFilter';
-import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from './constants/filterOptions';
+import { useMemo, type ReactNode, type CSSProperties } from 'react';
+import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import {
+  GitPullRequest, Bell, Star, Sparkles, ArrowRight, Check, Trophy, Compass,
+  KeyRound, CalendarDays, MapPin, type LucideIcon,
+} from 'lucide-react';
+import type { RootState } from '../../store';
+import type { Issue } from '../../types/github';
+import { api, getAssignedIssues, getSuggestedIssues, getUserStarredCount } from '../../services/github';
+import { fetchHackathons } from '../../services/hackathons';
+import { useNotifications } from '../../hooks/useNotifications';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
-import IssueTable from './components/IssueTable';
-import { CardSkeletonList } from '../../components/skeletons';
-import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
-import FilterChip from '../../components/ui/FilterChip';
-import EmptyState from '../../components/ui/EmptyState';
-import LoadMoreButton from '../../components/ui/LoadMoreButton';
+import IssueCard from '../../components/issues/IssueCard';
+import useIssueClaims, { claimFor } from '../../hooks/useIssueClaims';
+import IssueDetailsModal from '../../components/IssueDetailsModal';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { CardSkeleton } from '../../components/skeletons';
+import { formatRelativeDate } from '../../utils/formatDate';
+import { easeOut } from '../../lib/motion';
+
+const greeting = () => {
+  const h = new Date().getHours();
+  if (h < 5) return 'Working late';
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const todayLabel = () =>
+  new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+const daysLeft = (d: string) => Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
+const daysLeftLabel = (d: string) => {
+  const n = daysLeft(d);
+  return n <= 0 ? 'Ends today' : n === 1 ? 'Ends tomorrow' : `${n} days left`;
+};
+
+/* ── Building blocks ─────────────────────────────────────────────── */
+
+const Section = ({ title, to, cta = 'View all', children, delay = 0 }: { title: string; to?: string; cta?: string; children: ReactNode; delay?: number }) => (
+  <motion.section
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.45, ease: easeOut, delay }}
+  >
+    <div className="flex items-center justify-between mb-3">
+      <h2 className="text-[13px] font-semibold text-gray-200">{title}</h2>
+      {to && (
+        <Link to={to} className="group flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-blue-300 transition-colors">
+          {cta}
+          <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      )}
+    </div>
+    {children}
+  </motion.section>
+);
+
+interface StatProps {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  value: ReactNode;
+  hint: string;
+  loading: boolean;
+  accent?: boolean;
+  index: number;
+}
+
+const Stat = ({ to, icon: Icon, label, value, hint, loading, accent, index }: StatProps) => (
+  <Link
+    to={to}
+    style={{ '--i': index } as CSSProperties}
+    className="reveal group relative flex flex-col justify-between gap-5 rounded-xl border border-white/[0.07] bg-[#2E3245] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-white/[0.14] hover:bg-[#31364C] transition-colors"
+  >
+    <div className="flex items-center justify-between">
+      <span className="text-[12px] font-medium text-gray-400">{label}</span>
+      <Icon className={`w-4 h-4 ${accent ? 'text-blue-400' : 'text-gray-600 group-hover:text-gray-400'} transition-colors`} />
+    </div>
+    <div>
+      {loading ? <Skeleton className="h-7 w-12" /> : (
+        <p className="text-[26px] leading-none font-bold tracking-tight text-white tabular">{value}</p>
+      )}
+      <p className="mt-2 text-[11px] text-gray-500">{hint}</p>
+    </div>
+  </Link>
+);
+
+interface Step { done: boolean; title: string; to: string; cta: string }
+
+const SetupChecklist = ({ steps }: { steps: Step[] }) => {
+  const done = steps.filter(s => s.done).length;
+  if (done === steps.length) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: easeOut, delay: 0.1 }}
+      className="relative rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/[0.08] via-[#2E3245] to-[#2E3245] p-5 overflow-hidden"
+    >
+      <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+        <div className="md:w-56 shrink-0">
+          <p className="text-sm font-semibold text-white">Your path to a first PR</p>
+          <p className="text-[12px] text-gray-400 mt-1"><span className="tabular">{done}</span> of {steps.length} done</p>
+          <div className="mt-3 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-blue-400 origin-left"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: done / steps.length }}
+              transition={{ duration: 0.9, ease: easeOut, delay: 0.3 }}
+            />
+          </div>
+        </div>
+        <ol className="flex-1 grid sm:grid-cols-3 gap-2">
+          {steps.map((s, i) => (
+            <li key={s.title}>
+              <Link
+                to={s.to}
+                className={`group flex h-full items-start gap-3 rounded-xl border p-3 transition-colors ${
+                  s.done ? 'border-white/[0.05] bg-white/[0.02]' : 'border-white/[0.08] bg-[#252836]/60 hover:border-blue-500/30 hover:bg-[#252836]'
+                }`}
+              >
+                <span className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border text-[10px] font-bold ${
+                  s.done ? 'bg-green-500/15 border-green-500/40 text-green-400' : 'border-white/15 text-gray-400'
+                }`}>
+                  {s.done ? <Check className="w-3 h-3" /> : i + 1}
+                </span>
+                <span className="min-w-0">
+                  <span className={`block text-[13px] font-semibold ${s.done ? 'text-gray-500 line-through decoration-gray-600' : 'text-gray-100'}`}>{s.title}</span>
+                  {!s.done && (
+                    <span className="block text-[11px] text-gray-500 mt-0.5 group-hover:text-blue-300 transition-colors">{s.cta} →</span>
+                  )}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </motion.div>
+  );
+};
+
+/* ── Page ─────────────────────────────────────────────────────────── */
 
 const Dashboard = () => {
-  usePageTitle('Dashboard');
-  const [filter, setFilter] = useState<IssueParams>({
-    language: '',
-    sort: 'created',
-    direction: 'desc',
-    state: 'open',
-    page: 1,
-    timeFrame: 'all',
-    unassigned: false,
-    commentsRange: '',
-    labels: []
-  });
-  const [initialFetchComplete, setInitialFetchComplete] = useState(false);
-  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  usePageTitle('Overview');
+  const { user } = useSelector((s: RootState) => s.auth);
+  const firstName = (user?.name ?? user?.login ?? '').split(' ')[0];
 
   const {
     isCommentsModalOpen, selectedIssue, allComments, isLoadingComments, hasMoreComments,
-    isLoadingMore, onLoadMore, prefetchComments, handleViewComments, handleCloseComments, handleAddComment
+    isLoadingMore, onLoadMore, prefetchComments, handleViewComments, handleCloseComments, handleAddComment,
   } = useIssueComments();
 
-  const debouncedSetFilter = useMemo(() => debounce((newFilter: Partial<IssueParams>) => {
-    setFilter(prev => ({
-      ...prev,
-      ...Object.fromEntries(Object.entries(newFilter).filter(([, value]) => value != null))
-    }));
-  }, 500), []);
-
-  const {
-    data, isLoading, isError, isPlaceholderData, error,
-    fetchNextPage, hasNextPage, isFetchingNextPage
-  } = useInfiniteQuery<IssueResponse, Error>({
-    queryKey: ['issues', filter],
-    queryFn: ({ pageParam }) => getIssues({ ...filter, page: pageParam as number }),
-    initialPageParam: 1,
-    placeholderData: keepPreviousData,
-    staleTime: 60000,
-    gcTime: 300000,
-    refetchOnWindowFocus: false,
-    getNextPageParam: (lastPage, allPages) => lastPage.hasMore ? allPages.length + 1 : undefined
+  const assigned = useQuery({
+    queryKey: ['assignedIssues', 'open'],
+    queryFn: () => getAssignedIssues('open'),
+    staleTime: 5 * 60 * 1000,
+    select: (d): { issues: Issue[] } => ({ issues: Array.isArray(d) ? d : d.issues || [] }),
   });
+  const suggested = useQuery({
+    queryKey: ['overview-suggested'],
+    queryFn: () => getSuggestedIssues({ timeFrame: 'month' }),
+    staleTime: 10 * 60 * 1000,
+  });
+  const starred = useQuery({ queryKey: ['user-starred'], queryFn: () => getUserStarredCount(), staleTime: 10 * 60 * 1000 });
+  const aiKeys = useQuery({
+    queryKey: ['ai-keys'],
+    queryFn: () => api.get<{ chatgpt: boolean; gemini: boolean }>('/api/ai-keys').then(r => r.data),
+    staleTime: 10 * 60 * 1000,
+  });
+  const hackathons = useQuery({
+    queryKey: ['overview-hackathons'],
+    queryFn: () => fetchHackathons(1, 20, '', 'upcoming'),
+    staleTime: 30 * 60 * 1000,
+  });
+  const notifications = useNotifications(5);
 
-  const allIssues = useMemo(() => data?.pages.flatMap(p => p.issues) ?? [], [data]);
+  const assignedIssues = assigned.data?.issues ?? [];
 
-  useEffect(() => {
-    if (isPlaceholderData) return;
-    if (isError) { setInitialFetchComplete(true); return; }
-    if (data) setInitialFetchComplete(true);
-  }, [isPlaceholderData, isError, data]);
+  // One issue per repository so the picks don't collapse into a single project.
+  const picks = useMemo(() => {
+    const seen = new Set<string>();
+    const all = suggested.data?.issues ?? [];
+    const unique = all.filter(i => !seen.has(i.repository.fullName) && seen.add(i.repository.fullName));
+    return (unique.length >= 4 ? unique : all).slice(0, 6);
+  }, [suggested.data]);
 
-  const handleFilterChange = useCallback((f: Partial<IssueParams>) => debouncedSetFilter(f), [debouncedSetFilter]);
-  const handleTimeFrameChange   = useCallback((v: string) => handleFilterChange({ timeFrame: v }), [handleFilterChange]);
-  const handleSortChange        = useCallback((v: string) => handleFilterChange({ sort: v, direction: v === 'created-asc' ? 'asc' : 'desc' }), [handleFilterChange]);
-  const handleCommentsChange    = useCallback((v: string) => handleFilterChange({ commentsRange: v }), [handleFilterChange]);
-  const handleLanguageChange    = useCallback((v: string) => handleFilterChange({ language: v as Language }), [handleFilterChange]);
-  const handleLabelsChange      = useCallback((labels: string[]) => handleFilterChange({ labels }), [handleFilterChange]);
+  const { claims, loading: claimsLoading } = useIssueClaims(picks);
 
-  useEffect(() => () => { debouncedSetFilter.cancel(); }, [debouncedSetFilter]);
+  // Scraped start dates are unreliable (sometimes land after the end date),
+  // so rank by deadline: still open, closing soonest first.
+  const upcoming = useMemo(() => {
+    const now = Date.now();
+    return (hackathons.data?.hackathons ?? [])
+      .filter(h => new Date(h.endDate).getTime() >= now)
+      .sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime())
+      .slice(0, 4);
+  }, [hackathons.data]);
+  const unread = notifications.data?.unreadCount ?? 0;
+  const aiReady = !!(aiKeys.data?.gemini || aiKeys.data?.chatgpt);
 
-  const showLoading = isLoading || !initialFetchComplete;
+  const summary = assigned.isLoading
+    ? 'Loading your workspace'
+    : assignedIssues.length > 0
+      ? `${assignedIssues.length} issue${assignedIssues.length === 1 ? '' : 's'} in progress${unread ? ` and ${unread} unread notification${unread === 1 ? '' : 's'}` : ''}.`
+      : 'Nothing in progress yet. Here are a few issues that fit you.';
+
+  const steps: Step[] = [
+    { done: aiReady, title: 'Connect an AI key', to: '/settings', cta: 'Open settings' },
+    { done: (starred.data ?? 0) > 0, title: 'Star a repo to watch', to: '/explore', cta: 'Explore repos' },
+    { done: assignedIssues.length > 0, title: 'Get assigned an issue', to: '/suggested', cta: 'Find one' },
+  ];
+  const checklistReady = !aiKeys.isLoading && !starred.isLoading && !assigned.isLoading;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-[1400px] px-6 lg:px-8 pt-7 pb-12 space-y-8">
 
-      {/* ── Page header ────────────────────────────────────────── */}
-      <div className="px-6 pt-6 pb-0 shrink-0">
-        <div className="flex items-center justify-between mb-4">
+        {/* Greeting */}
+        <motion.header
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: easeOut }}
+          className="flex flex-col md:flex-row md:items-end md:justify-between gap-4"
+        >
           <div>
-            <h1 className="text-lg font-bold text-white">Open Issues</h1>
-            <p className="text-xs text-gray-600 mt-0.5">
-              {allIssues.length > 0
-                ? `${allIssues.length}${hasNextPage ? '+' : ''} issues`
-                : 'Beginner-friendly issues from top repos'}
-            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-400/80 mb-1.5">{todayLabel()}</p>
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              {greeting()}{firstName ? `, ${firstName}` : ''}
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">{summary}</p>
           </div>
-          {isPlaceholderData && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-600">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Refreshing
-            </div>
-          )}
-        </div>
-
-        {/* ── Horizontal filter bar (desktop) ─────────────────── */}
-        <div className="hidden lg:flex items-center gap-2 pb-4 border-b border-white/[0.05] w-full">
-          <FilterChip
-            prefix="Time"
-            options={timeFrameOptions}
-            value={filter.timeFrame}
-            onChange={handleTimeFrameChange}
-          />
-          <FilterChip
-            prefix="Sort"
-            options={sortOptions}
-            value={filter.direction === 'asc' ? 'created-asc' : filter.sort}
-            onChange={handleSortChange}
-          />
-          <FilterChip
-            prefix="Comments"
-            options={commentRanges}
-            value={filter.commentsRange}
-            onChange={handleCommentsChange}
-          />
-          <FilterChip
-            prefix="Language"
-            options={[{ value: '', label: 'All Languages' }, ...languageOptions.slice(1).map(l => ({ value: l, label: l.charAt(0).toUpperCase() + l.slice(1) }))]}
-            value={filter.language}
-            onChange={handleLanguageChange}
-          />
-
-          {/* Labels — takes remaining space */}
-          <div className="flex-1 min-w-0">
-            <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={handleLabelsChange} />
+          <div className="flex items-center gap-2">
+            <Link to="/issues" className="flex items-center gap-2 h-9 px-3.5 rounded-lg border border-white/[0.09] bg-[#2E3245] text-[13px] font-semibold text-gray-300 hover:text-white hover:border-white/[0.18] active:scale-[0.97] transition-all">
+              <Compass className="w-3.5 h-3.5" />
+              Browse issues
+            </Link>
+            <Link to="/suggested" className="flex items-center gap-2 h-9 px-3.5 rounded-lg bg-blue-500 hover:bg-blue-400 text-[13px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] active:scale-[0.97] transition-all">
+              <Sparkles className="w-3.5 h-3.5" />
+              Find an issue for me
+            </Link>
           </div>
+        </motion.header>
 
-          <div className="h-5 w-px bg-white/[0.08]" />
-
-          {/* Unassigned toggle */}
-          <button
-            onClick={() => handleFilterChange({ unassigned: !filter.unassigned })}
-            className={`flex items-center gap-2 h-8 px-3 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
-              filter.unassigned
-                ? 'border-blue-500/50 bg-blue-500/10 text-blue-300'
-                : 'border-white/[0.10] bg-[#111927] text-gray-400 hover:border-white/[0.18] hover:text-gray-200'
-            }`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full transition-colors ${filter.unassigned ? 'bg-blue-400' : 'bg-gray-600'}`} />
-            Unassigned
-          </button>
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <Stat index={0} to="/assigned" icon={GitPullRequest} label="In progress" value={assignedIssues.length} hint="Open issues assigned to you" loading={assigned.isLoading} accent={assignedIssues.length > 0} />
+          <Stat index={1} to="/notifications" icon={Bell} label="Unread" value={unread} hint="Notifications waiting" loading={notifications.isLoading} accent={unread > 0} />
+          <Stat index={2} to="/starred" icon={Star} label="Watching" value={starred.data ?? 0} hint="Starred repositories" loading={starred.isLoading} />
+          <Stat
+            index={3} to="/settings" icon={KeyRound} label="AI assistant"
+            value={<span className={aiReady ? 'text-white' : 'text-amber-300'}>{aiReady ? 'Ready' : 'Off'}</span>}
+            hint={aiReady ? 'Issue explanations enabled' : 'Add a key to explain issues'}
+            loading={aiKeys.isLoading} accent={aiReady}
+          />
         </div>
 
-        {/* Mobile filter button */}
-        <div className="lg:hidden flex items-center justify-between pb-4 border-b border-white/[0.05]">
-          <button
-            onClick={() => setIsMobileFiltersOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-gray-400 border border-white/[0.08] hover:border-white/[0.15] hover:text-white transition-all cursor-pointer"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            Filters
-          </button>
-        </div>
-      </div>
+        {checklistReady && <SetupChecklist steps={steps} />}
 
-      {/* ── Mobile filter drawer ────────────────────────────────── */}
-      {isMobileFiltersOpen && (
-        <div className="lg:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileFiltersOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-[min(16rem,calc(100vw-3rem))] bg-[#0B1222] border-r border-white/[0.05] overflow-y-auto">
-            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.05]">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Filters</p>
-              <button onClick={() => setIsMobileFiltersOpen(false)} className="p-1.5 rounded-lg text-gray-600 hover:text-white hover:bg-white/5 transition-all cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="px-5 py-5 space-y-6">
-              {[
-                { label: 'Time Frame', options: timeFrameOptions, value: filter.timeFrame, onChange: handleTimeFrameChange },
-                { label: 'Sort By', options: sortOptions, value: filter.direction === 'asc' ? 'created-asc' : filter.sort, onChange: handleSortChange },
-                { label: 'Comments', options: commentRanges, value: filter.commentsRange, onChange: handleCommentsChange },
-                { label: 'Language', options: [{ value: '', label: 'All Languages' }, ...languageOptions.slice(1).map(l => ({ value: l, label: l.charAt(0).toUpperCase() + l.slice(1) }))], value: filter.language, onChange: handleLanguageChange },
-              ].map(({ label, options, value, onChange }) => (
-                <div key={label} className="space-y-2">
-                  <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">{label}</p>
-                  <div className="relative">
-                    <select
-                      value={value}
-                      onChange={e => onChange(e.target.value)}
-                      className="w-full appearance-none bg-white/[0.05] border border-white/[0.08] rounded-xl pl-3 pr-8 py-2 text-sm text-gray-300 focus:outline-none focus:border-blue-500/60 transition-all cursor-pointer [&>option]:bg-[#0A1020]"
-                    >
-                      {options.map((o: string | { value: string; label: string }) => (
-                        <option key={typeof o === 'string' ? o : o.value} value={typeof o === 'string' ? o : o.value}>
-                          {typeof o === 'string' ? (o || 'All') : o.label}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={14} />
-                  </div>
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-8">
+          {/* Main column */}
+          <div className="space-y-8 min-w-0">
+            {assignedIssues.length > 0 && (
+              <Section title="In progress" to="/assigned" delay={0.05}>
+                <div className="grid md:grid-cols-2 gap-2.5">
+                  {assignedIssues.slice(0, 2).map((issue, i) => (
+                    <IssueCard key={issue.id} issue={issue} index={i} dateField="updatedAt" onOpen={handleViewComments} onPrefetch={prefetchComments} />
+                  ))}
                 </div>
-              ))}
-              <div className="space-y-2">
-                <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Labels</p>
-                <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={handleLabelsChange} />
+              </Section>
+            )}
+
+            <Section title="Picked for you" to="/suggested" cta="More suggestions" delay={0.1}>
+              {suggested.isLoading ? (
+                <div className="grid md:grid-cols-2 gap-2.5">{[0, 1, 2, 3].map(i => <CardSkeleton key={i} />)}</div>
+              ) : picks.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-white/[0.08] p-6 text-center text-[13px] text-gray-500">
+                  No suggestions right now. <Link to="/issues" className="text-blue-300 hover:text-blue-200 font-semibold">Browse all issues</Link>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-2.5">
+                  {picks.map((issue, i) => (
+                    <IssueCard key={`${issue.repository.fullName}-${issue.number}`} issue={issue} index={i} onOpen={handleViewComments} onPrefetch={prefetchComments} claim={claimFor(claims, issue)} claimLoading={claimsLoading} />
+                  ))}
+                </div>
+              )}
+            </Section>
+          </div>
+
+          {/* Side column */}
+          <aside className="space-y-8 min-w-0">
+            <Section title="Hackathons closing soon" to="/hackathons" delay={0.15}>
+              <div className="rounded-xl border border-white/[0.07] bg-[#2E3245] divide-y divide-white/[0.05] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                {hackathons.isLoading ? (
+                  [0, 1, 2].map(i => (
+                    <div key={i} className="p-3.5 space-y-2"><Skeleton className="h-3.5 w-3/4" /><Skeleton className="h-3 w-1/2" /></div>
+                  ))
+                ) : upcoming.length === 0 ? (
+                  <p className="p-4 text-[13px] text-gray-500">No upcoming events listed right now.</p>
+                ) : upcoming.map(h => (
+                  <a
+                    key={h.url}
+                    href={h.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-start gap-3 p-3.5 hover:bg-white/[0.03] transition-colors"
+                  >
+                    <div className="w-10 shrink-0 rounded-lg border border-white/[0.08] bg-[#252836] text-center py-1">
+                      <p className="text-[9px] font-semibold uppercase text-blue-300 leading-tight">
+                        {new Date(h.endDate).toLocaleDateString(undefined, { month: 'short' })}
+                      </p>
+                      <p className="text-[15px] font-bold text-white leading-tight tabular">{new Date(h.endDate).getDate() || '–'}</p>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-gray-200 group-hover:text-white truncate transition-colors">{h.title}</p>
+                      <p className="mt-0.5 flex items-center gap-1 text-[11px] text-gray-500 truncate">
+                        <CalendarDays className="w-3 h-3 shrink-0" />
+                        <span className={daysLeft(h.endDate) <= 7 ? 'text-amber-300/90' : ''}>{daysLeftLabel(h.endDate)}</span>
+                        {h.location && <><span className="text-gray-600">·</span><MapPin className="w-3 h-3 shrink-0" /><span className="truncate">{h.location}</span></>}
+                      </p>
+                    </div>
+                  </a>
+                ))}
               </div>
-              <div className="space-y-2">
-                <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Unassigned</p>
-                <button
-                  onClick={() => handleFilterChange({ unassigned: !filter.unassigned })}
-                  className={`flex items-center gap-2 w-full px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer ${filter.unassigned ? 'border-blue-500/40 bg-blue-500/[0.08] text-blue-300' : 'border-white/[0.08] bg-white/[0.03] text-gray-400'}`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full transition-colors ${filter.unassigned ? 'bg-blue-400' : 'bg-gray-600'}`} />
-                  Unassigned only
-                </button>
+            </Section>
+
+            <Section title="Notifications" to="/notifications" delay={0.2}>
+              <div className="rounded-xl border border-white/[0.07] bg-[#2E3245] divide-y divide-white/[0.05] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                {notifications.isLoading ? (
+                  [0, 1].map(i => <div key={i} className="p-3.5 space-y-2"><Skeleton className="h-3.5 w-2/3" /><Skeleton className="h-3 w-1/3" /></div>)
+                ) : (notifications.data?.notifications.length ?? 0) === 0 ? (
+                  <div className="flex items-center gap-3 p-4">
+                    <Check className="w-4 h-4 text-green-400" />
+                    <p className="text-[13px] text-gray-400">You're all caught up.</p>
+                  </div>
+                ) : notifications.data!.notifications.slice(0, 3).map(n => (
+                  <Link key={n.id} to={n.link || '/notifications'} className="flex items-start gap-3 p-3.5 hover:bg-white/[0.03] transition-colors">
+                    <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${n.is_read ? 'bg-white/10' : 'bg-blue-400'}`} />
+                    <div className="min-w-0">
+                      <p className={`text-[13px] truncate ${n.is_read ? 'text-gray-400' : 'text-gray-100 font-semibold'}`}>{n.title}</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">{formatRelativeDate(n.created_at)}</p>
+                    </div>
+                  </Link>
+                ))}
               </div>
-            </div>
+            </Section>
+
+            <Section title="Discover" delay={0.25}>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { to: '/explore', icon: Compass, label: 'Explore repos' },
+                  { to: '/hackathons', icon: Trophy, label: 'Hackathons' },
+                ].map(l => (
+                  <Link key={l.to} to={l.to} className="flex items-center gap-2.5 h-11 px-3 rounded-xl border border-white/[0.07] bg-[#2E3245] text-[13px] font-semibold text-gray-300 hover:text-white hover:border-white/[0.14] transition-colors">
+                    <l.icon className="w-4 h-4 text-gray-500" />{l.label}
+                  </Link>
+                ))}
+              </div>
+            </Section>
           </aside>
         </div>
-      )}
-
-      {/* ── Scrollable table area ───────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
-        {showLoading ? (
-          <div className="p-6"><CardSkeletonList count={3} /></div>
-        ) : (
-          <>
-            {isError && error instanceof Error && (
-              <div className="p-6"><ErrorDisplay title="Failed to load issues" error={error.message} /></div>
-            )}
-
-            {!isError && allIssues.length === 0 && initialFetchComplete && (
-              <EmptyState icon={SlidersHorizontal} title="No issues found" subtitle="Try adjusting your filters" />
-            )}
-
-            {allIssues.length > 0 && (
-              <IssueTable issues={allIssues} onViewComments={handleViewComments} onPrefetchComments={prefetchComments} />
-            )}
-
-            {!isLoading && hasNextPage && allIssues.length > 0 && (
-              <LoadMoreButton onClick={() => fetchNextPage()} isLoading={isFetchingNextPage} />
-            )}
-
-            {!isLoading && !hasNextPage && allIssues.length > 0 && (
-              <p className="text-center text-xs text-gray-700 py-5 border-t border-white/[0.04]">All issues loaded</p>
-            )}
-          </>
-        )}
       </div>
 
-      <CommentsModal
+      <IssueDetailsModal
         isOpen={isCommentsModalOpen}
         onClose={handleCloseComments}
+        issue={selectedIssue}
         comments={allComments}
-        isLoading={isLoadingComments}
-        onAddComment={handleAddComment}
-        onLoadMore={onLoadMore}
+        isLoadingComments={isLoadingComments}
         hasMoreComments={hasMoreComments}
         isLoadingMore={isLoadingMore}
-        issue={selectedIssue}
+        onLoadMore={onLoadMore}
+        onAddComment={handleAddComment}
       />
     </div>
   );
 };
-
 
 export default Dashboard;

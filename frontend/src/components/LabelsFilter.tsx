@@ -46,17 +46,17 @@ export default function LabelsFilter({
     inputRef.current?.focus();
   };
   return <div className="relative">
-      <div onClick={handleContainerClick} className="flex flex-wrap gap-2 p-2 bg-white dark:bg-[#0B1222] border border-gray-300 dark:border-white/10 rounded-lg min-h-[42px] cursor-text">
-        {selectedLabels.map(label => <span key={label} className="inline-flex items-center px-2 py-1 rounded-full text-xs sm:text-sm bg-blue-100 text-blue-800 whitespace-nowrap">
+      <div onClick={handleContainerClick} className="flex flex-wrap items-center gap-1.5 px-2.5 py-1 bg-[#363B52] border border-white/[0.09] rounded-lg min-h-8 cursor-text hover:border-white/[0.18] focus-within:border-blue-500/50 focus-within:shadow-[0_0_0_3px_rgba(59,123,255,0.12)] transition-all">
+        {selectedLabels.map(label => <span key={label} className="inline-flex items-center gap-0.5 pl-2 pr-1 h-5 rounded-md text-[11px] font-semibold bg-blue-500/[0.12] border border-blue-500/30 text-blue-300 whitespace-nowrap">
             {label}
             <button onClick={e => {
           e.stopPropagation();
           removeLabel(label);
-        }} className="ml-1 hover:text-blue-600">
-              <X size={14} />
+        }} className="p-0.5 rounded hover:bg-blue-400/20 hover:text-white transition-colors cursor-pointer" aria-label={`Remove ${label}`}>
+              <X size={11} />
             </button>
           </span>)}
-        <input ref={inputRef} type="text" value={inputValue} onChange={handleInputChange} onKeyDown={handleKeyDown} onBlur={handleBlur} onCompositionStart={() => setIsComposing(true)} onCompositionEnd={() => setIsComposing(false)} placeholder={selectedLabels.length === 0 ? "Add labels..." : ""} className="flex-1 min-w-[80px] sm:min-w-[100px] outline-none bg-transparent text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white placeholder-gray-500 transition-colors" />
+        <input ref={inputRef} type="text" value={inputValue} onChange={handleInputChange} onKeyDown={handleKeyDown} onBlur={handleBlur} onCompositionStart={() => setIsComposing(true)} onCompositionEnd={() => setIsComposing(false)} placeholder={selectedLabels.length === 0 ? "Labels: type and press Enter" : ""} aria-label="Filter by labels" className="flex-1 min-w-[80px] sm:min-w-[100px] outline-none focus-visible:outline-none bg-transparent text-[11px] text-gray-200 placeholder-gray-500" />
       </div>
     </div>;
 }

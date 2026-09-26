@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
-import { Star, MessageSquare, ExternalLink, Sparkles, GitPullRequest } from 'lucide-react';
+import { Star, GitPullRequest } from 'lucide-react';
 import { getSuggestedIssues } from '../../services/github';
 import type { Issue } from '../../types/github';
 import { CardSkeletonList } from '../../components/skeletons';
@@ -8,9 +8,8 @@ import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
-import { RepoCellContent, LabelsCellContent } from '../../components/ui/IssueTableCells';
-import { formatRelativeDate } from '../../utils/formatDate';
-import { formatCount } from '../../utils/formatCount';
+import IssueCard from '../../components/issues/IssueCard';
+import useIssueClaims, { claimFor } from '../../hooks/useIssueClaims';
 import FilterChip from '../../components/ui/FilterChip';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
@@ -43,91 +42,17 @@ const COMPETITION = [
   { value: '1-5', label: 'Low (1–5)' },
 ];
 
-/* ── Issue row ── */
-function IssueRow({ issue, onOpen }: { issue: Issue; onOpen: (issue: Issue) => void }) {
-  const stars = issue.repoStars;
-  const starTier =
-    stars && stars >= 50000 ? 'text-yellow-400 bg-yellow-400/[0.08] border-yellow-400/20' :
-    stars && stars >= 10000 ? 'text-amber-400 bg-amber-400/[0.08] border-amber-400/20' :
-    'text-gray-500 bg-white/[0.04] border-white/[0.06]';
-
-  return (
-    <tr className="group hover:bg-white/[0.025] transition-colors duration-100">
-      {/* Title */}
-      <td className="px-6 py-3.5">
-        <button onClick={() => onOpen(issue)} className="text-left w-full cursor-pointer">
-          <div className="flex items-start gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors line-clamp-1 leading-snug">
-                {issue.title}
-              </p>
-              <p className="text-xs text-gray-600 mt-0.5">#{issue.number}</p>
-            </div>
-          </div>
-        </button>
-      </td>
-
-      {/* Repository */}
-      <td className="px-4 py-3.5">
-        <RepoCellContent fullName={issue.repository?.fullName} onClick={() => onOpen(issue)} />
-      </td>
-
-      {/* Labels */}
-      <td className="hidden md:table-cell px-4 py-3.5">
-        <LabelsCellContent labels={issue.labels} />
-      </td>
-
-      {/* Stars */}
-      <td className="hidden lg:table-cell px-4 py-3.5">
-        {stars ? (
-          <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md border ${starTier}`}>
-            <Star className="w-2.5 h-2.5 fill-current" />
-            {formatCount(stars)}
-          </span>
-        ) : <span className="text-[10px] text-gray-700">—</span>}
-      </td>
-
-      {/* Created */}
-      <td className="hidden lg:table-cell px-4 py-3.5 text-center">
-        <span className="text-xs text-gray-600 whitespace-nowrap">{formatRelativeDate(issue.createdAt)}</span>
-      </td>
-
-      {/* Comments + actions */}
-      <td className="px-4 py-3.5">
-        <div className="flex items-center justify-center gap-2">
-          <span className="text-xs text-gray-600 w-4 text-center">{issue.commentsCount || '—'}</span>
-          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => onOpen(issue)}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-violet-400 bg-violet-400/[0.08] hover:bg-violet-400/[0.15] transition-colors cursor-pointer"
-            >
-              <Sparkles className="w-3 h-3" />
-              Explain
-            </button>
-            <a
-              href={issue.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              className="p-1 text-gray-600 hover:text-gray-300 transition-colors rounded"
-            >
-              <ExternalLink size={13} />
-            </a>
-          </div>
-        </div>
-      </td>
-    </tr>
-  );
-}
+const TAKEN: ReadonlySet<string> = new Set(['requested', 'in_progress', 'closed']);
 
 /* ── Page ── */
 const SuggestedIssues = () => {
-  usePageTitle('Opportunities');
+  usePageTitle('For you');
 
   const [language, setLanguage] = useState('');
   const [timeFrame, setTimeFrame] = useState('month');
   const [commentsRange, setCommentsRange] = useState('');
   const [famousOnly, setFamousOnly] = useState(false);
+  const [hideTaken, setHideTaken] = useState(false);
 
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
@@ -163,6 +88,12 @@ const SuggestedIssues = () => {
     });
 
   const allIssues = useMemo(() => data?.pages.flatMap(p => p.issues) ?? [], [data]);
+  const { claims, loading: claimsLoading } = useIssueClaims(allIssues);
+  const visibleIssues = useMemo(
+    () => (hideTaken ? allIssues.filter(i => !TAKEN.has(claimFor(claims, i)?.status ?? '')) : allIssues),
+    [allIssues, claims, hideTaken],
+  );
+  const hiddenCount = allIssues.length - visibleIssues.length;
   const totalCount = data?.pages[0]?.totalCount ?? 0;
 
   const isRateLimitError =
@@ -175,14 +106,15 @@ const SuggestedIssues = () => {
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* Header */}
-      <div className="px-6 pt-6 pb-0 shrink-0">
-        <div className="flex items-center justify-between mb-4">
+      <div className="px-6 lg:px-8 pt-7 pb-0 shrink-0">
+        <div className="flex items-center justify-between mb-5">
           <div>
-            <h1 className="text-lg font-bold text-white">Suggested Issues</h1>
-            <p className="text-xs text-gray-600 mt-0.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-400/80 mb-1.5">Workspace</p>
+            <h1 className="text-xl font-bold tracking-tight text-white">For you</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
               {allIssues.length > 0
                 ? `${totalCount.toLocaleString()} issues found · showing ${allIssues.length}`
-                : 'Beginner-friendly issues curated for you'}
+                : 'Curated beginner-friendly issues, matched to your skills'}
             </p>
           </div>
         </div>
@@ -211,7 +143,7 @@ const SuggestedIssues = () => {
             value={commentsRange}
             onChange={v => setCommentsRange(v)}
             maxW="max-w-[210px]"
-            defaultValue="0"
+            defaultValue=""
           />
 
           {/* Spacer absorbs remaining width */}
@@ -222,14 +154,27 @@ const SuggestedIssues = () => {
           {/* Famous repos toggle */}
           <button
             onClick={() => setFamousOnly(prev => !prev)}
-            className={`flex items-center gap-2 h-9 px-3 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-2 h-8 px-3 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer active:scale-[0.97] ${
               famousOnly
-                ? 'border-amber-500/40 bg-amber-500/[0.08] text-amber-300'
-                : 'border-white/[0.10] bg-[#111927] text-gray-400 hover:border-white/[0.18] hover:text-gray-200'
+                ? 'border-amber-500/40 bg-amber-500/[0.08] text-amber-300 shadow-[inset_0_1px_0_rgba(245,158,11,0.07)]'
+                : 'border-white/[0.09] bg-[#363B52] text-gray-400 hover:border-white/[0.18] hover:text-gray-200'
             }`}
           >
             <Star className={`w-3 h-3 ${famousOnly ? 'fill-amber-400 text-amber-400' : 'text-gray-600'}`} />
             Famous only
+          </button>
+          <button
+            onClick={() => setHideTaken(v => !v)}
+            aria-pressed={hideTaken}
+            title="Hide issues someone has already claimed or opened a PR for"
+            className={`flex items-center gap-2 h-8 px-3 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer active:scale-[0.97] ${
+              hideTaken
+                ? 'border-green-500/40 bg-green-500/[0.08] text-green-300 shadow-[inset_0_1px_0_rgba(34,197,94,0.07)]'
+                : 'border-white/[0.09] bg-[#363B52] text-gray-400 hover:border-white/[0.18] hover:text-gray-200'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full transition-colors ${hideTaken ? 'bg-green-400' : 'bg-gray-600'}`} />
+            Free only
           </button>
         </div>
       </div>
@@ -237,7 +182,7 @@ const SuggestedIssues = () => {
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="p-6"><CardSkeletonList count={6} /></div>
+          <div className="px-4 lg:px-6 xl:px-8 py-4"><CardSkeletonList count={8} /></div>
         ) : error instanceof Error ? (
           <div className="p-6">
             <ErrorDisplay
@@ -249,38 +194,32 @@ const SuggestedIssues = () => {
           <EmptyState icon={GitPullRequest} title="No issues found for these filters" subtitle="Try widening the time frame or removing the language filter" />
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="sticky top-0 z-10">
-                  <tr className="bg-[#0B1222] border-b border-white/[0.06]">
-                    <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[36%]">Title</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[16%]">Repository</th>
-                    <th className="hidden md:table-cell px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[18%]">Labels</th>
-                    <th className="hidden lg:table-cell px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[10%]">Stars</th>
-                    <th className="hidden lg:table-cell px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[10%]">Created</th>
-                    <th className="px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[10%]">
-                      <MessageSquare className="w-3 h-3 mx-auto" />
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.04]">
-                  {allIssues.map(issue => (
-                    <IssueRow
-                      key={`${issue.repository?.fullName}-${issue.number}`}
-                      issue={issue}
-                      onOpen={handleOpenIssue}
-                    />
-                  ))}
-                </tbody>
-              </table>
+            <div className="px-4 lg:px-6 xl:px-8 py-4 grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+              {visibleIssues.map((issue, i) => (
+                <IssueCard
+                  key={`${issue.repository?.fullName}-${issue.number}`}
+                  issue={issue}
+                  index={i}
+                  onOpen={handleOpenIssue}
+                  claim={claimFor(claims, issue)}
+                  claimLoading={claimsLoading}
+                />
+              ))}
             </div>
+
+            {hideTaken && hiddenCount > 0 && (
+              <p className="text-center text-[12px] text-gray-500 pb-2">
+                {hiddenCount} taken issue{hiddenCount === 1 ? '' : 's'} hidden ·{' '}
+                <button onClick={() => setHideTaken(false)} className="text-blue-300 hover:text-blue-200 font-semibold cursor-pointer">Show all</button>
+              </p>
+            )}
 
             {hasNextPage && (
               <LoadMoreButton onClick={() => fetchNextPage()} isLoading={isFetchingNextPage} />
             )}
 
             {!hasNextPage && allIssues.length > 0 && (
-              <p className="text-center text-xs text-gray-700 py-5 border-t border-white/[0.04]">All issues loaded</p>
+              <p className="flex items-center justify-center gap-3 text-[11px] text-gray-600 py-6 before:h-px before:w-12 before:bg-white/[0.06] after:h-px after:w-12 after:bg-white/[0.06]">End of results</p>
             )}
           </>
         )}

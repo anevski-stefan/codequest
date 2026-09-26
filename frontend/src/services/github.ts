@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { store } from '../store';
 import { logout } from '../features/auth/authSlice';
-import type { IssueParams, IssueResponse, Issue, GithubUser } from '../types/github';
+import type { IssueParams, IssueResponse, Issue, GithubUser, IssueClaim } from '../types/github';
+import { USE_MOCK_DATA } from '../mocks/flag';
+import { getAIService } from '../hooks/useAIService';
 const resolveApiBaseUrl = () => {
   const base = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
   const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(base);
@@ -24,6 +26,10 @@ export const api = axios.create({
   },
   withCredentials: true
 });
+if (USE_MOCK_DATA) {
+  // Loaded lazily so fixtures never ship in a build with mocks disabled.
+  api.defaults.adapter = async config => (await import('../mocks/adapter')).mockAdapter(config);
+}
 api.interceptors.response.use(
   response => response,
   error => {
@@ -136,6 +142,10 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
       const encodedLabel = label.includes(' ') ? `"${label}"` : label;
       searchQuery += `label:${encodedLabel} `;
     });
+  } else if (params.labelAnyOf && params.labelAnyOf.length > 0) {
+    // Comma-separated values inside one `label:` qualifier mean OR. Every value is quoted,
+    // matching the format the backend already uses for suggested issues.
+    searchQuery += `label:${params.labelAnyOf.map(label => `"${label}"`).join(',')} `;
   }
   if (params.timeFrame && params.timeFrame !== 'all') {
     const now = new Date();
@@ -195,6 +205,20 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
   return fetchIssues(searchQuery, params.sort, params.direction, params.page);
 };
 
+/** Claim status per issue, keyed "owner/repo#number" (lowercase). Max 50 per call. */
+export const claimKey = (fullName: string, number: number) => `${fullName}#${number}`.toLowerCase();
+export const getIssueClaims = async (issues: Issue[]): Promise<Record<string, IssueClaim>> => {
+  const payload = issues
+    .map(i => {
+      const [owner, repo] = i.repository.fullName.split('/');
+      return owner && repo ? { owner, repo, number: i.number } : null;
+    })
+    .filter(Boolean);
+  if (payload.length === 0) return {};
+  const { data } = await api.post<{ claims: Record<string, IssueClaim> }>('/api/issues/claims', { issues: payload });
+  return data.claims ?? {};
+};
+
 export const getIssueComments = async (issueNumber: number, repoFullName: string, page = 1) => {
   const [owner, repo] = repoFullName.split('/');
   const response = await api.get(`/api/issues/${issueNumber}/comments`, {
@@ -218,6 +242,17 @@ export const addIssueComment = async (issueNumber: number, repoFullName: string,
     body: comment
   });
   return response.data;
+};
+export type OutcomeEvent = 'opened_issue' | 'explained_with_ai' | 'asked_to_work' | 'checked_in' | 'opened_prs';
+
+/** Fire-and-forget product analytics; never throws and never blocks the UI. */
+export const trackOutcome = (eventType: OutcomeEvent, owner?: string, repo?: string, issueNumber?: number) => {
+  if (!isAuthenticated()) return;
+  const body: Record<string, string | number> = { event_type: eventType };
+  if (owner) body.owner = owner;
+  if (repo) body.repo = repo;
+  if (issueNumber) body.issue_number = issueNumber;
+  api.post('/api/activity/track', body).catch(() => { /* analytics only */ });
 };
 export const getAssignedIssues = async (state?: string): Promise<IssueResponse> => {
   try {
@@ -294,6 +329,10 @@ export const explainIssue = async ({
   onDone: () => void;
   onError: (error: string) => void;
 }): Promise<void> => {
+  if (USE_MOCK_DATA) {
+    const { streamExplain } = await import('../mocks/stream');
+    return streamExplain(issueTitle, `${owner}/${repo}`, onChunk, onDone);
+  }
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/issues/explain/${owner}/${repo}`, {
@@ -306,6 +345,7 @@ export const explainIssue = async ({
         comments: comments.slice(0, 10).map(c => ({ user: { login: c.user.login }, body: c.body })),
         repoLanguage,
         repoDescription,
+        provider: getAIService(),
       }),
     });
   } catch {
@@ -356,12 +396,17 @@ export const onboardRepo = async ({
   onDone: () => void;
   onError: (error: string) => void;
 }): Promise<void> => {
+  if (USE_MOCK_DATA) {
+    const { streamOnboarding } = await import('../mocks/stream');
+    return streamOnboarding(`${owner}/${repo}`, onChunk, onDone);
+  }
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/repos/${owner}/${repo}/onboard`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
+      body: JSON.stringify({ provider: getAIService() }),
     });
   } catch {
     onError('Network error — could not reach the server.');
@@ -433,10 +478,10 @@ export const getLotteryContributors = async (owner: string, repo: string) => {
   } = await api.get(`/api/repos/${owner}/${repo}/lottery-contributors`);
   return data;
 };
-export const getContributorConfidence = async (owner: string, repo: string) => {
+export const getMergeLikelihood = async (owner: string, repo: string) => {
   const {
     data
-  } = await api.get(`/api/repos/${owner}/${repo}/contributor-confidence`);
+  } = await api.get(`/api/repos/${owner}/${repo}/merge-likelihood`);
   return data;
 };
 export const getRepositoryPullRequests = async (owner: string, repo: string, state: 'open' | 'closed', page: number = 1) => {
@@ -528,6 +573,8 @@ export const getUserStarredCount = async (username?: string) => {
   });
   const links = response.headers['link'];
   const match = links?.match(/page=(\d+)>; rel="last"/);
-  return match ? parseInt(match[1]) : 0;
+  // No "last" link means everything fit on one page (per_page=1 → 0 or 1).
+  if (match) return parseInt(match[1]);
+  return Array.isArray(response.data) ? response.data.length : 0;
 };
 

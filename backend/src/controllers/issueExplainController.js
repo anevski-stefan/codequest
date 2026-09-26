@@ -1,12 +1,8 @@
-const axios = require('axios');
 const GitHubService = require('../services/githubService');
-const { getAiKey } = require('../utils/aiKeyStore');
+const { resolveProvider, streamToResponse, NO_KEY_MESSAGE } = require('../services/aiService');
 const { asyncHandler, sendError } = require('../utils/httpError');
 const { isValidOwner, isValidRepo } = require('../utils/validateParams');
-const logger = require('../utils/logger');
 
-const GEMINI_BASE_URL = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
-const GEMINI_MODEL = process.env.EXPLAIN_MODEL || process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 const MAX_FILE_CHARS = 3000;
 const MAX_README_CHARS = 2000;
 const MAX_FILES = 5;
@@ -31,6 +27,7 @@ function canSearch() {
 function isSkippableFile(path) {
   return SKIP_FILE_PATTERNS.some(re => re.test(path));
 }
+
 
 function extractFilePaths(text) {
   if (!text) return [];
@@ -102,10 +99,8 @@ exports.explainIssue = asyncHandler(async (req, res) => {
   if (!isValidOwner(owner) || !isValidRepo(repo)) return sendError(res, 400, 'Invalid owner or repo');
   if (!issueTitle) return sendError(res, 400, 'issueTitle is required');
 
-  const aiKey = await getAiKey(req.user.id, 'gemini');
-  if (!aiKey) {
-    return sendError(res, 402, 'No Gemini key configured. Add your Gemini API key in Settings to use this feature.');
-  }
+  const ai = await resolveProvider(req.user.id, req.body?.provider);
+  if (!ai) return sendError(res, 402, NO_KEY_MESSAGE);
 
   const backtickPaths = extractFilePaths(issueBody || '');
   const keywords = extractKeywords(issueTitle);
@@ -181,53 +176,5 @@ Structure:
 If a new file is needed, show its full content. If a test is needed, show the test.
 Be practical. Imagine you are explaining this to a teammate over a code review.`;
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
-
-  try {
-    const geminiUrl = `${GEMINI_BASE_URL}/v1beta/models/${GEMINI_MODEL}:streamGenerateContent`;
-    const geminiRes = await axios.post(
-      geminiUrl,
-      {
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
-      },
-      {
-        params: { key: aiKey, alt: 'sse' },
-        responseType: 'stream',
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-
-    await new Promise((resolve, reject) => {
-      let buffer = '';
-      geminiRes.data.on('data', (chunk) => {
-        buffer += chunk.toString();
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const raw = line.slice(6).trim();
-          if (!raw) continue;
-          try {
-            const parsed = JSON.parse(raw);
-            const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) res.write(`data: ${JSON.stringify({ text })}\n\n`);
-          } catch { /* skip malformed chunk */ }
-        }
-      });
-      geminiRes.data.on('end', resolve);
-      geminiRes.data.on('error', reject);
-    });
-
-    res.write('data: [DONE]\n\n');
-  } catch (err) {
-    logger.error('[explainIssue] Gemini error:', err.message);
-    res.write(`data: ${JSON.stringify({ error: err.response?.data?.error?.message || err.message || 'Gemini service error' })}\n\n`);
-  }
-
-  res.end();
+  await streamToResponse(res, { ai, system: systemInstruction, prompt: userPrompt, temperature: 0.2, tag: 'explainIssue' });
 });

@@ -43,6 +43,7 @@ const newsletterLimiter = makeLimiter({ max: 10 });
 const feedbackLimiter = makeLimiter({ max: 20 });
 const aiChatLimiter = makeLimiter({ max: 40, keyGenerator: userAwareKeyGenerator });
 const aiKeysLimiter = makeLimiter({ max: 30, keyGenerator: userAwareKeyGenerator });
+const trackLimiter = makeLimiter({ max: 300, keyGenerator: userAwareKeyGenerator });
 
 module.exports = limiter;
 module.exports.authLimiter = authLimiter;
@@ -51,3 +52,4 @@ module.exports.newsletterLimiter = newsletterLimiter;
 module.exports.feedbackLimiter = feedbackLimiter;
 module.exports.aiChatLimiter = aiChatLimiter;
 module.exports.aiKeysLimiter = aiKeysLimiter;
+module.exports.trackLimiter = trackLimiter;

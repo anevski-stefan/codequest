@@ -5,7 +5,7 @@ const {
   getRepoDetails,
   getRepoContributors,
   getLotteryContributors,
-  getContributorConfidence,
+  getMergeLikelihood,
   getPulls,
   getPullDetails,
   checkRepoStarred,
@@ -21,7 +21,7 @@ router.use('/:owner/:repo', validateOwnerRepo);
 router.get('/:owner/:repo', getRepoDetails);
 router.get('/:owner/:repo/contributors/stats', getRepoContributors);
 router.get('/:owner/:repo/lottery-contributors', getLotteryContributors);
-router.get('/:owner/:repo/contributor-confidence', getContributorConfidence);
+router.get('/:owner/:repo/merge-likelihood', getMergeLikelihood);
 router.get('/:owner/:repo/pulls', getPulls);
 router.get('/:owner/:repo/pulls/:pullNumber', getPullDetails);
 router.post('/:owner/:repo/issues/:number/comments', createComment);

@@ -2,31 +2,125 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    color-scheme: dark;
+    --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  }
 
-:root {
-  --background: 255 255 255;
-  --foreground: 15 23 42;
+  html {
+    background-color: #252836;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply text-gray-100 antialiased;
+    background-color: #252836;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
+  ::selection {
+    background: rgba(59, 123, 255, 0.35);
+    color: #fff;
+  }
+
+  /* Keyboard focus only — mouse clicks don't draw rings */
+  :focus-visible {
+    outline: 2px solid rgba(96, 150, 255, 0.9);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  button, a, [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .font-mono, code, pre, kbd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Thin, quiet scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+  }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.07);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.14);
+    background-clip: padding-box;
+  }
 }
 
-[data-theme='dark'] {
-  --background: 15 23 42;
-  --foreground: 255 255 255;
+@layer components {
+  /* Shimmer sweep for skeleton placeholders */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    animation: shimmer 1.6s var(--ease-out-quint) infinite;
+  }
+
+  /* Grain overlay — fixed, non-scrolling, so it never repaints on scroll */
+  .grain::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .kbd {
+    @apply inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-white/[0.1] bg-white/[0.04] text-[10px] font-medium text-gray-400 font-mono leading-none;
+  }
 }
 
-body {
-  @apply bg-white text-gray-900 dark:text-gray-100;
-  background-color: white;
+/* Cheap mount cascade for list items: set --i on each item. */
+.reveal {
+  animation: reveal-up 0.45s var(--ease-out-quint) backwards;
+  animation-delay: calc(min(var(--i, 0), 24) * 22ms);
+}
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
 
-.dark body, body.dark {
-  background-color: #0B1222;
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
 }
 
-html.dark {
-  background-color: #0B1222;
-}
-
-
-* {
-  @apply transition-colors duration-200;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

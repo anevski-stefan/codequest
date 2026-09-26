@@ -43,6 +43,7 @@ export interface IssueParams {
   unassigned: boolean;
   commentsRange: string;
   labels: string[];
+  labelAnyOf?: string[];
 }
 export interface ActivityPayload {
   action?: string;
@@ -95,6 +96,7 @@ export interface GithubUser {
 export interface GitHubRepo {
   id: number;
   name: string;
+  full_name: string;
   html_url: string;
   description: string | null;
   language: string | null;
@@ -164,4 +166,12 @@ export interface GitHubActivityEvent {
   };
   created_at: string;
   payload: ActivityPayload;
+}
+export type ClaimStatus = 'free' | 'requested' | 'in_progress' | 'stale' | 'closed' | 'unknown';
+export interface IssueClaim {
+  status: ClaimStatus;
+  reason: string;
+  since?: string | null;
+  claimant?: string;
+  pr?: { number: number; url: string; author?: string; draft: boolean };
 }

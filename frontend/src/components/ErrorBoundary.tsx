@@ -26,7 +26,7 @@ const DefaultFallback = ({
   message: string;
 }) => {
   return <div className="flex items-center justify-center min-h-[60vh] p-6">
-      <div className="max-w-md w-full text-center bg-white dark:bg-[#0B1222] border border-gray-200 dark:border-white/10 rounded-lg p-8 shadow-lg">
+      <div className="max-w-md w-full text-center bg-white dark:bg-[#252836] border border-gray-200 dark:border-white/10 rounded-lg p-8 shadow-lg">
         <div className="mx-auto w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center mb-4">
           <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
         </div>

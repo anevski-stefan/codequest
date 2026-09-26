@@ -1,353 +1,299 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { Search, Users, Star, GitFork, Globe, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef, type CSSProperties } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { Search, Users, FolderGit2, X, ArrowUpRight, SearchX } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
-import { ExploreTableSkeleton } from '../../components/skeletons';
 import { useDebounce } from '../../hooks/useDebounce';
 import { api, searchTopContributors } from '../../services/github';
 import type { GithubUser, GitHubRepository as Repository } from '../../types/github';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
-import { LANGUAGE_COLORS } from '../../constants/languageColors';
-import { formatCount } from '../../utils/formatCount';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
+import FilterChip from '../../components/ui/FilterChip';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { easeOut } from '../../lib/motion';
+import RepoResultCard from './components/RepoResultCard';
+import ExploreHome from './components/ExploreHome';
 
+type Tab = 'repos' | 'people';
 
-const QUICK_TOPICS = [
-  'TypeScript', 'Rust', 'Python', 'Go', 'React',
-  'Machine Learning', 'CLI tools', 'Open Source',
+const SORTS = [
+  { value: '', label: 'Best match' },
+  { value: 'stars', label: 'Most stars' },
+  { value: 'updated', label: 'Recently updated' },
 ];
 
-const Explore = () => {
-  const navigate = useNavigate();
-  usePageTitle('Explore');
-  const [searchQuery, setSearchQuery] = useState('');
-  const debouncedQuery = useDebounce(searchQuery, 400);
-  const [mode, setMode] = useState<'repos' | 'contributors'>('repos');
+const PER_PAGE = 30;
+// GitHub search never returns more than the first 1000 results.
+const SEARCH_CAP = 1000;
 
-  const { data: repoData, isLoading: reposLoading, error: reposError } = useQuery({
-    queryKey: ['repositories', debouncedQuery],
-    queryFn: async () => {
-      const { data } = await api.get('/api/github/search/repositories', {
-        params: { q: debouncedQuery },
+const QUALIFIER = /^(language|topic|stars):/;
+
+const Explore = () => {
+  usePageTitle('Explore');
+  const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [params, setParams] = useSearchParams();
+
+  // The URL is the source of truth, so back/forward and shared links work.
+  const q = params.get('q') ?? '';
+  const tab: Tab = params.get('type') === 'people' ? 'people' : 'repos';
+  const sort = params.get('sort') ?? '';
+
+  const [draft, setDraft] = useState(q);
+  const debounced = useDebounce(draft, 350);
+
+  const update = (next: Record<string, string | null>) => {
+    const p = new URLSearchParams(params);
+    Object.entries(next).forEach(([k, v]) => (v ? p.set(k, v) : p.delete(k)));
+    setParams(p, { replace: true });
+  };
+
+  // Pull external URL changes (back/forward, topic clicks) into the input,
+  // but don't clobber what the user is typing (e.g. a trailing space).
+  useEffect(() => {
+    setDraft(d => (d.trim() === q ? d : q));
+  }, [q]);
+  useEffect(() => {
+    if (debounced.trim() !== q) update({ q: debounced.trim() || null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debounced]);
+
+  // "/" focuses search from anywhere on the page.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(t.tagName) && !t.isContentEditable) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const search = (query: string, opts?: { sort?: string }) => {
+    setDraft(query);
+    update({ q: query || null, type: null, sort: opts?.sort || null });
+  };
+
+  const repoQuery = useInfiniteQuery({
+    queryKey: ['repositories', q, sort],
+    queryFn: async ({ pageParam }) => {
+      const { data } = await api.get<{ items: Repository[]; total_count: number }>('/api/github/search/repositories', {
+        params: { q, per_page: PER_PAGE, page: pageParam, ...(sort ? { sort, order: 'desc' } : {}) },
       });
       return data;
     },
-    enabled: !!debouncedQuery && mode === 'repos',
-  });
-
-  const {
-    data: contributorsData,
-    isLoading: contributorsLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['contributors', debouncedQuery, mode],
-    queryFn: ({ pageParam = 1 }) =>
-      searchTopContributors(debouncedQuery || 'followers:>1000', pageParam as number),
     initialPageParam: 1,
-    getNextPageParam: (lastPage, allPages) => lastPage.hasMore ? allPages.length + 1 : undefined,
-    enabled: mode === 'contributors',
+    getNextPageParam: (last, all) => {
+      const loaded = all.length * PER_PAGE;
+      return loaded < Math.min(last.total_count, SEARCH_CAP) ? all.length + 1 : undefined;
+    },
+    enabled: tab === 'repos' && !!q,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const contributors = useMemo(
-    () => contributorsData?.pages.flatMap(p => p.users) ?? [],
-    [contributorsData],
-  );
+  const peopleQuery = useInfiniteQuery({
+    queryKey: ['contributors', q],
+    queryFn: ({ pageParam }) => searchTopContributors(q || 'followers:>1000', pageParam as number),
+    initialPageParam: 1,
+    getNextPageParam: (last, all) => (last.hasMore ? all.length + 1 : undefined),
+    enabled: tab === 'people',
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const repos: Repository[] = repoData?.items ?? [];
-  const isLoading = mode === 'repos' ? reposLoading : contributorsLoading;
-  const showHero = !debouncedQuery && mode === 'repos';
+  const repos = useMemo(() => repoQuery.data?.pages.flatMap(p => p.items) ?? [], [repoQuery.data]);
+  const total = repoQuery.data?.pages[0]?.total_count ?? 0;
+  const people = useMemo(() => peopleQuery.data?.pages.flatMap(p => p.users) ?? [], [peopleQuery.data]);
 
-  const switchMode = (next: 'repos' | 'contributors') => {
-    setMode(next);
-    setSearchQuery('');
-  };
+  const qualifiers = q.split(/\s+/).filter(t => QUALIFIER.test(t));
+  const removeToken = (token: string) => search(q.split(/\s+/).filter(t => t !== token).join(' '), { sort });
+
+  const showHome = tab === 'repos' && !q;
+  const busy = tab === 'repos' ? repoQuery.isFetching && !repoQuery.isFetchingNextPage : peopleQuery.isFetching && !peopleQuery.isFetchingNextPage;
+  const error = (tab === 'repos' ? repoQuery.error : peopleQuery.error) as (Error & { response?: { status?: number } }) | null;
+  const rateLimited = error?.response?.status === 403 || error?.response?.status === 429 || /rate limit/i.test(error?.message ?? '');
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* ── Header: one search box for every state, so focus is never lost ── */}
+      <header className="relative shrink-0 px-6 lg:px-8 pt-7 pb-4 border-b border-white/[0.05] overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-40 pointer-events-none [mask-image:radial-gradient(ellipse_60%_100%_at_20%_0%,black,transparent)]"
+          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)', backgroundSize: '40px 40px' }}
+          aria-hidden="true"
+        />
+        <div className="relative max-w-[1400px]">
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: easeOut }}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-400/80 mb-1.5">Discover</p>
+            <h1 className="text-2xl font-bold tracking-tight text-white">Explore open source</h1>
+            <p className="text-sm text-gray-500 mt-1">Find a repository worth contributing to, or someone worth learning from.</p>
+          </motion.div>
 
-      {/* ── Hero / Search header ── */}
-      {showHero ? (
-        <div className="flex flex-col items-center justify-center flex-1 px-6 pb-16">
-          {/* Glow orb behind search */}
-          <div className="relative mb-10 text-center">
-            <div className="absolute -inset-x-32 -inset-y-16 rounded-full bg-blue-500/[0.06] blur-3xl pointer-events-none" />
-            <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-widest mb-3">Open Source Discovery</p>
-            <h1 className="text-3xl font-bold text-white mb-2 relative">
-              Explore the world's code
-            </h1>
-            <p className="text-sm text-gray-600 relative">
-              Search 330M+ repositories and top contributors on GitHub
-            </p>
-          </div>
-
-          {/* Search bar — large */}
-          <div className="relative w-full max-w-xl mb-4">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
-            <input
-              type="text"
-              autoFocus
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search repositories…"
-              className="w-full h-12 pl-11 pr-4 text-sm bg-[#0D1525] border border-white/[0.10] rounded-xl text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:bg-[#111927] shadow-lg shadow-black/30 transition-all"
-            />
-            {isLoading && (
-              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 animate-spin" />
-            )}
-          </div>
-
-          {/* Quick topics */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {QUICK_TOPICS.map(topic => (
-              <button
-                key={topic}
-                onClick={() => setSearchQuery(topic)}
-                className="px-3 py-1.5 text-xs font-medium rounded-full bg-white/[0.04] border border-white/[0.08] text-gray-500 hover:text-gray-200 hover:border-white/[0.16] hover:bg-white/[0.07] transition-all cursor-pointer"
-              >
-                {topic}
-              </button>
-            ))}
-          </div>
-
-          {/* Mode switch */}
-          <button
-            onClick={() => switchMode('contributors')}
-            className="flex items-center gap-2 text-xs text-gray-600 hover:text-gray-300 transition-colors cursor-pointer group"
-          >
-            <Users className="w-3.5 h-3.5" />
-            Browse top contributors instead
-            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        </div>
-      ) : (
-        /* ── Compact header when results are shown ── */
-        <div className="px-6 pt-6 pb-0 shrink-0">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-lg font-bold text-white">Explore</h1>
-              <p className="text-xs text-gray-600 mt-0.5">
-                {mode === 'repos' && repos.length > 0
-                  ? `${repoData?.total_count?.toLocaleString() ?? 0} repositories found`
-                  : mode === 'contributors' && contributors.length > 0
-                  ? `${contributors.length} contributors`
-                  : mode === 'contributors'
-                  ? 'Top GitHub contributors'
-                  : 'Search GitHub repositories'}
-              </p>
+          <div className="mt-5 flex flex-col md:flex-row md:items-center gap-3">
+            <div className="relative flex-1 max-w-2xl">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+              <input
+                ref={inputRef}
+                type="search"
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { setDraft(''); inputRef.current?.blur(); } }}
+                placeholder={tab === 'repos' ? 'Search repositories, e.g. "markdown editor" or language:rust' : 'Search people by username'}
+                aria-label={tab === 'repos' ? 'Search repositories' : 'Search people'}
+                className="w-full h-12 pl-11 pr-24 text-[14px] bg-[#2E3245] border border-white/[0.1] rounded-xl text-gray-100 placeholder-gray-500 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] focus:outline-none focus-visible:outline-none focus:border-blue-500/50 focus:shadow-[0_0_0_4px_rgba(59,123,255,0.12)] transition-all [&::-webkit-search-cancel-button]:hidden"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                {busy && <span className="w-4 h-4 rounded-full border-[1.5px] border-white/15 border-t-blue-400 animate-spin" aria-label="Searching" />}
+                {draft ? (
+                  <button onClick={() => { setDraft(''); inputRef.current?.focus(); }} aria-label="Clear search" className="w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <span className="kbd hidden sm:inline-flex">/</span>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 pb-4 border-b border-white/[0.05]">
-            {/* Mode toggle tabs */}
-            <div className="flex items-center rounded-lg bg-[#111927] border border-white/[0.08] p-0.5 shrink-0">
-              {(['repos', 'contributors'] as const).map(m => (
+            {/* Tabs */}
+            <div role="tablist" aria-label="Search type" className="flex md:inline-flex items-center h-12 p-1 rounded-xl border border-white/[0.09] bg-[#252836] w-full md:w-auto">
+              {([['repos', 'Repositories', FolderGit2], ['people', 'People', Users]] as const).map(([id, label, Icon]) => (
                 <button
-                  key={m}
-                  onClick={() => switchMode(m)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                    mode === m
-                      ? 'bg-[#0D1525] text-white shadow-sm border border-white/[0.08]'
-                      : 'text-gray-500 hover:text-gray-300'
-                  }`}
+                  key={id}
+                  role="tab"
+                  aria-selected={tab === id}
+                  onClick={() => update({ type: id === 'people' ? 'people' : null, sort: null })}
+                  className={`relative flex-1 md:flex-none h-full flex items-center justify-center gap-2 px-4 rounded-lg text-[13px] font-semibold transition-colors cursor-pointer ${tab === id ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
                 >
-                  {m === 'repos' ? <Globe className="w-3 h-3" /> : <Users className="w-3 h-3" />}
-                  {m === 'repos' ? 'Repos' : 'Contributors'}
+                  {tab === id && (
+                    <motion.span layoutId="explore-tab" className="absolute inset-0 rounded-lg bg-[#363B52] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_1px_2px_rgba(0,0,0,0.3)]" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />
+                  )}
+                  <Icon className="relative w-4 h-4" />
+                  <span className="relative">{label}</span>
                 </button>
               ))}
             </div>
-
-            {/* Search */}
-            <div className="relative h-8 flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder={mode === 'repos' ? 'Search repositories…' : 'Filter contributors…'}
-                className="w-full h-full pl-8 pr-3 text-xs bg-[#111927] border border-white/[0.10] rounded-lg text-gray-300 placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:bg-[#0D1525] transition-all"
-              />
-            </div>
-
-            {isLoading && <Loader2 className="w-4 h-4 text-gray-700 animate-spin shrink-0" />}
-
-            {/* Back to hero */}
-            {mode === 'repos' && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="text-xs text-gray-700 hover:text-gray-400 transition-colors cursor-pointer shrink-0"
-              >
-                Clear
-              </button>
-            )}
           </div>
-        </div>
-      )}
 
-      {/* ── Results ── */}
-      {!showHero && (
-        <div className="flex-1 overflow-y-auto">
-
-          {reposError instanceof Error && (
-            <div className="p-6">
-              <ErrorDisplay
-                title={reposError.message.includes('rate limit') ? 'GitHub API rate limit exceeded' : 'Failed to load results'}
-                error={reposError.message.includes('rate limit') ? 'Please wait a few minutes before trying again.' : reposError.message}
-              />
+          {/* Result toolbar */}
+          {tab === 'repos' && q && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <p className="text-[12px] text-gray-500 mr-1" aria-live="polite">
+                {repoQuery.isLoading ? 'Searching' : <><span className="text-gray-300 font-semibold tabular">{total.toLocaleString()}</span> repositories</>}
+              </p>
+              {qualifiers.map(t => (
+                <span key={t} className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-lg border border-blue-500/30 bg-blue-500/[0.08] text-[11px] font-semibold text-blue-200">
+                  {t.replace(':', ': ')}
+                  <button onClick={() => removeToken(t)} aria-label={`Remove ${t}`} className="w-5 h-5 flex items-center justify-center rounded hover:bg-blue-400/20 cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              <div className="ml-auto w-48">
+                <FilterChip prefix="Sort" options={SORTS} value={sort} onChange={v => update({ sort: v || null })} />
+              </div>
             </div>
           )}
+        </div>
+      </header>
 
-          {/* Repos table */}
-          {mode === 'repos' && (
-            isLoading ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="sticky top-0 z-10 bg-[#0B1222] border-b border-white/[0.06]">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Repository</th>
-                      <th className="hidden lg:table-cell px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[12%]">Language</th>
-                      <th className="px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Stars</th>
-                      <th className="hidden md:table-cell px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Forks</th>
-                    </tr>
-                  </thead>
-                  <ExploreTableSkeleton />
-                </table>
+      {/* ── Body ── */}
+      <div className="flex-1 overflow-y-auto">
+        {showHome ? (
+          <ExploreHome onSearch={search} onPeople={() => update({ type: 'people' })} />
+        ) : error ? (
+          <div className="p-6 max-w-2xl">
+            <ErrorDisplay
+              title={rateLimited ? 'GitHub rate limit reached' : 'Search failed'}
+              error={rateLimited ? 'GitHub is limiting search requests. Wait a minute and try again.' : error.message}
+              onRetry={() => (tab === 'repos' ? repoQuery.refetch() : peopleQuery.refetch())}
+            />
+          </div>
+        ) : tab === 'repos' ? (
+          repoQuery.isLoading ? (
+            <div className="px-6 lg:px-8 py-5 grid grid-cols-1 lg:grid-cols-2 gap-2.5" role="status" aria-label="Loading repositories">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-white/[0.06] bg-[#2E3245]/60 p-4 space-y-3">
+                  <div className="flex items-center gap-3"><Skeleton className="w-9 h-9 rounded-lg" /><Skeleton className="h-4 w-48" /><Skeleton className="ml-auto h-6 w-14 rounded-md" /></div>
+                  <Skeleton className="h-3 w-5/6" />
+                  <div className="flex gap-1.5"><Skeleton className="h-6 w-16 rounded-md" /><Skeleton className="h-6 w-20 rounded-md" /></div>
+                </div>
+              ))}
+            </div>
+          ) : repos.length === 0 ? (
+            <EmptyState
+              icon={SearchX}
+              title={`No repositories match "${q}"`}
+              subtitle="Try fewer words, remove a filter, or search by topic instead."
+              action={
+                <button onClick={() => search('')} className="h-9 px-4 rounded-lg border border-white/[0.1] text-[13px] font-semibold text-gray-300 hover:text-white hover:border-white/[0.2] transition-colors cursor-pointer">
+                  Back to Explore
+                </button>
+              }
+            />
+          ) : (
+            <>
+              <div className="px-6 lg:px-8 py-5 grid grid-cols-1 lg:grid-cols-2 gap-2.5 max-w-[1400px]">
+                {repos.map((repo, i) => (
+                  <RepoResultCard key={repo.id} repo={repo} index={i} onTopic={t => search(`topic:${t}`, { sort: 'stars' })} />
+                ))}
               </div>
-            ) : repos.length === 0 && debouncedQuery ? (
-              <EmptyState title={`No repositories found for "${debouncedQuery}"`} subtitle="Try a different search term" />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="sticky top-0 z-10">
-                    <tr className="bg-[#0B1222] border-b border-white/[0.06]">
-                      <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Repository</th>
-                      <th className="hidden lg:table-cell px-4 py-3 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[12%]">Language</th>
-                      <th className="px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Stars</th>
-                      <th className="hidden md:table-cell px-4 py-3 text-center text-[10px] font-semibold text-gray-600 uppercase tracking-widest w-[8%]">Forks</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
-                    {repos.map(repo => {
-                      const [owner, name] = repo.full_name.split('/');
-                      const langColor = LANGUAGE_COLORS[repo.language] ?? '#6b7280';
-                      return (
-                        <tr
-                          key={repo.id}
-                          onClick={() => navigate(`/explore/${owner}/${name}`)}
-                          className="group hover:bg-white/[0.025] transition-colors duration-100 cursor-pointer"
-                        >
-                          <td className="px-6 py-3.5">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <img
-                                src={repo.owner.avatar_url}
-                                alt={repo.owner.login}
-                                width={28}
-                                height={28}
-                                loading="lazy"
-                                decoding="async"
-                                className="w-7 h-7 rounded-full shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors truncate leading-snug">
-                                  <span className="text-gray-600 font-normal">{owner}/</span><span className="text-gray-200 group-hover:text-white">{name}</span>
-                                </p>
-                                {repo.description && (
-                                  <p className="text-xs text-gray-600 mt-0.5 truncate">{repo.description}</p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="hidden lg:table-cell px-4 py-3.5">
-                            {repo.language ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border" style={{
-                                backgroundColor: `${langColor}14`,
-                                borderColor: `${langColor}30`,
-                                color: langColor,
-                              }}>
-                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: langColor }} />
-                                {repo.language}
-                              </span>
-                            ) : <span className="text-[10px] text-gray-700">—</span>}
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <span className="flex items-center justify-center gap-1 text-xs text-gray-500">
-                              <Star className="w-3 h-3 text-amber-500/80" />
-                              {formatCount(repo.stargazers_count)}
-                            </span>
-                          </td>
-                          <td className="hidden md:table-cell px-4 py-3.5">
-                            <span className="flex items-center justify-center gap-1 text-xs text-gray-600">
-                              <GitFork className="w-3 h-3" />
-                              {formatCount(repo.forks_count)}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              {repoQuery.hasNextPage && <LoadMoreButton onClick={() => repoQuery.fetchNextPage()} isLoading={repoQuery.isFetchingNextPage} />}
+            </>
+          )
+        ) : (
+          /* People */
+          peopleQuery.isLoading ? (
+            <div className="px-6 lg:px-8 py-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5" role="status" aria-label="Loading people">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="flex flex-col items-center gap-3 p-5 rounded-xl border border-white/[0.06] bg-[#2E3245]/60">
+                  <Skeleton className="w-16 h-16 rounded-full" /><Skeleton className="h-3 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : people.length === 0 ? (
+            <EmptyState icon={Users} title={`Nobody found for "${q}"`} subtitle="Check the spelling of the username, or clear the search to see well-known developers." />
+          ) : (
+            <>
+              <div className="px-6 lg:px-8 pt-5 pb-1">
+                <p className="text-[12px] text-gray-500">{q ? 'Matching developers' : 'Developers with the largest followings on GitHub'}</p>
               </div>
-            )
-          )}
-
-          {/* Contributors cards */}
-          {mode === 'contributors' && (
-            isLoading && contributors.length === 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 p-6">
-                {[...Array(10)].map((_, i) => (
-                  <div key={i} className="animate-pulse flex flex-col items-center gap-2.5 p-5 rounded-xl bg-[#0D1525] border border-white/[0.06]">
-                    <div className="w-14 h-14 rounded-full bg-white/[0.06]" />
-                    <div className="h-3 bg-white/[0.05] rounded w-20" />
-                    <div className="h-2.5 bg-white/[0.03] rounded w-14" />
+              <div className="px-6 lg:px-8 py-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 max-w-[1400px]">
+                {people.map((user: GithubUser, i) => (
+                  <div
+                    key={user.id}
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => navigate(`/contributors/${user.login}`)}
+                    onKeyDown={e => { if (e.key === 'Enter') navigate(`/contributors/${user.login}`); }}
+                    style={{ '--i': i % 30 } as CSSProperties}
+                    className="reveal group relative flex flex-col items-center gap-3 p-5 rounded-xl border border-white/[0.07] bg-[#2E3245] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-white/[0.14] hover:bg-[#31364C] hover:-translate-y-px transition-[background-color,border-color,transform] duration-200 cursor-pointer"
+                  >
+                    <img src={user.avatar_url} alt="" width={64} height={64} loading="lazy" decoding="async" className="w-16 h-16 rounded-full ring-2 ring-white/[0.06] group-hover:ring-blue-400/40 transition-all" />
+                    <div className="text-center min-w-0 w-full">
+                      <p className="text-[13px] font-semibold text-gray-200 group-hover:text-white truncate transition-colors">{user.login}</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5 group-hover:text-blue-300 transition-colors">View profile</p>
+                    </div>
+                    <a
+                      href={`https://github.com/${user.login}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      aria-label={`${user.login} on GitHub`}
+                      className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:text-white hover:bg-white/[0.06] [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all"
+                    >
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </a>
                   </div>
                 ))}
               </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 p-6">
-                  {contributors.map((user: GithubUser) => (
-                    <div
-                      key={user.id}
-                      onClick={() => navigate(`/contributors/${user.login}`)}
-                      className="group flex flex-col items-center gap-2.5 p-5 rounded-xl bg-[#0D1525] border border-white/[0.06] hover:border-white/[0.14] hover:bg-[#111927] transition-all cursor-pointer relative"
-                    >
-                      <img
-                        src={user.avatar_url}
-                        alt={user.login}
-                        width={56}
-                        height={56}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-14 h-14 rounded-full ring-2 ring-white/[0.06] group-hover:ring-white/[0.12] transition-all"
-                      />
-                      <div className="text-center min-w-0 w-full">
-                        <p className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors truncate">{user.login}</p>
-                        <p className="text-[10px] text-gray-700 mt-0.5">{user.public_repos} repos</p>
-                      </div>
-                      <a
-                        href={`https://github.com/${user.login}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        className="absolute top-2.5 right-2.5 p-1 rounded text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  ))}
-                </div>
-
-                {hasNextPage && (
-                  <LoadMoreButton onClick={() => fetchNextPage()} isLoading={isFetchingNextPage} />
-                )}
-              </>
-            )
-          )}
-        </div>
-      )}
+              {peopleQuery.hasNextPage && <LoadMoreButton onClick={() => peopleQuery.fetchNextPage()} isLoading={peopleQuery.isFetchingNextPage} />}
+            </>
+          )
+        )}
+      </div>
     </div>
   );
 };
