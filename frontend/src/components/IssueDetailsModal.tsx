@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-import { X, ArrowUpRight, Sparkles, CircleDot, CircleCheck, MessageSquare, FolderGit2, RotateCw, Settings } from 'lucide-react';
+import { X, ArrowUpRight, Sparkles, CircleDot, CircleCheck, MessageSquare, FolderGit2, RotateCw, Settings, AlertTriangle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { formatRelativeDate } from '../utils/formatDate';
 import { getLabelColors } from '../features/dashboard/utils/filterUtils';
@@ -46,8 +46,22 @@ const claimRequest = () =>
 const staleCheckIn = (who?: string) =>
   `Hi${who ? ` @${who}` : ''}, are you still working on this? If not, I'd be happy to pick it up.`;
 
-function ClaimBanner({ claim, loading, onDraft }: { claim?: IssueClaim; loading: boolean; onDraft: (text: string) => void }) {
+function ClaimBanner({ claim, loading, error, onRetry, onDraft }: {
+  claim?: IssueClaim; loading: boolean; error: boolean; onRetry: () => void; onDraft: (text: string) => void;
+}) {
   if (loading && !claim) return <Skeleton className="h-[72px] w-full rounded-2xl" />;
+  if (error && !claim) {
+    return (
+      <section aria-label="Claim status" className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+        <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
+        <p className="flex-1 text-[13px] text-gray-300">Couldn't check whether someone is already working on this.</p>
+        <button onClick={onRetry}
+          className="shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white/[0.08] border border-white/[0.1] text-[12px] font-semibold text-white hover:bg-white/[0.12] transition-colors cursor-pointer">
+          <RotateCw className="w-3.5 h-3.5" />Retry
+        </button>
+      </section>
+    );
+  }
   if (!claim || !CLAIM_COPY[claim.status]) return null;
   const copy = CLAIM_COPY[claim.status];
   return (
@@ -105,7 +119,7 @@ export default function IssueDetailsModal({
 
   const [draft, setDraft] = useState<{ text: string; n: number } | null>(null);
   const claimTarget = useMemo(() => (issue && issue.state === 'open' ? [issue] : []), [issue]);
-  const { claims, loading: claimLoading } = useIssueClaims(claimTarget, isOpen);
+  const { claims, loading: claimLoading, error: claimError, retry: retryClaim } = useIssueClaims(claimTarget, isOpen);
   const claim = issue ? claimFor(claims, issue) : undefined;
 
   useEffect(() => {
@@ -218,10 +232,12 @@ export default function IssueDetailsModal({
                           )}
                         </header>
 
-                        {issue.state === 'open' && (claim || claimLoading) && (
+                        {issue.state === 'open' && (claim || claimLoading || claimError) && (
                           <ClaimBanner
                             claim={claim}
                             loading={claimLoading}
+                            error={claimError}
+                            onRetry={retryClaim}
                             onDraft={text => setDraft(d => ({ text, n: (d?.n ?? 0) + 1 }))}
                           />
                         )}

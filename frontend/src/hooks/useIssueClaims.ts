@@ -36,7 +36,9 @@ export default function useIssueClaims(issues: Issue[], enabled = true) {
 
   // Errors resolve to "no badge" rather than an endless skeleton.
   const loading = results.some(r => r.isLoading);
-  return { claims, loading };
+  const error = !loading && results.length > 0 && results.every(r => r.isError);
+  const retry = () => results.forEach(r => { if (r.isError) r.refetch(); });
+  return { claims, loading, error, retry };
 }
 
 export const claimFor = (claims: Record<string, IssueClaim>, issue: Issue) =>
