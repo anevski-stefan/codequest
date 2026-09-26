@@ -25,7 +25,9 @@ migration history is tracked. The backend is the only client and uses the servic
    public PostgREST API. No policies are needed unless a client reads it directly.
 4. Foreign keys to `users(id)` are `text` (GitHub id) with `ON DELETE CASCADE` for
    per-user data.
-5. Comment at the top: what the table is for and who writes it.
+5. Header comment: what the table is for and **who writes it**. This is the standing exception
+   to the no-comments rule (root `AGENTS.md` 6) — who writes the rows is not derivable from
+   the SQL. Nothing else in a migration gets a comment; the statements speak for themselves.
 6. Never edit a migration that is already applied remotely — add a new one.
 
 ## Apply it

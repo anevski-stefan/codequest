@@ -50,13 +50,17 @@ is broken, which is worse than having no test.
   parameter instead (`now = new Date()`) and pass a fixed value in the test.
 - **Never instantiate a service through `Object.create(Class.prototype)`** to dodge its
   constructor. That means the logic belongs outside the class.
-- **Never leave exploratory comments** ("let's try…", "wait, I need…") in tests or code.
+- **Never leave exploratory comments** ("let's try…", "wait, I need…") in tests or code, and
+  add none that the code already says (root `AGENTS.md` 6) — before reporting, re-read your
+  diff and delete every comment that names no non-derivable fact.
 
 ## Fixing a bug
 
 1. **Find the root cause** before changing code, and name it in the commit message. A
    guard that patches the symptom downstream (e.g. subtracting a year after a wrong
-   parse) is only acceptable alongside a fix of the cause, or with a comment saying why not.
+   parse) needs a fix of the cause alongside it. If the cause genuinely cannot be fixed
+   here, a comment saying why is the allowed fallback — that reason is a fact the code
+   cannot show, so it passes root `AGENTS.md` 6.
 2. Extract the logic into a pure function if it isn't one.
 3. Write a test that reproduces the bug against that function and **fails**.
 4. Fix it; the test passes.

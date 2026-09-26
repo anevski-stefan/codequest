@@ -90,23 +90,33 @@ These apply even if no skill is active.
    say so. If a number is an estimate, label it.
 5. **Design system is fixed**: Dim/Slate surfaces, one blue accent, no violet/purple/indigo,
    Plus Jakarta Sans, no emojis anywhere. See `frontend-ui`.
-6. **Don't change `/login`** (the landing page) without the owner asking.
-7. **Every change is verified** before you call it done: typecheck, lint, build, tests, and
+6. **Write no comments unless the code would be unreadable without one.** Default to none.
+   Allowed only when the code *cannot* say it: a security or correctness fact not derivable by
+   reading the code (why a value is not a secret, why a workaround exists instead of the
+   obvious fix, an upstream quirk, a wire format), or an `eslint-disable` / `@ts-ignore` with
+   its reason. Never narrate, never label sections, never restate the name of the thing it
+   sits on, never leave commented-out code or a bare `TODO`. If a comment only helps someone
+   who already understands the code, it does not belong. One standing exception: the header
+   of a SQL migration (see `supabase-migrations`).
+7. **Don't change `/login`** (the landing page) without the owner asking.
+8. **Every change is verified** before you call it done: typecheck, lint, build, tests, and
    for UI a browser check. Report exactly what you ran and what you didn't.
-8. **Leave the workspace as you found it**: mock flag back to `false`, dev servers and
+9. **Leave the workspace as you found it**: mock flag back to `false`, dev servers and
    browsers you started stopped, no scratch files (`test-*.js`) in the repo root.
 
 ## Definition of done
 
 - [ ] Relevant skills were activated and followed; your report names them
 - [ ] `tsc`, `eslint`, `npm run build` pass (frontend); `npm test` passes (backend)
+- [ ] No comment was added that the code already says (Non-negotiables 6)
 - [ ] New pure logic has `node:test` coverage (backend) or is extracted so it could.
       Tests call the real function; no copied logic, no mocked globals
 - [ ] Bug fixes: root cause named, and the test was shown to fail with the fix reverted
 - [ ] You ran the `code-review` checklist on your own diff before reporting
 - [ ] UI checked at 1440px and 390px, loading / empty / error states included
 - [ ] New endpoints have a mock route and validation
-- [ ] Committed by pathspec with a message that explains *why*
+- [ ] Committed by pathspec, Conventional Commits subject only — no body, no attribution
+      trailer (`git-workflow`)
 - [ ] Final report lists what changed, what was verified, and what was not
 
 ## Communicating with the owner

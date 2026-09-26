@@ -30,3 +30,6 @@ for any visual change.
 - Animate only `transform` and `opacity`; respect `prefers-reduced-motion` (global CSS does).
 - Keep query/URL state in the URL when it's shareable (see `features/explore/Explore.tsx`).
 - `localStorage` access goes in try/catch.
+- No comments unless the code is unreadable without one (root `AGENTS.md`, Non-negotiables 6):
+  no `// RepoSidebar` labels, no explaining what a Tailwind class does, no restating the
+  component or variable name, no JSX `{/* ... */}` that narrates markup.
