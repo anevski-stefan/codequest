@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: codequest-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SESSION_STORE
+        value: supabase
+      - key: SESSION_MAX_AGE_MS
+        value: "86400000"
+      - key: CLIENT_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CALLBACK_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: AI_KEY_SECRET
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
