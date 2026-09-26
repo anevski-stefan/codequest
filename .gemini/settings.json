@@ -1,0 +1,21 @@
+{
+  "context": {
+    "fileName": ["AGENTS.md", "GEMINI.md"]
+  },
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "name": "guard-shell",
+            "description": "Blocks secret commits and destructive git/database commands",
+            "command": "node \"$GEMINI_PROJECT_DIR/.agents/hooks/guard-shell.mjs\"",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}
