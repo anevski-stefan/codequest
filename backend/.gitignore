@@ -4,6 +4,7 @@ yarn.lock
 .env
 .env.local
 .env.*.local
+.env.prod
 
 logs
 *.log
