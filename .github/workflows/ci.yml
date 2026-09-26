@@ -1,0 +1,74 @@
+# Runs on every push and pull request. Enforces what AGENTS.md asks every coding agent
+# to do before calling work done, so a skipped check shows up as a red build.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  agents:
+    name: Agent setup and guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate skills, configs, subagents and tracked secrets
+        run: node .agents/scripts/validate-agents.mjs
+      - name: Shell guard tests
+        run: node --test .agents/hooks/guard-shell.test.mjs
+
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Routers load
+        # Loading the hackathon routes starts the crawler and its cron job, which keeps
+        # the process alive; exit as soon as every router has been required.
+        run: node -e "for (const r of require('fs').readdirSync('src/routes')) require('./src/routes/' + r); console.log('all routers load'); process.exit(0)"
+      - run: npm test
+
+  frontend:
+    name: Frontend typecheck, lint and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      VITE_USE_MOCK_DATA: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit -p .
+      - run: npx eslint src
+      - run: npm run build
+      - name: Mock fixtures are not in the production bundle
+        run: |
+          if grep -l "Mock Developer" dist/assets/*.js; then
+            echo "Mock data leaked into the build; VITE_USE_MOCK_DATA must be false." >&2
+            exit 1
+          fi

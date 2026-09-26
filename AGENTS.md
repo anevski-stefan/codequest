@@ -37,10 +37,17 @@ npm run build          # tsc + vite build
 npm run dev            # nodemon on :3000
 npm test               # node:test, test/**/*.test.js
 
+# agent setup (from the repo root)
+node .agents/scripts/validate-agents.mjs    # skills, configs, subagents, tracked secrets
+node --test .agents/hooks/guard-shell.test.mjs
+
 # database (from backend/, project is linked)
 supabase migration list
 supabase db push --dry-run && supabase db push
 ```
+
+CI (`.github/workflows/ci.yml`) runs all of the checks above except the database on every
+push and pull request. A red build means a step in the definition of done was skipped.
 
 Mock mode: `VITE_USE_MOCK_DATA=true` in `frontend/.env` runs the whole UI on fixtures
 (no backend, no GitHub rate limits). Always set it back to `false` when you finish.

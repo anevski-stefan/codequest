@@ -16,6 +16,10 @@ metadata:
 | Anything in `backend/` | `npm test`, then `node -e "require('./src/routes/<router>')"` for touched routers | `backend/` |
 | UI behaviour | skill `ui-verification` | |
 | Schema | skill `supabase-migrations` (dry run + list) | `backend/` |
+| `.agents/`, `.claude/`, `.gemini/`, `.opencode/`, `AGENTS.md` | `node .agents/scripts/validate-agents.mjs`, `node --test .agents/hooks/guard-shell.test.mjs` | repo root |
+
+CI (`.github/workflows/ci.yml`) runs the same gates on every push; run them locally first
+so the build doesn't go red.
 
 Lint baseline: exactly one known warning (`contexts/ThemeContext.tsx`, fast refresh).
 Anything else is yours to fix.
