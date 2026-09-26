@@ -1,0 +1,16 @@
+{
+  "guard-shell": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'f=\"$(git rev-parse --show-toplevel 2>/dev/null)/.agents/hooks/guard-shell.mjs\"; if [ -f \"$f\" ]; then exec node \"$f\"; else echo \"{}\"; fi'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

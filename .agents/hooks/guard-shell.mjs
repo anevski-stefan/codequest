@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
- * Shell guard for coding agents (Claude Code PreToolUse / Gemini CLI BeforeTool).
+ * Shell guard for coding agents: Claude Code (PreToolUse), Gemini CLI
+ * (BeforeTool) and Antigravity / agy (PreToolUse via .agents/hooks.json).
  *
- * Reads the hook payload from stdin: { tool_input: { command }, cwd, ... }.
- * Exit 0 = allow, exit 2 = block (stderr is shown to the agent as the reason).
- * Both tools use this contract, so one script serves both.
+ * Claude and Gemini: payload { tool_input: { command }, cwd }; exit 0 = allow,
+ * exit 2 = block with the reason on stderr.
+ * Antigravity: payload { toolCall: { args: { CommandLine, Cwd } } }; always exit 0
+ * and answer with JSON on stdout (see antigravityResponse).
  *
  * It enforces the repo rules that are too costly to leave to good intentions:
  * secrets never get committed, and destructive git/database commands need a human.
@@ -119,17 +121,53 @@ function stagedFilesIn(cwd) {
   }
 }
 
+/**
+ * Normalise the payloads of the tools we support.
+ *  - Claude Code / Gemini CLI: { tool_input: { command }, cwd }
+ *  - Antigravity (agy):        { toolCall: { name, args: { CommandLine, Cwd } }, workspacePaths }
+ */
+export function readPayload(input) {
+  if (input?.toolCall) {
+    const args = input.toolCall.args ?? {};
+    return {
+      flavor: 'antigravity',
+      command: args.CommandLine,
+      cwd: args.Cwd || input.workspacePaths?.[0],
+    };
+  }
+  return { flavor: 'exit-code', command: input?.tool_input?.command, cwd: input?.cwd };
+}
+
+/**
+ * Antigravity decides from JSON on stdout and treats non-zero exits as hook
+ * failures. Docs and field reports use different field names, so send both.
+ * On allow we print `{}`: an explicit "allow" would skip the user's approval prompt.
+ */
+export function antigravityResponse(reason) {
+  return reason
+    ? { decision: 'deny', reason, allow_tool: false, deny_reason: reason }
+    : {};
+}
+
 async function main() {
   let raw = '';
   for await (const chunk of process.stdin) raw += chunk;
   let input;
   try { input = JSON.parse(raw || '{}'); } catch { process.exit(0); }
-  const cmd = input?.tool_input?.command;
-  if (typeof cmd !== 'string' || !cmd.trim()) process.exit(0);
+  const { flavor, command, cwd } = readPayload(input);
 
-  const reason = checkCommand(cmd, () => stagedFilesIn(input.cwd || process.cwd()));
-  if (reason) {
-    process.stderr.write(`Blocked by .agents/hooks/guard-shell.mjs: ${reason}\n`);
+  let reason = null;
+  if (typeof command === 'string' && command.trim()) {
+    reason = checkCommand(command, () => stagedFilesIn(cwd || process.cwd()));
+  }
+  const message = reason ? `Blocked by .agents/hooks/guard-shell.mjs: ${reason}` : null;
+
+  if (flavor === 'antigravity') {
+    process.stdout.write(JSON.stringify(antigravityResponse(message)));
+    process.exit(0);
+  }
+  if (message) {
+    process.stderr.write(`${message}\n`);
     process.exit(2);
   }
   process.exit(0);
