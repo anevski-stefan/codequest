@@ -3,6 +3,7 @@ import { store } from '../store';
 import { logout } from '../features/auth/authSlice';
 import type { IssueParams, IssueResponse, Issue, GithubUser } from '../types/github';
 import { USE_MOCK_DATA } from '../mocks/flag';
+import { getAIService } from '../hooks/useAIService';
 const resolveApiBaseUrl = () => {
   const base = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
   const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(base);
@@ -315,6 +316,7 @@ export const explainIssue = async ({
         comments: comments.slice(0, 10).map(c => ({ user: { login: c.user.login }, body: c.body })),
         repoLanguage,
         repoDescription,
+        provider: getAIService(),
       }),
     });
   } catch {
@@ -375,6 +377,7 @@ export const onboardRepo = async ({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
+      body: JSON.stringify({ provider: getAIService() }),
     });
   } catch {
     onError('Network error — could not reach the server.');
