@@ -9,6 +9,7 @@ import IssueCard from '../../components/issues/IssueCard';
 import useIssueClaims, { claimFor } from '../../hooks/useIssueClaims';
 import LabelsFilter from '../../components/LabelsFilter';
 import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from '../dashboard/constants/filterOptions';
+import { BEGINNER_LABELS } from '../../constants/issueLabels';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
 import { CardSkeletonList } from '../../components/skeletons';
@@ -30,7 +31,8 @@ const DEFAULT_FILTER: IssueParams = {
   timeFrame: 'all',
   unassigned: false,
   commentsRange: '',
-  labels: []
+  labels: [],
+  labelAnyOf: [...BEGINNER_LABELS],
 };
 
 const BrowseIssues = () => {
@@ -84,7 +86,14 @@ const BrowseIssues = () => {
   const handleSortChange        = useCallback((v: string) => handleFilterChange({ sort: v, direction: v === 'created-asc' ? 'asc' : 'desc' }), [handleFilterChange]);
   const handleCommentsChange    = useCallback((v: string) => handleFilterChange({ commentsRange: v }), [handleFilterChange]);
   const handleLanguageChange    = useCallback((v: string) => handleFilterChange({ language: v as Language }), [handleFilterChange]);
-  const handleLabelsChange      = useCallback((labels: string[]) => handleFilterChange({ labels }), [handleFilterChange]);
+  const handleLabelsChange      = useCallback((labels: string[]) => handleFilterChange({ labels, labelAnyOf: labels.length ? [] : [...BEGINNER_LABELS] }), [handleFilterChange]);
+  const beginnerLabelsOn        = (filter.labelAnyOf?.length ?? 0) > 0;
+  // Beginner labels and custom labels are exclusive: getIssues applies custom labels first,
+  // so turning the beginner set on must clear them or the toggle would show a filter that
+  // isn't applied.
+  const handleBeginnerLabels    = useCallback(() => handleFilterChange(
+    beginnerLabelsOn ? { labelAnyOf: [] } : { labelAnyOf: [...BEGINNER_LABELS], labels: [] },
+  ), [handleFilterChange, beginnerLabelsOn]);
 
   useEffect(() => () => { debouncedSetFilter.cancel(); }, [debouncedSetFilter]);
 
@@ -95,6 +104,7 @@ const BrowseIssues = () => {
     !!filter.commentsRange,
     !!filter.language,
     (filter.labels?.length ?? 0) > 0,
+    !beginnerLabelsOn,
     filter.unassigned,
   ].filter(Boolean).length;
 
@@ -107,8 +117,8 @@ const BrowseIssues = () => {
           eyebrow="Discover"
           title="Browse issues"
           subtitle={allIssues.length > 0
-            ? <span className="tabular">{allIssues.length}{hasNextPage ? '+' : ''} beginner-friendly issues across GitHub</span>
-            : 'Beginner-friendly issues from top repositories'}
+            ? <span className="tabular">{allIssues.length}{hasNextPage ? '+' : ''} open issues{beginnerLabelsOn ? ' labelled for newcomers' : ''}</span>
+            : beginnerLabelsOn ? 'Newest open issues labelled for newcomers' : 'Newest open issues on GitHub'}
           actions={isPlaceholderData ? (
             <div className="flex items-center gap-1.5 text-xs text-gray-500" role="status">
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -150,6 +160,23 @@ const BrowseIssues = () => {
           <div className="flex-1 min-w-0">
             <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={handleLabelsChange} />
           </div>
+
+          <div className="h-5 w-px bg-white/[0.08]" />
+
+          {/* Beginner label gate — the default feed; typing a label replaces it */}
+          <button
+            onClick={handleBeginnerLabels}
+            aria-pressed={beginnerLabelsOn}
+            title="Show issues labelled good first issue, help wanted, beginner, easy and similar"
+            className={`flex items-center gap-2 h-8 px-3 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer active:scale-[0.97] ${
+              beginnerLabelsOn
+                ? 'border-blue-500/40 bg-blue-500/[0.08] text-blue-300 shadow-[inset_0_1px_0_rgba(59,123,255,0.07)]'
+                : 'border-white/[0.09] bg-[#363B52] text-gray-400 hover:border-white/[0.18] hover:text-gray-200'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full transition-colors ${beginnerLabelsOn ? 'bg-blue-400' : 'bg-gray-600'}`} />
+            {beginnerLabelsOn ? 'Beginner labels' : 'Any label'}
+          </button>
 
           <div className="h-5 w-px bg-white/[0.08]" />
 
@@ -253,6 +280,14 @@ const BrowseIssues = () => {
               <div className="space-y-2">
                 <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Labels</p>
                 <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={handleLabelsChange} />
+                <button
+                  onClick={handleBeginnerLabels}
+                  aria-pressed={beginnerLabelsOn}
+                  className={`flex items-center gap-2 w-full px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer ${beginnerLabelsOn ? 'border-blue-500/40 bg-blue-500/[0.08] text-blue-300' : 'border-white/[0.08] bg-white/[0.03] text-gray-400'}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full transition-colors ${beginnerLabelsOn ? 'bg-blue-400' : 'bg-gray-600'}`} />
+                  {beginnerLabelsOn ? 'Beginner labels only' : 'Any label'}
+                </button>
               </div>
               <div className="space-y-2">
                 <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Unassigned</p>

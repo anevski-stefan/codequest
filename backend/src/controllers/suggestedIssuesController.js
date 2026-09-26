@@ -1,6 +1,7 @@
 const GitHubService = require('../services/githubService');
 const { asyncHandler, sendError } = require('../utils/httpError');
 
+// Keep in sync with BEGINNER_LABELS in frontend/src/constants/issueLabels.ts (Browse Issues).
 const LABEL_OR = '"good first issue","good-first-issue","help wanted","help-wanted","beginner","first-timers-only","easy","up-for-grabs"';
 
 const FAMOUS_ORGS_A = [

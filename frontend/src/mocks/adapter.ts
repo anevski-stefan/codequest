@@ -33,6 +33,21 @@ const paginate = <T,>(items: T[], page: number, perPage: number) => ({
   hasMore: page * perPage < items.length,
 });
 
+/**
+ * Every `label:` qualifier in a GitHub search query, each as its list of alternatives.
+ * `label:bug label:docs` means both (two groups); `label:"good first issue",easy` means
+ * either (one group). Values may be quoted, unquoted or mixed.
+ */
+export const labelGroups = (q: string): string[][] => {
+  const groups: string[][] = [];
+  const re = /label:((?:"[^"]*"|[^\s,"]+)(?:,(?:"[^"]*"|[^\s,"]+))*)/g;
+  for (const m of q.matchAll(re)) {
+    const values = m[1].match(/"[^"]*"|[^,]+/g) ?? [];
+    groups.push(values.map(v => v.replace(/^"|"$/g, '').trim().toLowerCase()).filter(Boolean));
+  }
+  return groups;
+};
+
 // Very small GitHub search-query interpreter, enough for the app's filters.
 const filterIssues = (q: string, items: MockIssue[]) => {
   let out = items;
@@ -40,8 +55,10 @@ const filterIssues = (q: string, items: MockIssue[]) => {
   if (repo) out = out.filter(i => i.repository_url.endsWith(`/${repo}`));
   const lang = q.match(/language:(\S+)/)?.[1];
   if (lang) out = out.filter(i => findRepo(i.repository_url.split('/repos/')[1])?.language.toLowerCase() === lang.toLowerCase());
-  const labels = [...q.matchAll(/label:(?:"([^"]+)"|(\S+))/g)].map(m => (m[1] ?? m[2]).toLowerCase());
-  if (labels.length) out = out.filter(i => labels.every(l => i.labels.some(x => x.name.toLowerCase() === l)));
+  const groups = labelGroups(q);
+  if (groups.length) {
+    out = out.filter(i => groups.every(group => i.labels.some(x => group.includes(x.name.toLowerCase()))));
+  }
   if (/comments:0\b/.test(q)) out = out.filter(i => i.comments === 0);
   if (/comments:1\.\.5/.test(q)) out = out.filter(i => i.comments >= 1 && i.comments <= 5);
   if (/comments:6\.\.10/.test(q)) out = out.filter(i => i.comments >= 6 && i.comments <= 10);
