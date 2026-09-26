@@ -6,6 +6,52 @@ const { getSupabase } = require('../config/supabase');
 const HACKATHONS_TABLE = 'hackathons';
 let instance = null;
 
+const DISPLAY_DATE = { year: 'numeric', month: 'short', day: 'numeric' };
+const isValidDate = d => d instanceof Date && !isNaN(d.getTime());
+
+/**
+ * Pure: turn Devpost's `submission_period_dates` into display dates.
+ *
+ * Devpost omits years it considers obvious:
+ *   "Jun 25 - Oct 27, 2026"        start has no year
+ *   "Nov 01 - 30, 2026"            end has no month
+ *   "Dec 28 - Jan 05, 2027"        period crosses a year boundary
+ *   "Dec 28, 2026 - Jan 05, 2027"  fully specified
+ *
+ * A side without a year takes it from the other side; a start that would fall after the
+ * end belongs to the previous year. Only when no year appears at all is `now` used, and
+ * an already-finished period is then read as next year's edition.
+ * Unrecognised input is returned unchanged.
+ */
+function parseSubmissionPeriod(period, now = new Date()) {
+  const [rawStart = '', rawEnd = ''] = (period || '').split(' - ').map(s => s.trim());
+  const explicitYear = (rawEnd.match(/\b(\d{4})$/) || rawStart.match(/\b(\d{4})$/) || [])[1];
+  const baseYear = explicitYear ?? String(now.getFullYear());
+  const startMonth = (rawStart.match(/^([A-Za-z]{3})\b/) || [])[1];
+
+  const toDate = (s, monthFallback) => {
+    let m;
+    if ((m = s.match(/^([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})$/))) return new Date(`${m[1]} ${m[2]}, ${m[3]}`);
+    if ((m = s.match(/^([A-Za-z]{3})\s+(\d{1,2})$/))) return new Date(`${m[1]} ${m[2]}, ${baseYear}`);
+    if ((m = s.match(/^(\d{1,2}),\s*(\d{4})$/)) && monthFallback) return new Date(`${monthFallback} ${m[1]}, ${m[2]}`);
+    return null;
+  };
+
+  const start = rawStart ? toDate(rawStart) : null;
+  const end = rawEnd ? toDate(rawEnd, startMonth) : null;
+
+  if (isValidDate(start) && isValidDate(end) && start > end) start.setFullYear(start.getFullYear() - 1);
+  if (!explicitYear && isValidDate(end) && end < now) {
+    end.setFullYear(end.getFullYear() + 1);
+    if (isValidDate(start)) start.setFullYear(start.getFullYear() + 1);
+  }
+
+  return {
+    startDate: isValidDate(start) ? start.toLocaleDateString('en-US', DISPLAY_DATE) : rawStart,
+    endDate: isValidDate(end) ? end.toLocaleDateString('en-US', DISPLAY_DATE) : rawEnd,
+  };
+}
+
 function toDbRow(hackathon) {
   return {
     id: hackathon.id,
@@ -59,63 +105,6 @@ class HackathonService {
     };
     this.initialize();
     this.setupCronJob();
-  }
-
-  formatDate(dateStr, dateCtx = {}) {
-    if (!dateStr) return '';
-    try {
-      dateStr = dateStr.trim();
-      if (dateStr.match(/^[A-Za-z]{3}\s+\d{1,2},\s*\d{4}$/)) {
-        const date = new Date(dateStr);
-        if (!isNaN(date.getTime())) {
-          dateCtx.month = date.toLocaleString('en-US', {
-            month: 'short'
-          });
-          return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          });
-        }
-      }
-      if (dateStr.match(/^[A-Za-z]{3}\s+\d{1,2}$/)) {
-        const [month, day] = dateStr.split(' ');
-        const currentYear = new Date().getFullYear();
-        const date = new Date(`${month} ${day}, ${currentYear}`);
-        if (!isNaN(date.getTime())) {
-          dateCtx.month = month;
-          if (date < new Date()) {
-            date.setFullYear(currentYear + 1);
-          }
-          return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          });
-        }
-      }
-      if (dateStr.match(/^\d{1,2},\s*\d{4}$/)) {
-        const [day, year] = dateStr.split(',').map(s => s.trim());
-        const month = dateCtx.month;
-        if (!month) {
-          logger.warn(`No month available for date: ${dateStr}`);
-          return dateStr;
-        }
-        const date = new Date(`${month} ${day}, ${year}`);
-        if (!isNaN(date.getTime())) {
-          return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          });
-        }
-      }
-      logger.warn(`Unrecognized date format: ${dateStr}`);
-      return dateStr;
-    } catch (error) {
-      logger.warn(`Error formatting date: ${dateStr}`, error);
-      return dateStr;
-    }
   }
 
   async initialize() {
@@ -179,13 +168,15 @@ class HackathonService {
             break;
           }
           const hackathons = apiResponse.data.hackathons.map(h => {
-            const parts = (h.submission_period_dates || '').split(' - ');
-            const dateCtx = {};
+            const { startDate, endDate } = parseSubmissionPeriod(h.submission_period_dates);
+            if (h.submission_period_dates && !isValidDate(new Date(endDate))) {
+              logger.warn(`Unrecognized submission period: ${h.submission_period_dates}`);
+            }
             return {
               title: h.title,
               description: h.tagline || h.description || '',
-              startDate: this.formatDate(parts[0], dateCtx),
-              endDate: this.formatDate(parts[1], dateCtx),
+              startDate,
+              endDate,
               url: h.url,
               source: 'devpost',
               location: h.displayed_location?.location || 'Online',
@@ -371,3 +362,6 @@ class HackathonService {
 }
 
 module.exports = HackathonService;
+
+// Exported for tests; the crawler uses it above.
+module.exports.parseSubmissionPeriod = parseSubmissionPeriod;
