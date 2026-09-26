@@ -48,6 +48,14 @@ impact. Verify claims against the code before reporting them.
 **Hygiene**
 - No stray files (`test-*.js`, scratch scripts, screenshots), no debug `console.log`,
   no dead imports, no dynamic `import()` of a module that is already imported statically.
+- No exploratory or thinking-out-loud comments left in code or tests.
+
+**Tests** (`testing-and-verification`)
+- Each test imports and calls the code it claims to verify. A test that contains its own
+  copy of the logic, mocks globals like `Date`, or builds an object via
+  `Object.create(Class.prototype)` is a finding under *Must fix*.
+- For a bug fix: is the root cause fixed, and does the test fail without the fix? When in
+  doubt, revert the fix locally and run the test.
 - Migrations: safe to re-run, RLS on, not editing an already-applied file.
 
 ## Report format

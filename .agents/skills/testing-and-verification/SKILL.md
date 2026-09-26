@@ -33,6 +33,36 @@ Anything else is yours to fix.
 - Security-relevant builders (queries, prompts) get a test that hostile input stays inert,
   e.g. GraphQL input only in `variables`.
 
+## Never do this in a test
+
+These have all happened in this repo. Each one produces a test that passes while the code
+is broken, which is worse than having no test.
+
+- **Never re-implement the production logic inside the test.** A test must `require` the
+  function it verifies and call it. If the logic is inline in a crawler, controller or
+  callback, extract it into an exported function first, then test that. If you notice
+  yourself writing "this replicates the logic", stop and extract.
+- **Never mock globals** (`global.Date`, `Date.now`, `Math.random`, `fetch`). Add a
+  parameter instead (`now = new Date()`) and pass a fixed value in the test.
+- **Never instantiate a service through `Object.create(Class.prototype)`** to dodge its
+  constructor. That means the logic belongs outside the class.
+- **Never leave exploratory comments** ("let's try…", "wait, I need…") in tests or code.
+
+## Fixing a bug
+
+1. **Find the root cause** before changing code, and name it in the commit message. A
+   guard that patches the symptom downstream (e.g. subtracting a year after a wrong
+   parse) is only acceptable alongside a fix of the cause, or with a comment saying why not.
+2. Extract the logic into a pure function if it isn't one.
+3. Write a test that reproduces the bug against that function and **fails**.
+4. Fix it; the test passes.
+5. **Prove the test protects the fix:** temporarily undo the fix (copy the file aside,
+   revert the lines, run the test, restore the copy). The test must fail. Say in your
+   report that you did this and what failed.
+
+Example from this repo: `parseSubmissionPeriod(period, now)` in
+`services/hackathonService.js` with `test/dateParsing.test.js`.
+
 ## Frontend
 
 There is no test runner yet. Until there is: keep logic in hooks/utils as pure functions
