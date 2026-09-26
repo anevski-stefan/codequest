@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { store } from '../store';
 import { logout } from '../features/auth/authSlice';
-import type { IssueParams, IssueResponse, Issue, GithubUser } from '../types/github';
+import type { IssueParams, IssueResponse, Issue, GithubUser, IssueClaim } from '../types/github';
 import { USE_MOCK_DATA } from '../mocks/flag';
 import { getAIService } from '../hooks/useAIService';
 const resolveApiBaseUrl = () => {
@@ -199,6 +199,20 @@ export const getIssues = async (params: IssueParams): Promise<IssueResponse> => 
     searchQuery += 'no:assignee ';
   }
   return fetchIssues(searchQuery, params.sort, params.direction, params.page);
+};
+
+/** Claim status per issue, keyed "owner/repo#number" (lowercase). Max 50 per call. */
+export const claimKey = (fullName: string, number: number) => `${fullName}#${number}`.toLowerCase();
+export const getIssueClaims = async (issues: Issue[]): Promise<Record<string, IssueClaim>> => {
+  const payload = issues
+    .map(i => {
+      const [owner, repo] = i.repository.fullName.split('/');
+      return owner && repo ? { owner, repo, number: i.number } : null;
+    })
+    .filter(Boolean);
+  if (payload.length === 0) return {};
+  const { data } = await api.post<{ claims: Record<string, IssueClaim> }>('/api/issues/claims', { issues: payload });
+  return data.claims ?? {};
 };
 
 export const getIssueComments = async (issueNumber: number, repoFullName: string, page = 1) => {

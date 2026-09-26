@@ -15,6 +15,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
 import IssueCard from '../../components/issues/IssueCard';
+import useIssueClaims, { claimFor } from '../../hooks/useIssueClaims';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { CardSkeleton } from '../../components/skeletons';
@@ -189,6 +190,8 @@ const Dashboard = () => {
     return (unique.length >= 4 ? unique : all).slice(0, 6);
   }, [suggested.data]);
 
+  const { claims, loading: claimsLoading } = useIssueClaims(picks);
+
   // Scraped start dates are unreliable (sometimes land after the end date),
   // so rank by deadline: still open, closing soonest first.
   const upcoming = useMemo(() => {
@@ -282,7 +285,7 @@ const Dashboard = () => {
               ) : (
                 <div className="grid md:grid-cols-2 gap-2.5">
                   {picks.map((issue, i) => (
-                    <IssueCard key={`${issue.repository.fullName}-${issue.number}`} issue={issue} index={i} onOpen={handleViewComments} onPrefetch={prefetchComments} />
+                    <IssueCard key={`${issue.repository.fullName}-${issue.number}`} issue={issue} index={i} onOpen={handleViewComments} onPrefetch={prefetchComments} claim={claimFor(claims, issue)} claimLoading={claimsLoading} />
                   ))}
                 </div>
               )}

@@ -92,6 +92,24 @@ const routes: [string, RegExp, Handler][] = [
     const { slice, hasMore } = paginate(items, page, 30);
     return { items: slice, total_count: items.length, hasMore, currentPage: page };
   }],
+  ['post', /^\/api\/issues\/claims$/, (_, __, body) => {
+    // Deterministic mix so every status shows up in the UI.
+    const list = ((body as { issues?: { owner: string; repo: string; number: number }[] })?.issues ?? []);
+    const people = ['lina-okafor', 'tomasz-wrobel', 'priya-raman', 'mateo-silva'];
+    const claims: Record<string, unknown> = {};
+    for (const it of list) {
+      const key = `${it.owner}/${it.repo}#${it.number}`.toLowerCase();
+      const r = (it.number * 2654435761) % 100;
+      const who = people[it.number % people.length];
+      claims[key] =
+        r < 55 ? { status: 'free', reason: 'Nobody has claimed this issue' }
+        : r < 70 ? { status: 'requested', claimant: who, since: daysAgo(3), reason: `${who} asked to take it 3 days ago` }
+        : r < 85 ? { status: 'in_progress', claimant: who, since: daysAgo(2), reason: `PR #${it.number + 1} is open by ${who}`,
+            pr: { number: it.number + 1, url: `https://github.com/${it.owner}/${it.repo}/pull/${it.number + 1}`, author: who, draft: false } }
+        : { status: 'stale', claimant: who, since: daysAgo(41), reason: `Assigned to ${who} 41 days ago, no pull request yet` };
+    }
+    return { claims };
+  }],
   ['get', /^\/api\/issues\/assigned$/, (_, p) => (p.state === 'closed' ? ASSIGNED_CLOSED : ASSIGNED_OPEN)],
   ['get', /^\/api\/issues\/(\d+)\/comments$/, (m, p) => {
     const num = Number(m[1]);

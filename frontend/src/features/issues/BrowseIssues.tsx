@@ -6,6 +6,7 @@ import debounce from '../../utils/debounce';
 import { SlidersHorizontal, X, Loader2, ChevronDown } from 'lucide-react';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
 import IssueCard from '../../components/issues/IssueCard';
+import useIssueClaims, { claimFor } from '../../hooks/useIssueClaims';
 import LabelsFilter from '../../components/LabelsFilter';
 import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from '../dashboard/constants/filterOptions';
 import { usePageTitle } from '../../hooks/usePageTitle';
@@ -17,6 +18,8 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
 import PageHeader from '../../components/ui/PageHeader';
 import { AnimatePresence, motion } from 'framer-motion';
+
+const TAKEN: ReadonlySet<string> = new Set(['requested', 'in_progress', 'closed']);
 
 const DEFAULT_FILTER: IssueParams = {
   language: '',
@@ -35,6 +38,7 @@ const BrowseIssues = () => {
   const [filter, setFilter] = useState<IssueParams>(DEFAULT_FILTER);
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [hideTaken, setHideTaken] = useState(false);
 
   const {
     isCommentsModalOpen, selectedIssue, allComments, isLoadingComments, hasMoreComments,
@@ -63,6 +67,11 @@ const BrowseIssues = () => {
   });
 
   const allIssues = useMemo(() => data?.pages.flatMap(p => p.issues) ?? [], [data]);
+  const { claims, loading: claimsLoading } = useIssueClaims(allIssues);
+  const visibleIssues = useMemo(
+    () => (hideTaken ? allIssues.filter(i => !TAKEN.has(claimFor(claims, i)?.status ?? '')) : allIssues),
+    [allIssues, claims, hideTaken],
+  );
 
   useEffect(() => {
     if (isPlaceholderData) return;
@@ -155,6 +164,19 @@ const BrowseIssues = () => {
           >
             <span className={`w-1.5 h-1.5 rounded-full transition-colors ${filter.unassigned ? 'bg-blue-400' : 'bg-gray-600'}`} />
             Unassigned
+          </button>
+          <button
+            onClick={() => setHideTaken(v => !v)}
+            aria-pressed={hideTaken}
+            title="Hide issues someone has already claimed or opened a PR for"
+            className={`flex items-center gap-2 h-8 px-3 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer active:scale-[0.97] ${
+              hideTaken
+                ? 'border-green-500/40 bg-green-500/[0.08] text-green-300 shadow-[inset_0_1px_0_rgba(34,197,94,0.07)]'
+                : 'border-white/[0.09] bg-[#363B52] text-gray-400 hover:border-white/[0.18] hover:text-gray-200'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full transition-colors ${hideTaken ? 'bg-green-400' : 'bg-gray-600'}`} />
+            Free only
           </button>
           {activeFilterCount > 0 && (
             <button
@@ -268,13 +290,15 @@ const BrowseIssues = () => {
 
             {allIssues.length > 0 && (
               <div className="px-4 lg:px-6 xl:px-8 py-4 grid grid-cols-1 lg:grid-cols-2 gap-2.5">
-                {allIssues.map((issue, i) => (
+                {visibleIssues.map((issue, i) => (
                   <IssueCard
                     key={`${issue.repository?.fullName}-${issue.number}`}
                     issue={issue}
                     index={i}
                     onOpen={handleViewComments}
                     onPrefetch={prefetchComments}
+                    claim={claimFor(claims, issue)}
+                    claimLoading={claimsLoading}
                   />
                 ))}
               </div>

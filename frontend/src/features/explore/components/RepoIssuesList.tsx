@@ -7,6 +7,8 @@ import { Skeleton } from '../../../components/ui/Skeleton';
 import { ErrorDisplay } from '../../../components/ui/ErrorDisplay';
 import EmptyState from '../../../components/ui/EmptyState';
 import LoadMoreButton from '../../../components/ui/LoadMoreButton';
+import ClaimBadge from '../../../components/issues/ClaimBadge';
+import useIssueClaims, { claimFor } from '../../../hooks/useIssueClaims';
 
 interface RepoIssuesListProps {
   issues: Issue[];
@@ -27,6 +29,8 @@ export function RepoIssuesList({
   issues, isLoading, isError, error, focusedIssueNumber, focusedIssueRef,
   onSelectIssue, hasNextPage, isFetchingNextPage, fetchNextPage,
 }: RepoIssuesListProps) {
+  const { claims, loading: claimsLoading } = useIssueClaims(issues);
+
   if (isLoading) {
     return (
       <div className="rounded-xl border border-white/[0.07] bg-[#2E3245]/60 divide-y divide-white/[0.05]" role="status" aria-label="Loading issues">
@@ -88,7 +92,8 @@ export function RepoIssuesList({
                   <span className="font-mono">#{issue.number}</span> opened {formatRelativeDate(issue.createdAt)} by {issue.user?.login}
                 </p>
               </div>
-              <span className={`flex items-center gap-1 text-[12px] shrink-0 mt-0.5 tabular ${issue.commentsCount === 0 ? 'text-green-400/80' : 'text-gray-500'}`}>
+              <span className="shrink-0 mt-px"><ClaimBadge claim={claimFor(claims, issue)} loading={claimsLoading} /></span>
+              <span className="flex items-center gap-1 text-[12px] shrink-0 mt-0.5 tabular text-gray-500">
                 <MessageSquare className="w-3.5 h-3.5" />{issue.commentsCount}
               </span>
               <a

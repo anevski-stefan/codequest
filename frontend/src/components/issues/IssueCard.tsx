@@ -1,6 +1,7 @@
 import { memo, type CSSProperties } from 'react';
 import { MessageSquare, Star, ArrowUpRight, CircleCheck } from 'lucide-react';
-import type { Issue } from '../../types/github';
+import type { Issue, IssueClaim } from '../../types/github';
+import ClaimBadge from './ClaimBadge';
 import { LabelsCellContent } from '../ui/IssueTableCells';
 import { formatRelativeDate } from '../../utils/formatDate';
 import { formatCount } from '../../utils/formatCount';
@@ -12,9 +13,12 @@ interface IssueCardProps {
   /** Which timestamp to show; assigned work cares about recent activity. */
   dateField?: 'createdAt' | 'updatedAt';
   index?: number;
+  /** Claim status from the Claim Detector; omit to hide the badge entirely. */
+  claim?: IssueClaim;
+  claimLoading?: boolean;
 }
 
-const IssueCard = memo(({ issue, onOpen, onPrefetch, dateField = 'createdAt', index = 0 }: IssueCardProps) => {
+const IssueCard = memo(({ issue, onOpen, onPrefetch, dateField = 'createdAt', index = 0, claim, claimLoading }: IssueCardProps) => {
   const [owner, name] = (issue.repository?.fullName ?? '').split('/');
   const stars = issue.repoStars;
   const closed = issue.state !== 'open';
@@ -50,11 +54,13 @@ const IssueCard = memo(({ issue, onOpen, onPrefetch, dateField = 'createdAt', in
         </span>
         <span className="font-mono text-[11px] text-gray-600 shrink-0">#{issue.number}</span>
         <span className="ml-auto flex items-center gap-1.5 shrink-0">
-          {closed && (
+          {closed ? (
             <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md text-[10px] font-semibold border border-white/[0.1] bg-white/[0.04] text-gray-400 capitalize">
               <CircleCheck className="w-2.5 h-2.5" />{issue.state}
             </span>
-          )}
+          ) : (claim || claimLoading) ? (
+            <ClaimBadge claim={claim} loading={claimLoading} />
+          ) : null}
           {stars ? (
             <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md text-[10px] font-semibold border border-amber-400/20 bg-amber-400/[0.07] text-amber-300/90 tabular" title={`${stars.toLocaleString()} stars`}>
               <Star className="w-2.5 h-2.5 fill-current" />{formatCount(stars)}
@@ -72,8 +78,8 @@ const IssueCard = memo(({ issue, onOpen, onPrefetch, dateField = 'createdAt', in
       <div className="mt-auto flex items-center gap-3 min-h-[20px]">
         <div className="flex-1 min-w-0"><LabelsCellContent labels={issue.labels} /></div>
         <span
-          className={`flex items-center gap-1 text-[11px] shrink-0 tabular ${issue.commentsCount === 0 ? 'text-green-400/80' : 'text-gray-500'}`}
-          title={issue.commentsCount === 0 ? 'No comments yet — nobody has claimed it' : `${issue.commentsCount} comments`}
+          className="flex items-center gap-1 text-[11px] shrink-0 tabular text-gray-500"
+          title={`${issue.commentsCount} comments`}
         >
           <MessageSquare className="w-3 h-3" />{issue.commentsCount}
         </span>

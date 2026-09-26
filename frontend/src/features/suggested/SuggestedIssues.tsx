@@ -9,6 +9,7 @@ import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
 import IssueCard from '../../components/issues/IssueCard';
+import useIssueClaims, { claimFor } from '../../hooks/useIssueClaims';
 import FilterChip from '../../components/ui/FilterChip';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
@@ -41,6 +42,8 @@ const COMPETITION = [
   { value: '1-5', label: 'Low (1–5)' },
 ];
 
+const TAKEN: ReadonlySet<string> = new Set(['requested', 'in_progress', 'closed']);
+
 /* ── Page ── */
 const SuggestedIssues = () => {
   usePageTitle('For you');
@@ -49,6 +52,7 @@ const SuggestedIssues = () => {
   const [timeFrame, setTimeFrame] = useState('month');
   const [commentsRange, setCommentsRange] = useState('');
   const [famousOnly, setFamousOnly] = useState(false);
+  const [hideTaken, setHideTaken] = useState(false);
 
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
@@ -84,6 +88,12 @@ const SuggestedIssues = () => {
     });
 
   const allIssues = useMemo(() => data?.pages.flatMap(p => p.issues) ?? [], [data]);
+  const { claims, loading: claimsLoading } = useIssueClaims(allIssues);
+  const visibleIssues = useMemo(
+    () => (hideTaken ? allIssues.filter(i => !TAKEN.has(claimFor(claims, i)?.status ?? '')) : allIssues),
+    [allIssues, claims, hideTaken],
+  );
+  const hiddenCount = allIssues.length - visibleIssues.length;
   const totalCount = data?.pages[0]?.totalCount ?? 0;
 
   const isRateLimitError =
@@ -153,6 +163,19 @@ const SuggestedIssues = () => {
             <Star className={`w-3 h-3 ${famousOnly ? 'fill-amber-400 text-amber-400' : 'text-gray-600'}`} />
             Famous only
           </button>
+          <button
+            onClick={() => setHideTaken(v => !v)}
+            aria-pressed={hideTaken}
+            title="Hide issues someone has already claimed or opened a PR for"
+            className={`flex items-center gap-2 h-8 px-3 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer active:scale-[0.97] ${
+              hideTaken
+                ? 'border-green-500/40 bg-green-500/[0.08] text-green-300 shadow-[inset_0_1px_0_rgba(34,197,94,0.07)]'
+                : 'border-white/[0.09] bg-[#363B52] text-gray-400 hover:border-white/[0.18] hover:text-gray-200'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full transition-colors ${hideTaken ? 'bg-green-400' : 'bg-gray-600'}`} />
+            Free only
+          </button>
         </div>
       </div>
 
@@ -172,10 +195,24 @@ const SuggestedIssues = () => {
         ) : (
           <>
             <div className="px-4 lg:px-6 xl:px-8 py-4 grid grid-cols-1 lg:grid-cols-2 gap-2.5">
-              {allIssues.map((issue, i) => (
-                <IssueCard key={`${issue.repository?.fullName}-${issue.number}`} issue={issue} index={i} onOpen={handleOpenIssue} />
+              {visibleIssues.map((issue, i) => (
+                <IssueCard
+                  key={`${issue.repository?.fullName}-${issue.number}`}
+                  issue={issue}
+                  index={i}
+                  onOpen={handleOpenIssue}
+                  claim={claimFor(claims, issue)}
+                  claimLoading={claimsLoading}
+                />
               ))}
             </div>
+
+            {hideTaken && hiddenCount > 0 && (
+              <p className="text-center text-[12px] text-gray-500 pb-2">
+                {hiddenCount} taken issue{hiddenCount === 1 ? '' : 's'} hidden ·{' '}
+                <button onClick={() => setHideTaken(false)} className="text-blue-300 hover:text-blue-200 font-semibold cursor-pointer">Show all</button>
+              </p>
+            )}
 
             {hasNextPage && (
               <LoadMoreButton onClick={() => fetchNextPage()} isLoading={isFetchingNextPage} />

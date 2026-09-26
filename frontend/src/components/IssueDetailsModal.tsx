@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { X, ArrowUpRight, Sparkles, CircleDot, CircleCheck, MessageSquare, FolderGit2, RotateCw, Settings } from 'lucide-react';
@@ -8,6 +8,9 @@ import { getLabelColors } from '../features/dashboard/utils/filterUtils';
 import { CommentsList } from './comments/CommentsList';
 import { CommentForm } from './comments/CommentForm';
 import { Skeleton } from './ui/Skeleton';
+import ClaimBadge from './issues/ClaimBadge';
+import useIssueClaims, { claimFor } from '../hooks/useIssueClaims';
+import type { IssueClaim } from '../types/github';
 import { useCommentSorting } from '../hooks/useCommentSorting';
 import { explainIssue } from '../services/github';
 import type { Issue } from '../types/github';
@@ -29,6 +32,53 @@ interface Props {
   repoDescription?: string;
   /** Hide the "Open repository" action when already on that repository. */
   hideRepoLink?: boolean;
+}
+
+const CLAIM_COPY: Record<string, { tone: string; hint: string }> = {
+  free: { tone: 'border-green-500/20 bg-green-500/[0.05]', hint: 'Comment to claim it before you start, so nobody duplicates your work.' },
+  requested: { tone: 'border-amber-400/20 bg-amber-400/[0.05]', hint: 'Someone asked first. Check whether a maintainer answered before you start.' },
+  in_progress: { tone: 'border-blue-500/20 bg-blue-500/[0.05]', hint: 'Someone is already on it. Pick another issue, or offer to help on the PR.' },
+  stale: { tone: 'border-white/[0.1] bg-white/[0.03]', hint: 'This looks abandoned. A polite check-in usually frees it up.' },
+};
+
+const claimRequest = () =>
+  "Hi! I'd like to work on this issue. Could you assign it to me?\n\nMy plan: ";
+const staleCheckIn = (who?: string) =>
+  `Hi${who ? ` @${who}` : ''}, are you still working on this? If not, I'd be happy to pick it up.`;
+
+function ClaimBanner({ claim, loading, onDraft }: { claim?: IssueClaim; loading: boolean; onDraft: (text: string) => void }) {
+  if (loading && !claim) return <Skeleton className="h-[72px] w-full rounded-2xl" />;
+  if (!claim || !CLAIM_COPY[claim.status]) return null;
+  const copy = CLAIM_COPY[claim.status];
+  return (
+    <section aria-label="Claim status" className={`rounded-2xl border px-4 py-3.5 ${copy.tone}`}>
+      <div className="flex items-start gap-3">
+        <ClaimBadge claim={claim} size="md" describe={false} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold text-gray-100">{claim.reason}</p>
+          <p className="text-[12px] text-gray-400 mt-0.5 leading-relaxed">{copy.hint}</p>
+        </div>
+        {claim.status === 'free' && (
+          <button onClick={() => onDraft(claimRequest())}
+            className="shrink-0 h-8 px-3 rounded-lg bg-white/[0.08] border border-white/[0.1] text-[12px] font-semibold text-white hover:bg-white/[0.12] active:scale-[0.97] transition-all cursor-pointer">
+            Ask to work on it
+          </button>
+        )}
+        {claim.status === 'stale' && (
+          <button onClick={() => onDraft(staleCheckIn(claim.claimant))}
+            className="shrink-0 h-8 px-3 rounded-lg bg-white/[0.08] border border-white/[0.1] text-[12px] font-semibold text-white hover:bg-white/[0.12] active:scale-[0.97] transition-all cursor-pointer">
+            Draft a check-in
+          </button>
+        )}
+        {claim.status === 'in_progress' && claim.pr && (
+          <a href={claim.pr.url} target="_blank" rel="noopener noreferrer"
+            className="shrink-0 inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-white/[0.08] border border-white/[0.1] text-[12px] font-semibold text-white hover:bg-white/[0.12] transition-colors">
+            PR #{claim.pr.number}<ArrowUpRight className="w-3 h-3" />
+          </a>
+        )}
+      </div>
+    </section>
+  );
 }
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
@@ -53,7 +103,13 @@ export default function IssueDetailsModal({
   const [isExplaining, setIsExplaining] = useState(false);
   const [explainError, setExplainError] = useState<string | null>(null);
 
+  const [draft, setDraft] = useState<{ text: string; n: number } | null>(null);
+  const claimTarget = useMemo(() => (issue && issue.state === 'open' ? [issue] : []), [issue]);
+  const { claims, loading: claimLoading } = useIssueClaims(claimTarget, isOpen);
+  const claim = issue ? claimFor(claims, issue) : undefined;
+
   useEffect(() => {
+    setDraft(null);
     setExplanation(''); setIsExplaining(false); setExplainError(null);
   }, [issue?.id]);
 
@@ -162,6 +218,14 @@ export default function IssueDetailsModal({
                           )}
                         </header>
 
+                        {issue.state === 'open' && (claim || claimLoading) && (
+                          <ClaimBanner
+                            claim={claim}
+                            loading={claimLoading}
+                            onDraft={text => setDraft(d => ({ text, n: (d?.n ?? 0) + 1 }))}
+                          />
+                        )}
+
                         {/* AI explanation — the primary action on this panel */}
                         {resolvedOwner && resolvedRepo && (
                           <section className="rounded-2xl border border-blue-500/20 bg-gradient-to-b from-blue-500/[0.07] to-blue-500/[0.02] overflow-hidden">
@@ -252,7 +316,7 @@ export default function IssueDetailsModal({
 
                     {/* Composer */}
                     <div className="shrink-0 px-4 sm:px-6 py-3.5 border-t border-white/[0.06] bg-[#262A3B] pb-[max(0.875rem,env(safe-area-inset-bottom))]">
-                      <CommentForm onSubmit={onAddComment} />
+                      <CommentForm key={draft?.n ?? 0} onSubmit={onAddComment} initialValue={draft?.text} autoFocus={!!draft} />
                     </div>
                   </>
                 )}
