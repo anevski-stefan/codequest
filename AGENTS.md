@@ -59,6 +59,7 @@ Most tasks match several.
 | GitHub API calls, GraphQL, metrics derived from GitHub data | `github-signals` |
 | Supabase tables, migrations, RLS | `supabase-migrations` |
 | Writing or running tests, deciding what to verify | `testing-and-verification` |
+| Fixing any bug (find the root cause, test that fails first) | `testing-and-verification` + `code-review` |
 | Adding an endpoint the frontend calls, or fixtures | `mock-data` |
 | Staging, committing, branches | `git-workflow` |
 | Reviewing a diff (yours, a teammate's, another agent's) | `code-review` |
@@ -88,9 +89,12 @@ These apply even if no skill is active.
 
 ## Definition of done
 
-- [ ] Relevant skills were activated and followed
+- [ ] Relevant skills were activated and followed; your report names them
 - [ ] `tsc`, `eslint`, `npm run build` pass (frontend); `npm test` passes (backend)
-- [ ] New pure logic has `node:test` coverage (backend) or is extracted so it could
+- [ ] New pure logic has `node:test` coverage (backend) or is extracted so it could.
+      Tests call the real function; no copied logic, no mocked globals
+- [ ] Bug fixes: root cause named, and the test was shown to fail with the fix reverted
+- [ ] You ran the `code-review` checklist on your own diff before reporting
 - [ ] UI checked at 1440px and 390px, loading / empty / error states included
 - [ ] New endpoints have a mock route and validation
 - [ ] Committed by pathspec with a message that explains *why*
