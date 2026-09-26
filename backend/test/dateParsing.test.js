@@ -39,6 +39,11 @@ test('start is never after end for any supported format', () => {
   }
 });
 
+test('a single-day period (no " - ") starts and ends on that day', () => {
+  // Seen in live Devpost data: "Sep 26, 2026". The end date drives "days left".
+  assert.deepEqual(parse('Sep 26, 2026'), { startDate: 'Sep 26, 2026', endDate: 'Sep 26, 2026' });
+});
+
 test('missing or unrecognised input is returned unchanged, never thrown', () => {
   assert.deepEqual(parse(''), { startDate: '', endDate: '' });
   assert.deepEqual(parse(undefined), { startDate: '', endDate: '' });
