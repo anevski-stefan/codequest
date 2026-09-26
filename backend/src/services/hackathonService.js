@@ -17,6 +17,7 @@ const isValidDate = d => d instanceof Date && !isNaN(d.getTime());
  *   "Nov 01 - 30, 2026"            end has no month
  *   "Dec 28 - Jan 05, 2027"        period crosses a year boundary
  *   "Dec 28, 2026 - Jan 05, 2027"  fully specified
+ *   "Sep 26, 2026"                 single-day event
  *
  * A side without a year takes it from the other side; a start that would fall after the
  * end belongs to the previous year. Only when no year appears at all is `now` used, and
@@ -38,7 +39,8 @@ function parseSubmissionPeriod(period, now = new Date()) {
   };
 
   const start = rawStart ? toDate(rawStart) : null;
-  const end = rawEnd ? toDate(rawEnd, startMonth) : null;
+  // A single-day event has no " - "; it ends the day it starts.
+  const end = rawEnd ? toDate(rawEnd, startMonth) : isValidDate(start) ? new Date(start) : null;
 
   if (isValidDate(start) && isValidDate(end) && start > end) start.setFullYear(start.getFullYear() - 1);
   if (!explicitYear && isValidDate(end) && end < now) {
