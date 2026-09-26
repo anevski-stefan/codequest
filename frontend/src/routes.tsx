@@ -8,6 +8,7 @@ import lazyWithRetry from './utils/lazyWithRetry';
 const Login = lazyWithRetry(() => import('./features/auth/Login'));
 const AuthCallback = lazyWithRetry(() => import('./features/auth/AuthCallback'));
 const Dashboard = lazyWithRetry(() => import('./features/dashboard/Dashboard'));
+const BrowseIssues = lazyWithRetry(() => import('./features/issues/BrowseIssues'));
 const Profile = lazyWithRetry(() => import('./features/profile/Profile'));
 const Settings = lazyWithRetry(() => import('./features/settings/Settings'));
 const SuggestedIssues = lazyWithRetry(() => import('./features/suggested/SuggestedIssues'));
@@ -34,6 +35,9 @@ const AppRoutes = () => {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<PrivateRoute>
                 <Dashboard />
+              </PrivateRoute>} />
+          <Route path="/issues" element={<PrivateRoute>
+                <BrowseIssues />
               </PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute>
                 <Profile />

@@ -7,9 +7,15 @@ const STORAGE_KEY = 'ai_service';
 export const isAIService = (value: string | null): value is AIService => 
   value === 'chatgpt' || value === 'gemini';
 
+// Gemini is the recommended default (free tier). The backend falls back to
+// whichever provider the user actually has a key for.
 export const getAIService = (): AIService => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return isAIService(stored) ? stored : 'chatgpt';
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return isAIService(stored) ? stored : 'gemini';
+  } catch {
+    return 'gemini';
+  }
 };
 
 export const setAIService = (value: AIService): void => {

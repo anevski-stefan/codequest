@@ -13,6 +13,8 @@ Thumbs.db
 
 # Env / local
 .env
+.env.*
+!.env.example
 env.secrets
 
 # Misc

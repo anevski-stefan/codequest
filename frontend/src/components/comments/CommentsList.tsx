@@ -23,12 +23,12 @@ export const CommentsList = memo(function CommentsList({
       </div>;
   }
   if (comments.length === 0) {
-    return <p className="text-center text-xs text-gray-700 py-6">No comments yet. Be the first to comment!</p>;
+    return <p className="text-[13px] text-gray-500 py-2">No comments yet. If you want to work on this, say so here so the maintainers can assign you.</p>;
   }
   return <>
       {comments.map(comment => <CommentItem key={comment.id} comment={comment} />)}
       
-      {hasMoreComments && <div className="flex justify-center pt-4">
+      {hasMoreComments && <div className="flex justify-center pt-2">
           <LoadMoreButton onClick={onLoadMore} isLoading={isLoadingMore} />
         </div>}
     </>;
