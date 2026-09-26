@@ -1,9 +1,11 @@
 # Code Quest — agent instructions
 
-Shared by every coding agent (Claude Code, Gemini CLI, Antigravity/agy, Codex, Cursor).
-Claude loads it through `CLAUDE.md`; Gemini through `.gemini/settings.json`
-(`context.fileName`); Antigravity and Codex read it natively.
-Area rules live in `frontend/AGENTS.md` and `backend/AGENTS.md`.
+Shared by every coding agent (Claude Code, Gemini CLI, Antigravity/agy, OpenCode, Codex,
+Cursor). Claude loads it through `CLAUDE.md`; Gemini through `.gemini/settings.json`
+(`context.fileName`); Antigravity, OpenCode and Codex read it natively.
+Area rules live in `frontend/AGENTS.md` and `backend/AGENTS.md` (OpenCode loads them via
+`opencode.json`). Subagents and the shell guard are wired per tool: `.claude/`,
+`.gemini/`, `.agents/agents` + `.agents/hooks.json` (Antigravity), `.opencode/`.
 
 ## What we are building
 
