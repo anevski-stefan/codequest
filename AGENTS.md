@@ -1,7 +1,8 @@
 # Code Quest — agent instructions
 
-Shared by every coding agent (Claude Code, Gemini CLI, Codex, Cursor). Claude loads it
-through `CLAUDE.md`; Gemini through `.gemini/settings.json` (`context.fileName`).
+Shared by every coding agent (Claude Code, Gemini CLI, Antigravity/agy, Codex, Cursor).
+Claude loads it through `CLAUDE.md`; Gemini through `.gemini/settings.json`
+(`context.fileName`); Antigravity and Codex read it natively.
 Area rules live in `frontend/AGENTS.md` and `backend/AGENTS.md`.
 
 ## What we are building
@@ -44,7 +45,8 @@ Mock mode: `VITE_USE_MOCK_DATA=true` in `frontend/.env` runs the whole UI on fix
 
 ## Skills — activate before you start
 
-Skills live in `.agents/skills/` (Claude sees them via `.claude/skills/`). They are not
+Skills live in `.agents/skills/` (Gemini, Antigravity and Codex read it directly;
+Claude sees them via `.claude/skills/` symlinks). They are not
 optional reading. **Before starting a task, activate every skill whose trigger matches.**
 Most tasks match several.
 

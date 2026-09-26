@@ -1,7 +1,7 @@
 // Run: node --test .agents/hooks/*.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkCommand } from './guard-shell.mjs';
+import { checkCommand, readPayload, antigravityResponse } from './guard-shell.mjs';
 
 const blocked = (cmd, staged = []) => checkCommand(cmd, () => staged) !== null;
 
@@ -77,4 +77,21 @@ test('heredoc bodies are treated as data, not commands', () => {
   assert.ok(!blocked(cmd, ['.mcp.json']));
   const after = "cat > f.txt <<EOF\nhello\nEOF\ngit reset --hard";
   assert.ok(blocked(after));
+});
+
+test('payloads from Claude/Gemini and Antigravity are both understood', () => {
+  assert.deepEqual(readPayload({ tool_input: { command: 'ls' }, cwd: '/r' }), { flavor: 'exit-code', command: 'ls', cwd: '/r' });
+  assert.deepEqual(
+    readPayload({ toolCall: { name: 'run_command', args: { CommandLine: 'git status', Cwd: '/w' } }, workspacePaths: ['/x'] }),
+    { flavor: 'antigravity', command: 'git status', cwd: '/w' },
+  );
+  assert.equal(readPayload({ toolCall: { args: { CommandLine: 'ls' } }, workspacePaths: ['/x'] }).cwd, '/x');
+});
+
+test('Antigravity gets a JSON deny, and an empty object (not "allow") otherwise', () => {
+  const deny = antigravityResponse('nope');
+  assert.equal(deny.decision, 'deny');
+  assert.equal(deny.allow_tool, false);
+  assert.equal(deny.reason, 'nope');
+  assert.deepEqual(antigravityResponse(null), {});
 });
