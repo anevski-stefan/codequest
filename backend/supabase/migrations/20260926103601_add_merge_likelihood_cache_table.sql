@@ -1,0 +1,10 @@
+-- Per-repository Merge Likelihood cache (24h). Keys are lowercased.
+-- Only public repositories are cached; see mergeLikelihoodService.
+CREATE TABLE IF NOT EXISTS merge_likelihood_cache (
+  owner text NOT NULL,
+  repo text NOT NULL,
+  likelihood text NOT NULL,
+  stats jsonb NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (owner, repo)
+);
