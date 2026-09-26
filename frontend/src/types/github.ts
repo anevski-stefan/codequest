@@ -166,3 +166,11 @@ export interface GitHubActivityEvent {
   created_at: string;
   payload: ActivityPayload;
 }
+export type ClaimStatus = 'free' | 'requested' | 'in_progress' | 'stale' | 'closed' | 'unknown';
+export interface IssueClaim {
+  status: ClaimStatus;
+  reason: string;
+  since?: string | null;
+  claimant?: string;
+  pr?: { number: number; url: string; author?: string; draft: boolean };
+}
