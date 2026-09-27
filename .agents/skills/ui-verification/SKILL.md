@@ -51,6 +51,11 @@ For every page or component you changed:
 - [ ] Interactions: click targets, keyboard (Tab, Enter, Esc), focus lands where expected
 - [ ] Console has no errors or warnings from your change
 - [ ] Nothing violet/purple, no emojis, copy is accurate
+- [ ] **Before/after:** screenshot the component before you change it and after, at both
+      widths. The fix is done only if nothing in the after shot is worse: no control
+      smaller, no text clipped, cramped or unreadable, no misalignment, no element gone
+- [ ] Worst-case content: longest realistic strings, many items, zero items
+- [ ] Shared component changed → every page that uses it checked
 
 Prefer asserting with a small script (count elements, read text, check `activeElement`)
 over eyeballing screenshots; take a screenshot for the visual pass.

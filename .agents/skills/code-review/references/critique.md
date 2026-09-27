@@ -49,9 +49,14 @@ Walk every angle. Skip none silently; an angle with nothing to say gets one line
    dependencies, new dependencies and bundle size.
 8. **Tests.** Would the tests fail if the behaviour regressed? Missing cases from angle 5.
    Logic left inline in a controller or component that should be a tested pure function.
-9. **Readability.** Names that say what the thing is, functions that do one thing, no
+9. **Collateral damage.** What did the change make worse to get its result? A control
+   made smaller or its text tinier to fit, content clipped or hidden, a state or feature
+   removed to silence an error, a symptom patched while the cause stays, a shared
+   component changed for one page at the cost of others. Any of these is Blocking unless
+   the owner accepted the trade-off.
+10. **Readability.** Names that say what the thing is, functions that do one thing, no
    comments the code already says, no dead code, no leftover debug output.
-10. **Change hygiene.** Stray files, one commit or several, a Conventional Commits subject
+11. **Change hygiene.** Stray files, one commit or several, a Conventional Commits subject
     that says what and why.
 
 Security and data exposure belong to `code-reviewer`; mention them only if you trip over
@@ -74,4 +79,4 @@ Not verified: <what you could not check and why>
 ```
 
 Blocking means you would not merge it: wrong behaviour, a duplicate of existing code, a
-missing state, scope creep. Keep *Consider* to five items at most.
+missing state, scope creep, collateral damage. Keep *Consider* to five items at most.

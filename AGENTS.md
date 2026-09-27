@@ -101,7 +101,12 @@ These apply even if no skill is active.
 7. **Don't change `/login`** (the landing page) without the owner asking.
 8. **Every change is verified** before you call it done: typecheck, lint, build, tests, and
    for UI a browser check. Report exactly what you ran and what you didn't.
-9. **Leave the workspace as you found it**: mock flag back to `false`, dev servers and
+9. **A fix must not make anything else worse.** Solve the cause, not the symptom, and
+   keep everything the fix touches as good as it was: layout, size, readability, touch
+   targets, states, behaviour, performance. Making a control smaller to fit its text,
+   hiding what breaks, clipping, or deleting a feature to silence an error are not fixes.
+   If every option costs something, name the trade-off and ask the owner.
+10. **Leave the workspace as you found it**: mock flag back to `false`, dev servers and
    browsers you started stopped, no scratch files (`test-*.js`) in the repo root.
 
 ## Definition of done
@@ -112,6 +117,7 @@ These apply even if no skill is active.
 - [ ] New pure logic has `node:test` coverage (backend) or is extracted so it could.
       Tests call the real function; no copied logic, no mocked globals
 - [ ] Bug fixes: root cause named, and the test was shown to fail with the fix reverted
+- [ ] Nothing the change touches got worse (Non-negotiables 9); before/after compared
 - [ ] You ran the `code-review` checklist on your own diff before reporting, and before a
       commit `code-reviewer` + `change-critic` ran with every Must fix / Blocking resolved
 - [ ] UI checked at 1440px and 390px, loading / empty / error states included

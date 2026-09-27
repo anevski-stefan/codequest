@@ -82,7 +82,26 @@ Hiding an element when its request fails is a bug: the user can't tell a feature
 - No filler ("seamless", "elevate", "unleash"), no exclamation marks, no emojis.
 - Never state numbers or claims the data doesn't support (see `product-and-copy`).
 
-## 8. Before you say it's done
+## 8. Fixing a UI problem
+
+Non-negotiable 9 applied to UI: before changing code, note what currently works (size,
+spacing, alignment, readability, states, behaviour) and check it is still true afterwards.
+
+- Fix the cause in the layout, not by degrading the element. Controls keep the height,
+  padding and type size they had and that
+  [references/design-system.md](references/design-system.md) sets; never reduce an
+  element's type size; contrast stays within section 6.
+- Prefer, in order: correct layout (`min-w-0` on flex children, `flex-wrap`, grid
+  `minmax(0,1fr)`), then shorter copy, then `truncate` with the full text in `title`,
+  then moving it (menu, bottom sheet on mobile). Shrinking, clipping with
+  `overflow-hidden`, or hiding the element is not on the list.
+- Test with the worst real content: the longest name, label, number and translation, many
+  items and none, not only the mock values.
+- Check the neighbours: a fix in a shared component (`FilterChip`, `IssueCard`,
+  `PageHeader`) changes every page that uses it; look at each.
+- If the only fixes trade one quality for another, stop and show the owner the options.
+
+## 9. Before you say it's done
 
 Activate `ui-verification` and check the change in a browser at 1440px and 390px, in
 mock mode, including loading, empty and error states. Run `npx tsc --noEmit -p .`,
