@@ -136,11 +136,7 @@ app.use('/api/ai-keys', aiKeysLimiter, aiKeysRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 if (process.env.SENTRY_DSN) {
-  if (Sentry.setupExpressErrorHandler) {
-    Sentry.setupExpressErrorHandler(app);
-  } else if (Sentry.Handlers && Sentry.Handlers.errorHandler) {
-    app.use(Sentry.Handlers.errorHandler());
-  }
+  Sentry.setupExpressErrorHandler(app);
 }
 
 app.use((req, res) => {

@@ -9,13 +9,20 @@ const dsn = import.meta.env.VITE_SENTRY_DSN;
 if (dsn) {
   Sentry.init({
     dsn,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration(),
-    ],
-    tracesSampleRate: 1.0,
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: { request: { allow: ['user-agent', 'content-type'] }, response: false },
+      httpBodies: [],
+      urlQueryParams: false,
+      graphQL: { document: false, variables: false },
+      genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      queues: false,
+      stackFrameVariables: false,
+    },
+    integrations: [Sentry.browserTracingIntegration()],
+    tracesSampleRate: 0.1,
   });
 }
 
@@ -26,7 +33,7 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <Sentry.ErrorBoundary fallback={GlobalErrorFallback} showDialog>
+    <Sentry.ErrorBoundary fallback={GlobalErrorFallback}>
       <App />
     </Sentry.ErrorBoundary>
   </React.StrictMode>

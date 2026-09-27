@@ -44,6 +44,23 @@ The OAuth scope includes `public_repo` (write access). Therefore:
 - Logs: status codes and messages, never tokens, keys, cookies or full request bodies.
 - Analytics (`outcomes`) store event names and public repo coordinates only.
 
+## Error tracking and telemetry (Sentry)
+
+Anything sent to a third party leaves our control. Error events carry errors, not users.
+
+- Sentry v11 collects almost everything by default (headers, cookies, bodies, query
+  params, GraphQL variables, AI prompts, local variables in stack frames). Both
+  `Sentry.init` calls set `dataCollection` explicitly with every category off except
+  `user-agent`/`content-type` headers; keep it that way. `sendDefaultPii` no longer exists.
+- No Session Replay, no screen recording, no user feedback dialog (`showDialog`): Settings
+  holds AI keys and the app shows private repo data.
+- `dataCollection` is the only filter; `urlQueryParams: false` keeps the OAuth callback's
+  `code` out. Don't add `beforeSend` scrubbers unless a real event shows a leak.
+- Never attach tokens, keys, issue or comment bodies, or prompts to an event as context,
+  tags or breadcrumbs. Ids and public `owner/repo` are fine.
+- Sampling stays low to fit the free plan: traces at most `0.1`, no profiling.
+- Sentry is off when the DSN is unset (local, mock mode, CI). The DSN is not a secret.
+
 ## Before merging anything security-relevant
 
 Say what the threat is and how the change handles it in the commit message. If a fix
