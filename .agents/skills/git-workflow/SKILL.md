@@ -74,6 +74,10 @@ prefix alone is enough.
 Run the gates from `testing-and-verification`. Don't commit known-broken code; if you must
 checkpoint, say so in the message.
 
+Then run `code-reviewer` and `change-critic` on the diff, in parallel, and pass both what
+the task was. Fix every *Must fix* and *Blocking* item, or tell the owner why not. Skip
+this only for docs-only or formatting-only commits.
+
 ## Dangerous commands
 
 Don't run `git reset --hard`, `git clean -fd`, `git checkout -- .`, `git push --force`, or

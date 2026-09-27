@@ -112,7 +112,8 @@ These apply even if no skill is active.
 - [ ] New pure logic has `node:test` coverage (backend) or is extracted so it could.
       Tests call the real function; no copied logic, no mocked globals
 - [ ] Bug fixes: root cause named, and the test was shown to fail with the fix reverted
-- [ ] You ran the `code-review` checklist on your own diff before reporting
+- [ ] You ran the `code-review` checklist on your own diff before reporting, and before a
+      commit `code-reviewer` + `change-critic` ran with every Must fix / Blocking resolved
 - [ ] UI checked at 1440px and 390px, loading / empty / error states included
 - [ ] New endpoints have a mock route and validation
 - [ ] Committed by pathspec, Conventional Commits subject only — no body, no attribution

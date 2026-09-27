@@ -20,6 +20,10 @@ impact. Verify claims against the code before reporting them.
 4. Walk the checklist below.
 5. Report (format at the end). Offer to fix; don't silently rewrite.
 
+Before a commit, pair this with the critique pass ([references/critique.md](references/critique.md)):
+scope, fit with existing code, simplicity, edge cases, performance. The `change-critic`
+subagent runs it; run it in parallel with `code-reviewer`.
+
 ## Checklist
 
 **Correctness of meaning**
