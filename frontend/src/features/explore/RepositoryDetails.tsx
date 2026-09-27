@@ -7,13 +7,13 @@ import {
 } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { formatRelativeDate } from '../../utils/formatDate';
-import { getRepositoryDetails, getTopContributors, getLotteryContributors, getMergeLikelihood, getRepositoryPullRequests, getPullRequestDetails, getRepositoryIssues, onboardRepo, checkRepoStarred, starRepo, unstarRepo, trackOutcome } from '../../services/github';
+import { getRepositoryDetails, getTopContributors, getLotteryContributors, getMergeLikelihood, getRepositoryPullRequests, getPullRequestDetails, getRepositoryIssues, getIssueDetails, onboardRepo, checkRepoStarred, starRepo, unstarRepo, trackOutcome } from '../../services/github';
 import ReactMarkdown from 'react-markdown';
 import PullRequestDetailsModal from '../../components/PullRequestDetailsModal';
 import type { PullRequestDetails } from '../../types/github';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
 import useIssueComments from '../../hooks/useIssueComments';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { RepositorySkeleton } from '../../components/skeletons';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
@@ -28,10 +28,17 @@ import { RepoSidebar } from './components/RepoSidebar';
 import { RepoIssuesList } from './components/RepoIssuesList';
 import { RepoPullRequestsList } from './components/RepoPullRequestsList';
 
+const parseFocusedRef = (raw: string | null): number | null => {
+  if (raw === null || !/^\d{1,7}$/.test(raw)) return null;
+  const n = Number(raw);
+  return n > 0 ? n : null;
+};
+
 const RepositoryDetails = () => {
   const { owner, repo } = useParams();
-  const [searchParams] = useSearchParams();
-  const focusedIssueNumber = searchParams.get('issue') ? Number(searchParams.get('issue')) : null;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusedIssueNumber = parseFocusedRef(searchParams.get('issue'));
+  const focusedPRNumber = parseFocusedRef(searchParams.get('pr'));
   const issuesSectionRef = useRef<HTMLDivElement>(null);
   const focusedIssueRef = useRef<HTMLDivElement>(null);
   const hasScrolledToFocused = useRef(false);
@@ -75,8 +82,48 @@ const RepositoryDetails = () => {
     }
   }, [focusedIssueNumber, allIssues]);
 
-  const [selectedIssue, setSelectedIssue] = useState<(typeof allIssues)[0] | null>(null);
-  const { isCommentsModalOpen, allComments, isLoadingComments, hasMoreComments, isLoadingMore, onLoadMore, handleViewComments, handleCloseComments, handleAddComment } = useIssueComments();
+  const { data: focusedIssueData, error: focusedIssueError, isLoading: isLoadingFocusedIssue } = useQuery({
+    queryKey: ['issue-details', owner, repo, focusedIssueNumber],
+    queryFn: () => getIssueDetails(owner!, repo!, focusedIssueNumber!),
+    enabled: !!focusedIssueNumber && !!owner && !!repo,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  const { isCommentsModalOpen, selectedIssue, allComments, isLoadingComments, hasMoreComments, isLoadingMore, onLoadMore, handleViewComments, handleCloseComments, handleAddComment } = useIssueComments();
+
+  const openedFocusedIssue = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusedIssueNumber) {
+      openedFocusedIssue.current = null;
+      hasScrolledToFocused.current = false;
+      return;
+    }
+    const target = `${owner}/${repo}#${focusedIssueData?.number}`;
+    if (focusedIssueData && openedFocusedIssue.current !== target) {
+      handleViewComments(focusedIssueData);
+      openedFocusedIssue.current = target;
+    }
+  }, [focusedIssueData, handleViewComments, focusedIssueNumber, owner, repo]);
+
+  useEffect(() => {
+    if (focusedIssueError) toast.error(`Could not open that issue: ${extractErrorMessage(focusedIssueError)}`);
+  }, [focusedIssueError]);
+
+  useEffect(() => {
+    if (!isLoadingFocusedIssue) return;
+    const id = toast.loading('Opening issue…');
+    return () => toast.dismiss(id);
+  }, [isLoadingFocusedIssue]);
+
+  const clearFocusedRef = useCallback(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('issue');
+      next.delete('pr');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const [activeTab, setActiveTab] = useState<'issues' | 'pullrequests'>('issues');
   const [prState, setPrState] = useState<'open' | 'closed'>('open');
@@ -157,14 +204,39 @@ const RepositoryDetails = () => {
   const prefetchPRDetails = (pr: PullRequest) => {
     queryClient.prefetchQuery({ queryKey: ['pr-details', owner, repo, pr.number], queryFn: () => getPullRequestDetails(owner!, repo!, pr.number), staleTime: 5 * 60 * 1000 });
   };
-  const handleViewPullRequest = async (prNumber: number) => {
+  const latestPRRequest = useRef(0);
+  const handleViewPullRequest = useCallback(async (prNumber: number) => {
+    const requestId = ++latestPRRequest.current;
+    setPrDetails(undefined);
+    setIsLoadingDetails(true);
+    setIsDetailsModalOpen(true);
     try {
-      setIsLoadingDetails(true);
       const details = await getPullRequestDetails(owner!, repo!, prNumber);
       if (!details || typeof details === 'string') throw new Error('Invalid PR details');
-      setPrDetails(details); setIsDetailsModalOpen(true);
-    } catch (e) { console.error(e); } finally { setIsLoadingDetails(false); }
-  };
+      if (requestId === latestPRRequest.current) setPrDetails(details);
+    } catch (e) {
+      if (requestId !== latestPRRequest.current) return;
+      console.error(e);
+      setIsDetailsModalOpen(false);
+      clearFocusedRef();
+      toast.error(`Could not open that pull request: ${extractErrorMessage(e)}`);
+    } finally {
+      if (requestId === latestPRRequest.current) setIsLoadingDetails(false);
+    }
+  }, [owner, repo, clearFocusedRef]);
+
+  const openedFocusedPR = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusedPRNumber) {
+      openedFocusedPR.current = null;
+      return;
+    }
+    const target = `${owner}/${repo}#${focusedPRNumber}`;
+    if (openedFocusedPR.current === target) return;
+    openedFocusedPR.current = target;
+    setActiveTab('pullrequests');
+    handleViewPullRequest(focusedPRNumber);
+  }, [focusedPRNumber, owner, repo, handleViewPullRequest]);
 
   if (repoLoading) return <RepositorySkeleton />;
   if (!repository || !owner || !repo) {
@@ -424,7 +496,7 @@ const RepositoryDetails = () => {
                   error={issuesErrorObj instanceof Error ? issuesErrorObj.message : undefined}
                   focusedIssueNumber={focusedIssueNumber}
                   focusedIssueRef={focusedIssueRef}
-                  onSelectIssue={issue => { setSelectedIssue(issue); handleViewComments(issue); }}
+                  onSelectIssue={handleViewComments}
                   hasNextPage={!!hasNextIssues}
                   isFetchingNextPage={isFetchingNextIssues}
                   fetchNextPage={fetchNextIssues}
@@ -455,8 +527,8 @@ const RepositoryDetails = () => {
         </div>
       </div>
 
-      <PullRequestDetailsModal isOpen={isDetailsModalOpen} onClose={() => setIsDetailsModalOpen(false)} pullRequestDetails={prDetails} isLoading={isLoadingDetails} />
-      <IssueDetailsModal isOpen={isCommentsModalOpen} onClose={() => { handleCloseComments(); setSelectedIssue(null); }} issue={selectedIssue} comments={allComments} isLoadingComments={isLoadingComments} hasMoreComments={hasMoreComments} isLoadingMore={isLoadingMore} onLoadMore={onLoadMore} onAddComment={handleAddComment} owner={owner} repo={repo} repoLanguage={repository.language} repoDescription={repository.description} hideRepoLink />
+      <PullRequestDetailsModal isOpen={isDetailsModalOpen} onClose={() => { setIsDetailsModalOpen(false); if (focusedPRNumber) clearFocusedRef(); }} pullRequestDetails={prDetails} isLoading={isLoadingDetails} owner={owner} repo={repo} />
+      <IssueDetailsModal isOpen={isCommentsModalOpen} onClose={() => { handleCloseComments(); clearFocusedRef(); }} issue={selectedIssue} comments={allComments} isLoadingComments={isLoadingComments} hasMoreComments={hasMoreComments} isLoadingMore={isLoadingMore} onLoadMore={onLoadMore} onAddComment={handleAddComment} owner={owner} repo={repo} repoLanguage={repository.language} repoDescription={repository.description} hideRepoLink />
     </div>
   );
 };

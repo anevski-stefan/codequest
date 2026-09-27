@@ -1,4 +1,4 @@
-import { explainText, onboardingText } from './data';
+import { explainText, onboardingText, ciSummaryText } from './data';
 
 const streamText = async (text: string, onChunk: (t: string) => void, onDone: () => void) => {
   await new Promise(r => setTimeout(r, 600));
@@ -15,3 +15,6 @@ export const streamExplain = (title: string, repo: string, onChunk: (t: string) 
 
 export const streamOnboarding = (repo: string, onChunk: (t: string) => void, onDone: () => void) =>
   streamText(onboardingText(repo), onChunk, onDone);
+
+export const streamCiSummary = (repo: string, onChunk: (t: string) => void, onDone: () => void) =>
+  streamText(ciSummaryText(repo), onChunk, onDone);

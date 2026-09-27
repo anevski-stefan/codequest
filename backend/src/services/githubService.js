@@ -76,6 +76,8 @@ class GitHubService {
           data: options.data,
           headers,
           timeout: options.timeout || 15000,
+          responseType: options.responseType,
+          maxContentLength: options.maxContentLength,
           cache: cacheConfig,
         });
         

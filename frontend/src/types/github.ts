@@ -158,6 +158,31 @@ export interface PullRequestDetails {
   }[];
 }
 
+export interface FailedCheck {
+  id: number;
+  kind: 'check' | 'status';
+  name: string;
+  url: string | null;
+  description?: string | null;
+}
+
+export interface ReviewChecklistItem {
+  id: string;
+  author: string;
+  body: string;
+  path: string | null;
+  line: number | null;
+  outdated: boolean;
+  url: string | null;
+  createdAt: string;
+}
+
+export interface PullRequestFeedback {
+  headSha: string | null;
+  failedChecks: FailedCheck[];
+  review: { requestedBy: string[]; items: ReviewChecklistItem[] };
+}
+
 export interface GitHubActivityEvent {
   id: string;
   type: string;

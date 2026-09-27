@@ -272,7 +272,7 @@ const PR_TITLES = [
 ];
 export const pullsFor = (repo: MockRepo, state: 'open' | 'closed') =>
   PR_TITLES.map((title, i) => {
-    const who = PEOPLE[(i * 5 + repo.id) % PEOPLE.length];
+    const who = state === 'open' && i < 4 ? ME.login : PEOPLE[(i * 5 + repo.id) % PEOPLE.length];
     const merged = state === 'closed' && i % 4 !== 3;
     return {
       id: repo.id * 1000 + i + (state === 'closed' ? 500 : 0),
@@ -314,6 +314,39 @@ export const pullDetails = (repo: MockRepo, number: number) => {
     ],
   };
 };
+
+export const pullFeedback = (repo: MockRepo, number: number) => {
+  const variant = Math.floor(number / 3) % 4;
+  const base = `https://github.com/${repo.full_name}/pull/${number}`;
+  const failedChecks = variant === 0 ? [
+    { id: 71001, kind: 'check', name: 'test (3.12)', url: `${base}/checks` },
+    { id: 71002, kind: 'check', name: 'lint', url: `${base}/checks` },
+  ] : [];
+  const items = variant >= 2 ? [] : [
+    { id: 'review-5501', author: 'mateo-silva', body: 'Thanks for picking this up. Two things before this can go in, see the inline notes.', path: null, line: null, outdated: false, url: `${base}#pullrequestreview-5501`, createdAt: daysAgo(2) },
+    { id: 'comment-8801', author: 'mateo-silva', body: 'This drops the currency for rows after the first page too. Can you read it from `row.meta` instead of the header?', path: 'src/commands/export.ts', line: 42, outdated: false, url: `${base}#discussion_r8801`, createdAt: daysAgo(2) },
+    { id: 'comment-8802', author: 'mateo-silva', body: 'Please add a test with **more than 50 rows**, that is where the bug shows up.', path: 'test/export.spec.ts', line: 12, outdated: false, url: `${base}#discussion_r8802`, createdAt: daysAgo(2) },
+    { id: 'comment-8803', author: 'mateo-silva', body: 'Nit: `formatAmount` already handles `null`, the extra check is not needed.', path: 'src/format/currency.ts', line: 8, outdated: true, url: `${base}#discussion_r8803`, createdAt: daysAgo(2) },
+  ];
+  return {
+    headSha: 'f3a9c21',
+    failedChecks,
+    review: { requestedBy: variant === 3 || items.length ? ['mateo-silva'] : [], items },
+  };
+};
+
+export const ciSummaryText = (repo: string) => `**What failed** - The \`test (3.12)\` job in \`${repo}\` failed on one test: \`test_export_keeps_currency_after_first_page\` expected \`EUR 12.00\` and got \`12.00\`. The \`lint\` job failed on an unused import.
+
+**Why** - The export reads the currency from the header row only, so rows after the first page lose it. The lint error is \`currency\` imported but never used in \`src/commands/export.ts\`.
+
+**What to change**
+1. In \`src/commands/export.ts\`, take the currency from each row:
+\`\`\`ts
+const currency = row.meta.currency ?? header.currency;
+\`\`\`
+2. Remove the unused \`currency\` import at the top of the same file.
+3. Run the tests locally before pushing again.
+`;
 
 export const STARRED = REPOS.filter((_, i) => i % 3 !== 2).slice(0, 9);
 
