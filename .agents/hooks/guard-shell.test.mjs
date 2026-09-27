@@ -1,7 +1,8 @@
 // Run: node --test .agents/hooks/*.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkCommand, readPayload, antigravityResponse } from './guard-shell.mjs';
+import { checkCommand, readPayload, antigravityResponse, isCommit } from './guard-shell.mjs';
+import { reminderResponse } from './rules-reminder.mjs';
 
 const blocked = (cmd, staged = []) => checkCommand(cmd, () => staged) !== null;
 
@@ -93,4 +94,32 @@ test('Antigravity gets a JSON deny, and "ask" (never "allow", never empty) other
   assert.equal(deny.decision, 'deny');
   assert.equal(deny.reason, 'nope');
   assert.deepEqual(antigravityResponse(null), { decision: 'ask' });
+});
+
+test('Antigravity commits always go to the owner with the pre-commit checklist', () => {
+  const res = antigravityResponse(null, 'cd frontend && git commit -m "fix: x" -- src/a.ts');
+  assert.equal(res.decision, 'force_ask');
+  assert.match(res.reason, /code-reviewer/);
+  assert.deepEqual(antigravityResponse(null, 'git status'), { decision: 'ask' });
+  assert.deepEqual(antigravityResponse(null, 'echo "git commit"'), { decision: 'ask' });
+  assert.equal(antigravityResponse('nope', 'git commit -a').decision, 'deny');
+});
+
+test('the rules reminder is a short ephemeral message', () => {
+  const out = reminderResponse();
+  assert.equal(out.injectSteps.length, 1);
+  const msg = out.injectSteps[0].ephemeralMessage;
+  assert.match(msg, /AGENTS\.md/);
+  assert.ok(msg.length < 800, `reminder is ${msg.length} chars`);
+});
+
+test('git global options before the subcommand do not hide it', () => {
+  for (const cmd of ['git -C frontend commit -m x', 'git -c user.name=a commit -m a', 'git --no-pager commit -m a',
+    '/usr/bin/git commit -m a', '(git commit -m a)', 'git commit --amend --no-edit', "git commit -F - <<'EOF'\nfix: x\nEOF"]) {
+    assert.ok(isCommit(cmd), cmd);
+  }
+  assert.ok(!isCommit('echo "git commit"'));
+  assert.ok(blocked('git -C frontend add -A'));
+  assert.ok(blocked('git -C . commit -a -m x'));
+  assert.ok(blocked('git --git-dir=.git push --force'));
 });

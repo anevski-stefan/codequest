@@ -12,6 +12,7 @@
  * secrets never get committed, and destructive git/database commands need a human.
  */
 import { execFileSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
 const SECRET_FILE = /(^|\/)(\.env(\.(?!example$)[^/\s]+)?|\.mcp\.json)$/;
 
@@ -49,6 +50,17 @@ export function splitCommands(cmd) {
 const tokens = part =>
   part.match(/"(?:\\.|[^"\\])*"|'[^']*'|\S+/g)?.map(t => t.replace(/^['"]|['"]$/g, '')) ?? [];
 
+const GIT_OPTS_WITH_VALUE = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path']);
+
+/** Git global options (`-C dir`, `-c k=v`, `--no-pager`) come before the subcommand. */
+function gitCall(t) {
+  const at = t.findIndex(x => /(^|[(/])git$/.test(x));
+  if (at === -1) return null;
+  let i = at + 1;
+  while (i < t.length && t[i].startsWith('-')) i += GIT_OPTS_WITH_VALUE.has(t[i]) ? 2 : 1;
+  return { sub: t[i], args: t.slice(i + 1) };
+}
+
 /**
  * Pure: returns a reason string if the command must be blocked, else null.
  * `stagedFiles` is injected so this stays testable without git.
@@ -56,10 +68,9 @@ const tokens = part =>
 export function checkCommand(cmd, stagedFiles = () => []) {
   for (const part of splitCommands(stripHeredocs(cmd))) {
     const t = tokens(part);
-    const gitAt = t.indexOf('git');
-    if (gitAt !== -1) {
-      const sub = t[gitAt + 1];
-      const args = t.slice(gitAt + 2);
+    const git = gitCall(t);
+    if (git) {
+      const { sub, args } = git;
 
       if (sub === 'add') {
         if (args.some(a => ['-A', '--all', '.', '-u', '--update', '*'].includes(a))) {
@@ -142,12 +153,26 @@ export function readPayload(input) {
  * Antigravity decides from JSON on stdout and treats non-zero exits as hook
  * failures. `decision` is required: output without it is treated as a deny.
  * On allow we answer "ask", not "allow": "allow" would skip the user's approval prompt.
+ * Commits get "force_ask", which prompts even when the user chose "Always Allow".
  */
-export function antigravityResponse(reason) {
-  return reason
-    ? { decision: 'deny', reason }
-    : { decision: 'ask' };
+export function antigravityResponse(reason, command) {
+  if (reason) return { decision: 'deny', reason };
+  if (isCommit(command)) return { decision: 'force_ask', reason: COMMIT_CHECKLIST };
+  return { decision: 'ask' };
 }
+
+export function isCommit(cmd) {
+  return splitCommands(stripHeredocs(cmd || '')).some(part => gitCall(tokens(part))?.sub === 'commit');
+}
+
+export const COMMIT_CHECKLIST = [
+  'Pre-commit checklist (AGENTS.md, Definition of done). Approve only if the agent has reported each:',
+  '1. Skills activated and named.',
+  '2. Gates for the areas touched passed (frontend tsc/eslint/build, backend npm test, agent setup validate-agents).',
+  '3. code-reviewer and change-critic ran; every Must fix / Blocking resolved.',
+  '4. UI: the widths, phone emulation and states in ui-verification checked; nothing got worse.',
+  '5. Only its own files, by pathspec; subject-only Conventional Commit.',
+].join('\n');
 
 async function main() {
   let raw = '';
@@ -163,7 +188,7 @@ async function main() {
   const message = reason ? `Blocked by .agents/hooks/guard-shell.mjs: ${reason}` : null;
 
   if (flavor === 'antigravity') {
-    process.stdout.write(JSON.stringify(antigravityResponse(message)));
+    process.stdout.write(JSON.stringify(antigravityResponse(message, command)));
     process.exit(0);
   }
   if (message) {
@@ -173,4 +198,4 @@ async function main() {
   process.exit(0);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main();
+if (import.meta.url === pathToFileURL(process.argv[1]).href) main();

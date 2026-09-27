@@ -76,7 +76,9 @@ for (const dir of ['.claude/agents', '.gemini/agents', '.agents/agents', '.openc
   }
 }
 
-if (!existsSync('.agents/hooks/guard-shell.mjs')) fail('.agents/hooks/guard-shell.mjs: missing');
+for (const f of ['.agents/hooks/guard-shell.mjs', '.agents/hooks/rules-reminder.mjs']) {
+  if (!existsSync(f)) fail(`${f}: missing`);
+}
 
 const SECRET = /(^|\/)(\.env(\.(?!example$)[^/]+)?|\.mcp\.json)$/;
 let tracked = [];
