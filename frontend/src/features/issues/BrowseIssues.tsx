@@ -154,7 +154,7 @@ const BrowseIssues = () => {
             onChange={handleLanguageChange}
           />
 
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-[300px]">
             <LabelsFilter selectedLabels={filter.labels || []} onLabelsChange={handleLabelsChange} />
           </div>
 
