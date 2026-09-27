@@ -1,6 +1,7 @@
 const githubService = require('./githubService');
 const { getSupabase } = require('../config/supabase');
 const logger = require('../utils/logger');
+const { isBotAccount } = require('../utils/bots');
 
 /**
  * Merge Likelihood: how often, and how fast, a repository merges pull
@@ -19,8 +20,7 @@ const DAY = 86400000;
 
 const MAINTAINER_ROLES = new Set(['OWNER', 'MEMBER', 'COLLABORATOR']);
 
-const isBot = pr =>
-  pr.user?.type === 'Bot' || /\[bot\]$|-bot$|^dependabot|^renovate/i.test(pr.user?.login ?? '');
+const isBot = pr => !!pr.user?.login && isBotAccount(pr.user.login, pr.user.type);
 
 const isOutside = pr => !isBot(pr) && !MAINTAINER_ROLES.has(pr.author_association);
 
