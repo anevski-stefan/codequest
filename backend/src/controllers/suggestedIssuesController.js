@@ -80,6 +80,61 @@ async function enrichWithStars(accessToken, items) {
   });
 }
 
+const claimService = require('../services/claimService');
+const mergeLikelihoodService = require('../services/mergeLikelihoodService');
+
+async function rankIssues(accessToken, items) {
+  if (!items || items.length === 0) return items;
+
+  const uniqueRepos = [...new Set(items.map(item => {
+    const parts = (item.repository_url || '').split('/');
+    return parts.slice(-2).join('/');
+  }).filter(Boolean))];
+
+  const repoObjects = uniqueRepos.map(fn => {
+    const [owner, repo] = fn.split('/');
+    return { owner, repo };
+  });
+  
+  const [mergeStatsBulk, claims] = await Promise.all([
+    mergeLikelihoodService.getCachedMergeLikelihoodBulk(repoObjects),
+    claimService.getClaims(accessToken, items.map(item => {
+      const parts = (item.repository_url || '').split('/');
+      return { owner: parts[parts.length - 2], repo: parts[parts.length - 1], number: item.number };
+    }))
+  ]);
+
+  for (const item of items) {
+    const parts = (item.repository_url || '').split('/');
+    const owner = parts[parts.length - 2];
+    const repo = parts[parts.length - 1];
+    const key = `${owner}/${repo}#${item.number}`.toLowerCase();
+    const fullName = `${owner}/${repo}`.toLowerCase();
+
+    const claim = claims[key] || { status: 'unknown' };
+    item._claim = claim;
+    
+    const mStats = mergeStatsBulk[fullName];
+    item._mergeLikelihood = mStats ? mStats.likelihood : 'unknown';
+
+    let score = 0;
+    if (claim.status === 'free') score += 10;
+    else if (claim.status === 'stale') score += 5;
+    else score -= 100;
+    
+    if (item._mergeLikelihood === 'high') score += 5;
+    else if (item._mergeLikelihood === 'medium') score += 2;
+    else if (item._mergeLikelihood === 'low') score -= 5;
+    
+    item._fitScore = score;
+  }
+
+  return items.sort((a, b) => {
+    if (b._fitScore !== a._fitScore) return b._fitScore - a._fitScore;
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+}
+
 exports.getSuggestedIssues = asyncHandler(async (req, res) => {
   const {
     commentsRange = '',
@@ -124,14 +179,16 @@ exports.getSuggestedIssues = asyncHandler(async (req, res) => {
     const pagedItems = merged.slice(0, perPage);
     const hasMore = (pageNum * perPage) < totalCount;
 
-    const enriched = await enrichWithStars(req.user.accessToken, pagedItems);
+    let enriched = await enrichWithStars(req.user.accessToken, pagedItems);
+    enriched = await rankIssues(req.user.accessToken, enriched);
     return res.json({ items: enriched, total_count: totalCount, hasMore, currentPage: pageNum, personalizedLang: language });
   }
 
   const data = await fetchIssues(req.user.accessToken, base, pageNum, perPage);
   if (!data.items.length && !data.total_count) return sendError(res, 502, 'No data received from GitHub');
 
-  const enriched = await enrichWithStars(req.user.accessToken, data.items);
+  let enriched = await enrichWithStars(req.user.accessToken, data.items);
+  enriched = await rankIssues(req.user.accessToken, enriched);
 
   res.json({
     items: enriched,
