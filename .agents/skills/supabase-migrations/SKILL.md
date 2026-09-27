@@ -61,5 +61,4 @@ getSupabase().from('<table>').select('<cols>').limit(1).then(r=>console.log(r.er
 
 ## Known gap
 
-Older tables (`users`, `ai_keys`, `sessions`, `notifications`, …) were created without
-RLS. Enabling it is a separate, owner-approved change.
+None. All tables now have RLS enabled by default.
