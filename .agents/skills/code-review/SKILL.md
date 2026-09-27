@@ -3,7 +3,7 @@ name: code-review
 description: Reviewing a diff in Code Quest - your own before committing, a teammate's, or code written by another AI agent (Gemini, Codex, Cursor). Use when asked to review, check, or "see if this is ok", before merging, or after another agent made changes. Gives the order of checks, the project-specific failure patterns seen before, and the report format.
 metadata:
   project: codequest
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Code review
@@ -19,6 +19,10 @@ impact. Verify claims against the code before reporting them.
 3. Check behaviour against intent: what was this supposed to do, does it do that?
 4. Walk the checklist below.
 5. Report (format at the end). Offer to fix; don't silently rewrite.
+
+Before a commit, pair this with the critique pass ([references/critique.md](references/critique.md)):
+scope, fit with existing code, simplicity, edge cases, performance. The `change-critic`
+subagent runs it; run it in parallel with `code-reviewer`.
 
 ## Checklist
 
@@ -48,7 +52,12 @@ impact. Verify claims against the code before reporting them.
 **Hygiene**
 - No stray files (`test-*.js`, scratch scripts, screenshots), no debug `console.log`,
   no dead imports, no dynamic `import()` of a module that is already imported statically.
-- No exploratory or thinking-out-loud comments left in code or tests.
+- Comments: flag every **new** comment that the code already says (root `AGENTS.md` 6) —
+  section labels, narration of straight-line code, a restated function or component name,
+  explaining a language or framework feature, commented-out code, a bare `TODO`. Leftover
+  exploratory or thinking-out-loud comments count too. A comment stating a fact the code
+  cannot show (a security invariant, why a workaround exists, a wire format, an upstream
+  quirk) is **not** a finding, and neither is a SQL migration header.
 
 **Tests** (`testing-and-verification`)
 - Each test imports and calls the code it claims to verify. A test that contains its own

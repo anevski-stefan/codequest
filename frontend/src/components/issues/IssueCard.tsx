@@ -1,4 +1,4 @@
-import { memo, type CSSProperties } from 'react';
+import { memo, useRef, useCallback, useEffect, type CSSProperties } from 'react';
 import { MessageSquare, Star, ArrowUpRight, CircleCheck } from 'lucide-react';
 import type { Issue, IssueClaim } from '../../types/github';
 import ClaimBadge from './ClaimBadge';
@@ -23,6 +23,31 @@ const IssueCard = memo(({ issue, onOpen, onPrefetch, dateField = 'createdAt', in
   const stars = issue.repoStars;
   const closed = issue.state !== 'open';
 
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleMouseEnter = useCallback(() => {
+    if (onPrefetch) {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = setTimeout(() => {
+        onPrefetch(issue);
+      }, 200);
+    }
+  }, [issue, onPrefetch]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
     <article
       role="button"
@@ -31,8 +56,10 @@ const IssueCard = memo(({ issue, onOpen, onPrefetch, dateField = 'createdAt', in
       style={{ '--i': index % 30 } as CSSProperties}
       onClick={() => onOpen(issue)}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(issue); } }}
-      onMouseEnter={() => onPrefetch?.(issue)}
-      onFocus={() => onPrefetch?.(issue)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleMouseEnter}
+      onBlur={handleMouseLeave}
       className="reveal group relative flex flex-col gap-3 rounded-xl border border-white/[0.07] bg-[#2E3245] p-4 cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-white/[0.14] hover:bg-[#31364C] hover:-translate-y-px hover:shadow-[0_12px_24px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] active:translate-y-0 active:scale-[0.995] transition-[background-color,border-color,box-shadow,transform] duration-200"
     >
       <div className="flex items-center gap-2 min-w-0 text-[12px]">
@@ -71,6 +98,14 @@ const IssueCard = memo(({ issue, onOpen, onPrefetch, dateField = 'createdAt', in
       <h3 className="text-[14px] font-semibold text-gray-100 group-hover:text-white leading-snug line-clamp-2 transition-colors">
         {issue.title}
       </h3>
+
+      {issue.updatedAt && !closed && (Date.now() - new Date(issue.updatedAt).getTime()) / (1000 * 60 * 60 * 24 * 30) >= 3 && (
+        <div className="flex">
+          <span className="inline-flex items-center h-5 px-1.5 rounded-[4px] border border-orange-500/20 bg-orange-500/10 text-[9px] font-bold tracking-wide uppercase text-orange-300/90">
+            No activity for {Math.floor((Date.now() - new Date(issue.updatedAt).getTime()) / (1000 * 60 * 60 * 24 * 30))} months
+          </span>
+        </div>
+      )}
 
       <div className="mt-auto flex items-center gap-3 min-h-[20px]">
         <div className="flex-1 min-w-0"><LabelsCellContent labels={issue.labels} /></div>

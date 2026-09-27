@@ -20,3 +20,4 @@ env.secrets
 # Misc
 node_modules/
 coverage/
+.mcp.json

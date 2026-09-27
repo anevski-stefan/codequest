@@ -24,3 +24,6 @@ the service and covered by `test/*.test.js`.
 - Fire-and-forget endpoints (tracking) return 204 and never fail the user's action.
 - New router-level limits go in `middleware/rateLimiter.js`.
 - `node --test`: keep tests fast and offline; test the pure function, not the network.
+- No comments unless the code is unreadable without one (root `AGENTS.md`, Non-negotiables 6):
+  no `// Fetch from GitHub` narration, no restating the function or variable name, no
+  `// ---- helpers ----` section banners.

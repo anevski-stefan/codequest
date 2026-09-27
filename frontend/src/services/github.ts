@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { store } from '../store';
 import { logout } from '../features/auth/authSlice';
-import type { IssueParams, IssueResponse, Issue, GithubUser, IssueClaim } from '../types/github';
+import type { IssueParams, IssueResponse, Issue, GithubUser, IssueClaim, PullRequestFeedback } from '../types/github';
 import { USE_MOCK_DATA } from '../mocks/flag';
 import { getAIService } from '../hooks/useAIService';
 const resolveApiBaseUrl = () => {
@@ -131,6 +131,10 @@ const fetchIssues = async (searchQuery: string, sort: string, direction?: string
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   let searchQuery = 'is:issue is:unlocked ';
   let startDate: string | undefined;
+  if (params.q) {
+    searchQuery += `${params.q} `;
+  }
+
   if (params.language) {
     searchQuery += `language:${params.language} `;
   }
@@ -306,47 +310,20 @@ export const getSuggestedIssues = async (params: SuggestedIssueParams): Promise<
     currentPage: data.currentPage ?? 1,
   };
 };
-export const explainIssue = async ({
-  owner,
-  repo,
-  issueTitle,
-  issueBody,
-  comments,
-  repoLanguage,
-  repoDescription,
-  onChunk,
-  onDone,
-  onError,
-}: {
-  owner: string;
-  repo: string;
-  issueTitle: string;
-  issueBody: string | null;
-  comments: Array<{ user: { login: string }; body: string }>;
-  repoLanguage?: string | null;
-  repoDescription?: string;
-  onChunk: (text: string) => void;
-  onDone: () => void;
-  onError: (error: string) => void;
-}): Promise<void> => {
-  if (USE_MOCK_DATA) {
-    const { streamExplain } = await import('../mocks/stream');
-    return streamExplain(issueTitle, `${owner}/${repo}`, onChunk, onDone);
-  }
+export type StreamError = (message: string, status?: number) => void;
+
+const streamSse = async (
+  path: string,
+  body: unknown,
+  { onChunk, onDone, onError }: { onChunk: (text: string) => void; onDone: () => void; onError: StreamError },
+): Promise<void> => {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/issues/explain/${owner}/${repo}`, {
+    response = await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({
-        issueTitle,
-        issueBody,
-        comments: comments.slice(0, 10).map(c => ({ user: { login: c.user.login }, body: c.body })),
-        repoLanguage,
-        repoDescription,
-        provider: getAIService(),
-      }),
+      body: JSON.stringify(body),
     });
   } catch {
     onError('Network error — could not reach the server.');
@@ -355,7 +332,7 @@ export const explainIssue = async ({
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
-    onError(err.error || `HTTP ${response.status}`);
+    onError(err.error || `HTTP ${response.status}`, response.status);
     return;
   }
 
@@ -383,6 +360,43 @@ export const explainIssue = async ({
   onDone();
 };
 
+export const explainIssue = async ({
+  owner,
+  repo,
+  issueTitle,
+  issueBody,
+  comments,
+  repoLanguage,
+  repoDescription,
+  onChunk,
+  onDone,
+  onError,
+}: {
+  owner: string;
+  repo: string;
+  issueTitle: string;
+  issueBody: string | null;
+  comments: Array<{ user: { login: string }; body: string }>;
+  repoLanguage?: string | null;
+  repoDescription?: string;
+  onChunk: (text: string) => void;
+  onDone: () => void;
+  onError: (error: string) => void;
+}): Promise<void> => {
+  if (USE_MOCK_DATA) {
+    const { streamExplain } = await import('../mocks/stream');
+    return streamExplain(issueTitle, `${owner}/${repo}`, onChunk, onDone);
+  }
+  return streamSse(`/api/issues/explain/${owner}/${repo}`, {
+    issueTitle,
+    issueBody,
+    comments: comments.slice(0, 10).map(c => ({ user: { login: c.user.login }, body: c.body })),
+    repoLanguage,
+    repoDescription,
+    provider: getAIService(),
+  }, { onChunk, onDone, onError });
+};
+
 export const onboardRepo = async ({
   owner,
   repo,
@@ -400,47 +414,7 @@ export const onboardRepo = async ({
     const { streamOnboarding } = await import('../mocks/stream');
     return streamOnboarding(`${owner}/${repo}`, onChunk, onDone);
   }
-  let response: Response;
-  try {
-    response = await fetch(`${API_BASE_URL}/api/repos/${owner}/${repo}/onboard`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ provider: getAIService() }),
-    });
-  } catch {
-    onError('Network error — could not reach the server.');
-    return;
-  }
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
-    onError(err.error || `HTTP ${response.status}`);
-    return;
-  }
-
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      const raw = line.slice(6);
-      if (raw === '[DONE]') { onDone(); return; }
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed.error) { onError(parsed.error); return; }
-        if (parsed.text) onChunk(parsed.text);
-      } catch { /* skip malformed chunk */ }
-    }
-  }
-  onDone();
+  return streamSse(`/api/repos/${owner}/${repo}/onboard`, { provider: getAIService() }, { onChunk, onDone, onError });
 };
 
 export const getRepositoryIssues = async (owner: string, repo: string, page = 1): Promise<IssueResponse> => {
@@ -578,3 +552,44 @@ export const getUserStarredCount = async (username?: string) => {
   return Array.isArray(response.data) ? response.data.length : 0;
 };
 
+export const getMergeLikelihoodBulk = async (repos: { owner: string; repo: string }[]) => {
+  if (repos.length === 0) return {};
+  const { data } = await api.post('/api/repos/metrics/merge-likelihood-bulk', { repos });
+  return data;
+};
+
+export const getIssueDetails = async (owner: string, repo: string, issueNumber: number): Promise<Issue> => {
+  const { data } = await api.get(`/api/repos/${owner}/${repo}/issues/${issueNumber}`);
+  return transformIssue(data as RawGitHubIssue);
+};
+
+export const syncPrTracker = async (): Promise<void> => {
+  await api.post('/api/pr-tracker/sync');
+};
+
+export const getPullRequestFeedback = async (owner: string, repo: string, pullNumber: number): Promise<PullRequestFeedback> => {
+  const { data } = await api.get(`/api/repos/${owner}/${repo}/pulls/${pullNumber}/feedback`);
+  return data;
+};
+
+export const explainCiFailure = async ({
+  owner,
+  repo,
+  pullNumber,
+  onChunk,
+  onDone,
+  onError,
+}: {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  onChunk: (text: string) => void;
+  onDone: () => void;
+  onError: StreamError;
+}): Promise<void> => {
+  if (USE_MOCK_DATA) {
+    const { streamCiSummary } = await import('../mocks/stream');
+    return streamCiSummary(`${owner}/${repo}`, onChunk, onDone);
+  }
+  return streamSse(`/api/repos/${owner}/${repo}/pulls/${pullNumber}/ci-summary`, { provider: getAIService() }, { onChunk, onDone, onError });
+};

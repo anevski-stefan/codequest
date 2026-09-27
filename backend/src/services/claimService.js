@@ -1,4 +1,5 @@
 const GitHubService = require('./githubService');
+const { isBotAccount } = require('../utils/bots');
 const logger = require('../utils/logger');
 
 /**
@@ -32,7 +33,7 @@ const CLAIM_PATTERNS = [
   /\bi\s+want\s+to\s+work\s+on\s+(?:this|it)\b/i,
 ];
 
-const isBot = login => !login || /\[bot\]$|-bot$|^dependabot|^github-actions/i.test(login);
+const isBot = login => isBotAccount(login);
 
 const isClaimComment = body => CLAIM_PATTERNS.some(re => re.test(body || ''));
 

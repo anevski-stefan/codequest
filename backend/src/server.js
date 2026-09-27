@@ -1,11 +1,13 @@
+require('dotenv').config();
+require('./instrument');
 const express = require('express');
+const Sentry = require('@sentry/node');
 const logger = require('./utils/logger');
 const crypto = require('crypto');
 const session = require('express-session');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-require('dotenv').config();
 const passport = require('passport');
 require('./config/passport');
 const etagMiddleware = require('./middleware/etagMiddleware');
@@ -22,12 +24,14 @@ const {
   newsletterLimiter,
   feedbackLimiter,
   aiChatLimiter,
-  aiKeysLimiter
+  aiKeysLimiter,
+  prTrackerLimiter
 } = limiter;
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const aiKeysRoutes = require('./routes/aiKeysRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const prTrackerRoutes = require('./routes/prTrackerRoutes');
 const SupabaseSessionStore = require('./utils/supabaseSessionStore');
 const app = express();
 
@@ -132,6 +136,12 @@ app.use('/api/newsletter', newsletterLimiter, newsletterRoutes);
 app.use('/api/feedback', feedbackLimiter, feedbackRoutes);
 app.use('/api/ai-keys', aiKeysLimiter, aiKeysRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/pr-tracker', prTrackerLimiter, prTrackerRoutes);
+
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
+
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not found'

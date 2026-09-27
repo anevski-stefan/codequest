@@ -3,7 +3,7 @@ import { AxiosError } from 'axios';
 import {
   ME, REPOS, ISSUES, ASSIGNED_OPEN, ASSIGNED_CLOSED, STARRED, USER_REPOS, SEARCH_USERS, HACKATHONS,
   NOTIFICATIONS, findRepo, commentsFor, topContributorsFor, lotteryFor, likelihoodFor, pullsFor,
-  pullDetails, activityFor, userProfile, avatar, daysAgo, makeIssue, type MockIssue,
+  pullDetails, pullFeedback, activityFor, userProfile, avatar, daysAgo, makeIssue, type MockIssue,
 } from './data';
 
 /**
@@ -17,6 +17,7 @@ const state = {
   notifications: NOTIFICATIONS.map(n => ({ ...n })),
   aiKeys: { gemini: true, chatgpt: false },
   extraComments: new Map<string, ReturnType<typeof commentsFor>>(),
+  prTrackerSynced: false,
 };
 
 const LATENCY = Number(import.meta.env.VITE_MOCK_LATENCY ?? 350);
@@ -156,6 +157,21 @@ const routes: [string, RegExp, Handler][] = [
     const repo = repoFrom(m[1], m[2]);
     return repo ? pullDetails(repo, Number(m[3])) : status(404);
   }],
+  ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/pulls\/(\d+)\/feedback$/, m => {
+    const repo = repoFrom(m[1], m[2]);
+    return repo ? pullFeedback(repo, Number(m[3])) : status(404);
+  }],
+  ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/issues\/(\d+)$/, m => {
+    const repo = repoFrom(m[1], m[2]);
+    if (!repo) return status(404, { error: 'Not Found' });
+    const num = Number(m[3]);
+    if ([...pullsFor(repo, 'open'), ...pullsFor(repo, 'closed')].some(p => p.number === num)) {
+      return status(404, { error: 'That number is a pull request, not an issue' });
+    }
+    const issue = [...ISSUES, ...ASSIGNED_OPEN, ...ASSIGNED_CLOSED]
+      .find(i => i.number === num && i.repository_url.endsWith(`/${repo.full_name}`));
+    return issue ?? status(404, { error: 'Not Found' });
+  }],
   ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/pulls$/, (m, p) => {
     const repo = repoFrom(m[1], m[2]);
     if (!repo) return status(404);
@@ -244,6 +260,18 @@ const routes: [string, RegExp, Handler][] = [
   ['put', /^\/api\/ai-keys\/(gemini|chatgpt)$/, m => { state.aiKeys[m[1] as 'gemini' | 'chatgpt'] = true; return { ok: true }; }],
   ['delete', /^\/api\/ai-keys\/(gemini|chatgpt)$/, m => { state.aiKeys[m[1] as 'gemini' | 'chatgpt'] = false; return { ok: true }; }],
   ['post', /^\/api\/activity\/track$/, () => ({ __status: 204, data: null })],
+  ['post', /^\/api\/pr-tracker\/sync$/, () => {
+    if (!state.prTrackerSynced) {
+      state.prTrackerSynced = true;
+      state.notifications.unshift({
+        id: 'mock-pr-tracker-1', user_id: 'me', type: 'pr_ci_failed',
+        title: 'CI failed on your PR',
+        message: '"fix: guard against empty response" in tidewater/ledger-cli (failing: test (3.12), lint)',
+        link: '/explore/tidewater/ledger-cli?pr=900', is_read: false, created_at: daysAgo(0),
+      });
+    }
+    return { __status: 204, data: null };
+  }],
   ['post', /^\/api\/feedback$/, () => ({ message: 'Thanks for the feedback!' })],
   ['post', /^\/api\/newsletter\/subscribe$/, () => ({ message: "You're subscribed. First email arrives on Monday." })],
 ];

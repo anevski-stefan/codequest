@@ -46,8 +46,8 @@ export default function LabelsFilter({
     inputRef.current?.focus();
   };
   return <div className="relative">
-      <div onClick={handleContainerClick} className="flex flex-wrap items-center gap-1.5 px-2.5 py-1 bg-[#363B52] border border-white/[0.09] rounded-lg min-h-8 cursor-text hover:border-white/[0.18] focus-within:border-blue-500/50 focus-within:shadow-[0_0_0_3px_rgba(59,123,255,0.12)] transition-all">
-        {selectedLabels.map(label => <span key={label} className="inline-flex items-center gap-0.5 pl-2 pr-1 h-5 rounded-md text-[11px] font-semibold bg-blue-500/[0.12] border border-blue-500/30 text-blue-300 whitespace-nowrap">
+      <div onClick={handleContainerClick} className="flex items-center gap-1.5 px-2.5 py-1 bg-[#363B52] border border-white/[0.09] rounded-lg min-h-8 cursor-text hover:border-white/[0.18] focus-within:border-blue-500/50 focus-within:shadow-[0_0_0_3px_rgba(59,123,255,0.12)] transition-all overflow-x-auto">
+        {selectedLabels.map(label => <span key={label} className="inline-flex items-center gap-0.5 pl-2 pr-1 h-5 rounded-md text-[11px] font-semibold bg-blue-500/[0.12] border border-blue-500/30 text-blue-300 whitespace-nowrap shrink-0">
             {label}
             <button onClick={e => {
           e.stopPropagation();

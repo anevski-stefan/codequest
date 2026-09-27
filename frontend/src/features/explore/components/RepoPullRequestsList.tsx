@@ -1,3 +1,4 @@
+import { useRef, useCallback, useEffect } from 'react';
 import { GitPullRequest, GitCommit, FileText, Plus, Minus, MessageSquare, Loader2 } from 'lucide-react';
 import { formatRelativeDate } from '../../../utils/formatDate';
 import { getLabelColors } from '../../dashboard/utils/filterUtils';
@@ -34,6 +35,29 @@ export function RepoPullRequestsList({
   onViewPullRequest,
   onPrefetchPRDetails,
 }: RepoPullRequestsListProps) {
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleMouseEnter = useCallback((pr: PullRequest) => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      onPrefetchPRDetails(pr);
+    }, 200);
+  }, [onPrefetchPRDetails]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -81,7 +105,8 @@ export function RepoPullRequestsList({
                   <div className="flex items-start gap-2">
                     <button
                       onClick={() => onViewPullRequest(pr.number)}
-                      onMouseEnter={() => onPrefetchPRDetails(pr)}
+                      onMouseEnter={() => handleMouseEnter(pr)}
+                      onMouseLeave={handleMouseLeave}
                       className="flex-1 text-sm font-medium text-gray-200 hover:text-white text-left leading-snug cursor-pointer transition-colors"
                     >
                       {pr.title}

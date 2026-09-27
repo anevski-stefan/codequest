@@ -2,6 +2,7 @@ import { memo, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, GitFork, ArrowUpRight, CircleDot } from 'lucide-react';
 import type { GitHubRepository as Repository } from '../../../types/github';
+import type { MergeLikelihood } from '../types';
 import { LANGUAGE_COLORS } from '../../../constants/languageColors';
 import { formatCount } from '../../../utils/formatCount';
 import { formatRelativeDate } from '../../../utils/formatDate';
@@ -10,13 +11,20 @@ interface Props {
   repo: Repository;
   index: number;
   onTopic: (topic: string) => void;
+  mergeLikelihood?: MergeLikelihood;
 }
 
-const RepoResultCard = memo(({ repo, index, onTopic }: Props) => {
+const RepoResultCard = memo(({ repo, index, onTopic, mergeLikelihood }: Props) => {
   const navigate = useNavigate();
   const [owner, name] = repo.full_name.split('/');
   const langColor = LANGUAGE_COLORS[repo.language] ?? '#6b7280';
   const open = () => navigate(`/explore/${owner}/${name}`);
+
+  const likelihood = mergeLikelihood?.likelihood ?? 'unknown';
+  const likelihoodTier = likelihood === 'high' ? { label: 'High merge likelihood', cls: 'text-green-300 bg-green-500/10 border-green-500/25' }
+    : likelihood === 'medium' ? { label: 'Medium merge likelihood', cls: 'text-amber-300 bg-amber-400/10 border-amber-400/25' }
+    : likelihood === 'low' ? { label: 'Low merge likelihood', cls: 'text-red-300 bg-red-500/10 border-red-500/25' }
+    : { label: 'Unknown merge likelihood', cls: 'hidden' };
 
   return (
     <article
@@ -42,7 +50,14 @@ const RepoResultCard = memo(({ repo, index, onTopic }: Props) => {
           <h3 className="text-[14px] font-semibold text-gray-100 group-hover:text-white truncate transition-colors">
             <span className="text-gray-500 font-normal">{owner}/</span>{name}
           </h3>
-          <p className="text-[11px] text-gray-500 mt-0.5">Updated {formatRelativeDate(repo.updated_at)}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-[11px] text-gray-500">Updated {formatRelativeDate(repo.updated_at)}</p>
+            {likelihood !== 'unknown' && (
+              <span className={`inline-flex items-center h-4 px-1.5 rounded-[4px] border text-[9px] font-bold tracking-wide uppercase ${likelihoodTier.cls}`}>
+                {likelihood} merge rate
+              </span>
+            )}
+          </div>
         </div>
         <span className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-amber-400/20 bg-amber-400/[0.07] text-[11px] font-semibold text-amber-300/90 shrink-0 tabular" title={`${repo.stargazers_count.toLocaleString()} stars`}>
           <Star className="w-3 h-3 fill-current" />{formatCount(repo.stargazers_count)}

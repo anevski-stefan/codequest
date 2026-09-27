@@ -18,6 +18,7 @@ import IssueCard from '../../components/issues/IssueCard';
 import useIssueClaims, { claimFor } from '../../hooks/useIssueClaims';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import { CardSkeleton } from '../../components/skeletons';
 import { formatRelativeDate } from '../../utils/formatDate';
 import { easeOut } from '../../lib/motion';
@@ -258,7 +259,11 @@ const Dashboard = () => {
 
         <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-8">
           <div className="space-y-8 min-w-0">
-            {assignedIssues.length > 0 && (
+            {assigned.isError ? (
+              <Section title="In progress" delay={0.05}>
+                <ErrorDisplay error={assigned.error?.message || 'Failed to load assigned issues'} onRetry={() => assigned.refetch()} />
+              </Section>
+            ) : assignedIssues.length > 0 && (
               <Section title="In progress" to="/assigned" delay={0.05}>
                 <div className="grid md:grid-cols-2 gap-2.5">
                   {assignedIssues.slice(0, 2).map((issue, i) => (
@@ -271,6 +276,8 @@ const Dashboard = () => {
             <Section title="Picked for you" to="/suggested" cta="More suggestions" delay={0.1}>
               {suggested.isLoading ? (
                 <div className="grid md:grid-cols-2 gap-2.5">{[0, 1, 2, 3].map(i => <CardSkeleton key={i} />)}</div>
+              ) : suggested.isError ? (
+                <ErrorDisplay error={suggested.error?.message || 'Failed to load suggestions'} onRetry={() => suggested.refetch()} />
               ) : picks.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-white/[0.08] p-6 text-center text-[13px] text-gray-500">
                   No suggestions right now. <Link to="/issues" className="text-blue-300 hover:text-blue-200 font-semibold">Browse all issues</Link>
@@ -292,6 +299,8 @@ const Dashboard = () => {
                   [0, 1, 2].map(i => (
                     <div key={i} className="p-3.5 space-y-2"><Skeleton className="h-3.5 w-3/4" /><Skeleton className="h-3 w-1/2" /></div>
                   ))
+                ) : hackathons.isError ? (
+                  <div className="p-4"><ErrorDisplay error={hackathons.error?.message || 'Failed to load hackathons'} onRetry={() => hackathons.refetch()} /></div>
                 ) : upcoming.length === 0 ? (
                   <p className="p-4 text-[13px] text-gray-500">No upcoming events listed right now.</p>
                 ) : upcoming.map(h => (
@@ -325,6 +334,8 @@ const Dashboard = () => {
               <div className="rounded-xl border border-white/[0.07] bg-[#2E3245] divide-y divide-white/[0.05] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 {notifications.isLoading ? (
                   [0, 1].map(i => <div key={i} className="p-3.5 space-y-2"><Skeleton className="h-3.5 w-2/3" /><Skeleton className="h-3 w-1/3" /></div>)
+                ) : notifications.isError ? (
+                  <div className="p-4"><ErrorDisplay error={notifications.error?.message || 'Failed to load notifications'} onRetry={() => notifications.refetch()} /></div>
                 ) : (notifications.data?.notifications.length ?? 0) === 0 ? (
                   <div className="flex items-center gap-3 p-4">
                     <Check className="w-4 h-4 text-green-400" />

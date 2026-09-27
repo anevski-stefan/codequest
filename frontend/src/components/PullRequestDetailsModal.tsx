@@ -4,12 +4,17 @@ import { formatRelativeDate } from '../utils/formatDate';
 import { X, GitCommit, FileText, ChevronDown, ChevronUp, GitPullRequest, Loader2 } from 'lucide-react';
 
 import type { PullRequestDetails } from '../types/github';
+import PullRequestFeedback from './PullRequestFeedback';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   pullRequestDetails?: PullRequestDetails;
   isLoading: boolean;
+  owner?: string;
+  repo?: string;
 }
 
 type TabType = 'commits' | 'changes';
@@ -34,7 +39,8 @@ function statusLabel(status: string) {
   }
 }
 
-export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDetails, isLoading }: Props) {
+export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDetails, isLoading, owner, repo }: Props) {
+  const viewerLogin = useSelector((state: RootState) => state.auth.user?.login);
   const [activeTab, setActiveTab] = useState<TabType>('changes');
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
   const [selectedCommitSha, setSelectedCommitSha] = useState<string | null>(null);
@@ -246,6 +252,11 @@ export default function PullRequestDetailsModal({ isOpen, onClose, pullRequestDe
               </div>
 
               <div className="flex-1 overflow-y-auto p-5">
+                {!isLoading && pr && owner && repo && pr.state === 'open' && !!viewerLogin && pr.user.login.toLowerCase() === viewerLogin.toLowerCase() && (
+                  <div className="mb-5">
+                    <PullRequestFeedback key={`${owner}/${repo}#${pr.number}`} owner={owner} repo={repo} pullNumber={pr.number} onNavigate={onClose} />
+                  </div>
+                )}
                 {tabContent}
               </div>
             </DialogPanel>

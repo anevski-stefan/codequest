@@ -1,6 +1,7 @@
 const githubService = require('./githubService');
 const { getSupabase } = require('../config/supabase');
 const logger = require('../utils/logger');
+const { isBotAccount } = require('../utils/bots');
 
 /**
  * Merge Likelihood: how often, and how fast, a repository merges pull
@@ -19,8 +20,7 @@ const DAY = 86400000;
 
 const MAINTAINER_ROLES = new Set(['OWNER', 'MEMBER', 'COLLABORATOR']);
 
-const isBot = pr =>
-  pr.user?.type === 'Bot' || /\[bot\]$|-bot$|^dependabot|^renovate/i.test(pr.user?.login ?? '');
+const isBot = pr => !!pr.user?.login && isBotAccount(pr.user.login, pr.user.type);
 
 const isOutside = pr => !isBot(pr) && !MAINTAINER_ROLES.has(pr.author_association);
 
@@ -79,6 +79,32 @@ async function writeCache(owner, repo, stats) {
   if (error) logger.warn('[mergeLikelihood] cache write failed', { message: error.message });
 }
 
+async function readCacheBulk(repos) {
+  if (!repos.length) return {};
+  const { data, error } = await getSupabase().from('merge_likelihood_cache')
+    .select('owner, repo, stats, updated_at')
+    .in('owner', repos.map(r => r.owner))
+    .in('repo', repos.map(r => r.repo));
+
+  if (error) {
+    logger.warn('[mergeLikelihood] cache readBulk failed', { message: error.message });
+    return {};
+  }
+  
+  const requestedSet = new Set(repos.map(r => `${r.owner.toLowerCase()}/${r.repo.toLowerCase()}`));
+  
+  const map = {};
+  const now = Date.now();
+  for (const row of data || []) {
+    const key = `${row.owner.toLowerCase()}/${row.repo.toLowerCase()}`;
+    if (!requestedSet.has(key)) continue;
+    if (now - Date.parse(row.updated_at) < CACHE_TTL_MS) {
+      map[`${row.owner}/${row.repo}`.toLowerCase()] = row.stats;
+    }
+  }
+  return map;
+}
+
 async function getMergeLikelihood(token, rawOwner, rawRepo) {
   const owner = rawOwner.toLowerCase();
   const repo = rawRepo.toLowerCase();
@@ -105,4 +131,8 @@ async function getMergeLikelihood(token, rawOwner, rawRepo) {
   return stats;
 }
 
-module.exports = { getMergeLikelihood, computeMergeStats, isOutside, median, MIN_SAMPLE };
+async function getCachedMergeLikelihoodBulk(repos) {
+  return readCacheBulk(repos);
+}
+
+module.exports = { getMergeLikelihood, getCachedMergeLikelihoodBulk, computeMergeStats, isOutside, median, MIN_SAMPLE };

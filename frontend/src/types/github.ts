@@ -34,6 +34,7 @@ export interface IssueResponse {
 }
 export type Language = '' | 'javascript' | 'typescript' | 'python' | 'java' | 'php' | 'ruby' | 'go' | 'rust' | 'c' | 'cpp' | 'csharp' | 'swift' | 'kotlin' | 'dart' | 'scala' | 'r' | 'elixir' | 'haskell' | 'clojure' | 'erlang' | 'julia' | 'matlab' | 'shell' | 'powershell' | 'html' | 'css' | 'vue' | 'svelte' | 'angular' | 'react' | 'elm' | 'ocaml' | 'fsharp' | 'fortran' | 'cobol' | 'pascal' | 'prolog' | 'scheme' | 'groovy' | 'objective-c' | 'verilog' | 'vhdl' | 'solidity' | 'crystal' | 'nim' | 'zig' | 'lua' | 'perl' | 'assembly';
 export interface IssueParams {
+  q?: string;
   language: string;
   sort: string;
   direction?: 'asc' | 'desc';
@@ -155,6 +156,31 @@ export interface PullRequestDetails {
     author: { login: string; avatar_url: string } | null;
     files: string[];
   }[];
+}
+
+export interface FailedCheck {
+  id: number;
+  kind: 'check' | 'status';
+  name: string;
+  url: string | null;
+  description?: string | null;
+}
+
+export interface ReviewChecklistItem {
+  id: string;
+  author: string;
+  body: string;
+  path: string | null;
+  line: number | null;
+  outdated: boolean;
+  url: string | null;
+  createdAt: string;
+}
+
+export interface PullRequestFeedback {
+  headSha: string | null;
+  failedChecks: FailedCheck[];
+  review: { requestedBy: string[]; items: ReviewChecklistItem[] };
 }
 
 export interface GitHubActivityEvent {

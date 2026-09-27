@@ -13,7 +13,7 @@ router.get('/', asyncHandler(async (req, res) => {
   
   const { data: notifications, error } = await supabase
     .from('notifications')
-    .select('*')
+    .select('id, type, title, message, link, is_read, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -24,7 +24,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
   const { count: unreadCount, error: countError } = await supabase
     .from('notifications')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('is_read', false);
 

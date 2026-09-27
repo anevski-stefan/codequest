@@ -13,6 +13,7 @@ import CommandPalette, { type CommandItem } from './CommandPalette';
 import { NotificationsDropdown } from './ui/NotificationsDropdown';
 import { easeOut } from '../lib/motion';
 import { USE_MOCK_DATA } from '../mocks/flag';
+import { usePrTrackerSync } from '../hooks/usePrTrackerSync';
 
 interface LayoutProps {
   children?: ReactNode;
@@ -249,6 +250,7 @@ const Layout = ({ children }: LayoutProps) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  usePrTrackerSync(isAuthenticated ? user?.login ?? null : null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

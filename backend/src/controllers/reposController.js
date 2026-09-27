@@ -1,6 +1,6 @@
 const githubService = require('../services/githubService');
-const { getMergeLikelihood } = require('../services/mergeLikelihoodService');
-const { badRequest, asyncHandler } = require('../utils/httpError');
+const { getMergeLikelihood, getCachedMergeLikelihoodBulk } = require('../services/mergeLikelihoodService');
+const { badRequest, sendError, asyncHandler } = require('../utils/httpError');
 const { buildPagination, clampPage } = require('../utils/pagination');
 const { isValidNumber, isValidState } = require('../utils/validateParams');
 const MAX_COMMENT_BODY_LENGTH = 65536;
@@ -215,4 +215,23 @@ exports.getPullDetails = asyncHandler(async (req, res) => {
     commits_data: commitsWithFiles
   };
   res.json(details);
+});
+exports.getIssueDetails = asyncHandler(async (req, res) => {
+  const { owner, repo, number } = req.params;
+  if (!isValidNumber(number)) {
+    return badRequest(res, 'Invalid issue number');
+  }
+  const issue = await githubService.request(req.user.accessToken, 'GET', `/repos/${owner}/${repo}/issues/${number}`);
+  if (issue.pull_request) {
+    return sendError(res, 404, 'That number is a pull request, not an issue');
+  }
+  res.json(issue);
+});
+exports.getMergeLikelihoodBulk = asyncHandler(async (req, res) => {
+  const { repos } = req.body;
+  if (!Array.isArray(repos)) {
+    return badRequest(res, 'repos must be an array of {owner, repo} objects');
+  }
+  const accessibleRepos = await githubService.verifyReposAccess(req.user.accessToken, repos);
+  res.json(await getCachedMergeLikelihoodBulk(accessibleRepos));
 });
