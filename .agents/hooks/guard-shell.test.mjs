@@ -88,10 +88,9 @@ test('payloads from Claude/Gemini and Antigravity are both understood', () => {
   assert.equal(readPayload({ toolCall: { args: { CommandLine: 'ls' } }, workspacePaths: ['/x'] }).cwd, '/x');
 });
 
-test('Antigravity gets a JSON deny, and an empty object (not "allow") otherwise', () => {
+test('Antigravity gets a JSON deny, and "ask" (never "allow", never empty) otherwise', () => {
   const deny = antigravityResponse('nope');
   assert.equal(deny.decision, 'deny');
-  assert.equal(deny.allow_tool, false);
   assert.equal(deny.reason, 'nope');
-  assert.deepEqual(antigravityResponse(null), {});
+  assert.deepEqual(antigravityResponse(null), { decision: 'ask' });
 });

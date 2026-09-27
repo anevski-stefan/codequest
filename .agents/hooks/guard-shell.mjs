@@ -140,13 +140,13 @@ export function readPayload(input) {
 
 /**
  * Antigravity decides from JSON on stdout and treats non-zero exits as hook
- * failures. Docs and field reports use different field names, so send both.
- * On allow we print `{}`: an explicit "allow" would skip the user's approval prompt.
+ * failures. `decision` is required: output without it is treated as a deny.
+ * On allow we answer "ask", not "allow": "allow" would skip the user's approval prompt.
  */
 export function antigravityResponse(reason) {
   return reason
-    ? { decision: 'deny', reason, allow_tool: false, deny_reason: reason }
-    : {};
+    ? { decision: 'deny', reason }
+    : { decision: 'ask' };
 }
 
 async function main() {
