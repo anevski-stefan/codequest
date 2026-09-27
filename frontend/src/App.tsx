@@ -30,7 +30,18 @@ const App = () => {
           <BrowserRouter>
             <AppRoutes />
           </BrowserRouter>
-          <Toaster />
+          <Toaster
+            position="bottom-right"
+            gutter={10}
+            toastOptions={{
+              duration: 4000,
+              className: '!rounded-xl !border !border-white/[0.09] !bg-[#363B52] !text-gray-200 !text-[13px] !shadow-[0_16px_32px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.07)]',
+              success: { iconTheme: { primary: '#86efac', secondary: '#363B52' } },
+              error: {
+                duration: 6000,
+                iconTheme: { primary: '#fca5a5', secondary: '#363B52' }
+              }
+            }} />
         </ThemeProvider>
       </Provider>
     </QueryClientProvider>

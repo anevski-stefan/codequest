@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { formatRelativeDate } from '../../utils/formatDate';
 import type { Comment } from '../../types/comments';
 interface CommentItemProps {
@@ -16,7 +17,9 @@ const CommentItem = memo(({
             <span className="text-[13px] font-semibold text-gray-200 truncate">{comment.user.login}</span>
             <span className="text-[11px] text-gray-500 shrink-0">{formatRelativeDate(comment.createdAt)}</span>
           </div>
-          <p className="text-[13px] text-gray-300 break-words whitespace-pre-wrap leading-relaxed rounded-xl rounded-tl-sm border border-white/[0.06] bg-white/[0.03] px-3.5 py-2.5">{comment.body}</p>
+          <div className="text-[13px] break-words leading-relaxed rounded-xl rounded-tl-sm border border-white/[0.06] bg-white/[0.03] px-3.5 py-2.5 prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-p:first:mt-0 prose-p:last:mb-0 prose-p:whitespace-pre-wrap prose-a:text-blue-300 prose-headings:text-white prose-headings:font-semibold prose-h1:text-[13px] prose-h2:text-[13px] prose-h3:text-[13px] prose-strong:text-white prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-li:text-gray-300 prose-code:text-blue-200 prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[#1D2030] prose-pre:border prose-pre:border-white/[0.06] prose-img:rounded-lg prose-blockquote:border-l-white/[0.14] prose-blockquote:text-gray-400 prose-hr:border-white/[0.08]">
+            <ReactMarkdown>{comment.body}</ReactMarkdown>
+          </div>
         </div>
       </div>
     </div>

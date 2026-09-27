@@ -216,6 +216,9 @@ const COMMENT_POOL = [
   'Left a couple of small review comments, otherwise this looks good to me.',
   'Is this still relevant after the refactor last month?',
   'Yes, it still happens. Here is a minimal reproduction repository.',
+  'Repro steps:\n\n1. Open the panel\n2. Click **Save** twice\n3. Close before the request settles\n\n```ts\nawait save();\nawait save(); // second call is not debounced\n```\n\nExpected: one write. Actual: two.',
+  'This is fixed by `debounce` in the helper rather than the component. See the [thread on the RFC](https://example.com/rfc/1) for why we chose the helper.\n\n> Decision: keep the debounce next to the data access, so every caller inherits it.',
+  'Still open on my side. Current status:\n\n- [x] reproduction added\n- [x] fix drafted\n- [ ] tests passing\n\nNothing is blocked on review yet.',
 ];
 export const commentsFor = (issueNumber: number, count: number) =>
   Array.from({ length: count }, (_, i) => {
