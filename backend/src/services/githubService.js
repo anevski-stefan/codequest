@@ -26,11 +26,13 @@ const generateKey = buildKeyGenerator((config) => {
       Object.entries(config.params || {}).sort(([a], [b]) => a.localeCompare(b))
     )
   );
+  const data = config.data ? JSON.stringify(config.data) : '';
   return crypto.createHash('sha256')
     .update(method).update('\x00')
     .update(token).update('\x00')
     .update(url).update('\x00')
-    .update(params)
+    .update(params).update('\x00')
+    .update(data)
     .digest('hex');
 });
 
@@ -56,8 +58,10 @@ class GitHubService {
     if (options.contentType) headers['Content-Type'] = options.contentType;
 
     const isReadOnly = method === 'GET' || method === 'HEAD';
+    const isGraphQL = method === 'POST' && path === '/graphql';
     const ttlMs = options.cacheTtlMs ?? DEFAULT_TTL_MS;
-    const cacheConfig = CACHE_ENABLED && isReadOnly && options.cache !== false
+    
+    const cacheConfig = CACHE_ENABLED && (isReadOnly || (isGraphQL && options.cacheTtlMs)) && options.cache !== false
       ? { ttl: ttlMs }
       : false;
 
@@ -74,6 +78,11 @@ class GitHubService {
           timeout: options.timeout || 15000,
           cache: cacheConfig,
         });
+        
+        if (isGraphQL && response.data?.errors && !response.data?.data) {
+          throw new Error(`GraphQL Errors: ${response.data.errors.map(e => e.message).join(', ')}`);
+        }
+
         if (options.fullResponse) {
           return { status: response.status, data: response.data, headers: response.headers };
         }
@@ -106,6 +115,56 @@ class GitHubService {
       cacheTtlMs: TOKEN_VALIDATION_TTL_MS,
     });
     return response.status === 200;
+  }
+
+  static async getUserTopLanguages(token) {
+    const query = `
+      query UserLanguages {
+        viewer {
+          repositories(first: 50, orderBy: {field: PUSHED_AT, direction: DESC}, isFork: false) {
+            nodes {
+              primaryLanguage {
+                name
+              }
+            }
+          }
+          starredRepositories(first: 50, orderBy: {field: STARRED_AT, direction: DESC}) {
+            nodes {
+              primaryLanguage {
+                name
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const result = await GitHubService.request(token, 'POST', '/graphql', {
+        data: { query },
+        cacheTtlMs: 24 * 60 * 60 * 1000,
+      });
+      const repos = result.data?.viewer?.repositories?.nodes || [];
+      const starred = result.data?.viewer?.starredRepositories?.nodes || [];
+      
+      const counts = {};
+      const addLang = (node) => {
+        const lang = node?.primaryLanguage?.name;
+        if (lang) {
+          counts[lang] = (counts[lang] || 0) + 1;
+        }
+      };
+      
+      repos.forEach(addLang);
+      starred.forEach(addLang);
+      
+      return Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([lang]) => lang);
+    } catch (error) {
+      console.error('Error fetching user languages:', error);
+      return [];
+    }
   }
 
   static async searchIssues(token, query, options = {}) {

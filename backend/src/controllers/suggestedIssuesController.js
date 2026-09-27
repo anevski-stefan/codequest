@@ -1,7 +1,6 @@
 const GitHubService = require('../services/githubService');
 const { asyncHandler, sendError } = require('../utils/httpError');
 
-// Keep in sync with BEGINNER_LABELS in frontend/src/constants/issueLabels.ts (Browse Issues).
 const LABEL_OR = '"good first issue","good-first-issue","help wanted","help-wanted","beginner","first-timers-only","easy","up-for-grabs"';
 
 const FAMOUS_ORGS_A = [
@@ -14,11 +13,6 @@ const FAMOUS_ORGS_B = [
   'kubernetes', 'docker', 'grafana', 'elastic', 'supabase',
   'prisma', 'storybookjs', 'mozilla', 'huggingface', 'langchain-ai',
 ];
-
-async function getRepoStars(accessToken, fullName) {
-  const data = await GitHubService.request(accessToken, 'GET', `/repos/${fullName}`).catch(() => null);
-  return data?.stargazers_count ?? 0;
-}
 
 function buildBaseQuery({ language, commentsRange, timeFrame }) {
   let q = `is:issue is:open no:assignee label:${LABEL_OR} `;
@@ -36,23 +30,48 @@ function buildBaseQuery({ language, commentsRange, timeFrame }) {
   return q.trim();
 }
 
-async function fetchIssues(accessToken, q, page) {
+async function fetchIssues(accessToken, q, page, perPage = 100) {
   const data = await GitHubService.request(accessToken, 'GET', '/search/issues', {
-    params: { q, sort: 'created', order: 'desc', per_page: 100, page },
+    params: { q, sort: 'created', order: 'desc', per_page: perPage, page },
   });
   return data?.items ? data : { items: [], total_count: 0 };
 }
 
 async function enrichWithStars(accessToken, items) {
+  if (!items || items.length === 0) return items;
+
   const uniqueRepos = [...new Set(items.map(item => {
     const parts = (item.repository_url || '').split('/');
     return parts.slice(-2).join('/');
   }).filter(Boolean))];
 
-  const starsMap = {};
-  await Promise.allSettled(uniqueRepos.map(async fn => {
-    starsMap[fn] = await getRepoStars(accessToken, fn);
-  }));
+  if (uniqueRepos.length === 0) return items;
+
+  const queryParts = uniqueRepos.map((fullName, index) => {
+    const [owner, name] = fullName.split('/');
+    return `repo${index}: repository(owner: "${owner}", name: "${name}") { stargazerCount }`;
+  });
+  
+  const query = `query { ${queryParts.join('\n')} }`;
+
+  let starsMap = {};
+  try {
+    const result = await GitHubService.request(accessToken, 'POST', '/graphql', {
+      data: { query },
+      cacheTtlMs: 24 * 60 * 60 * 1000
+    });
+    
+    if (result.data) {
+      uniqueRepos.forEach((fullName, index) => {
+        const repoData = result.data[`repo${index}`];
+        if (repoData) {
+          starsMap[fullName] = repoData.stargazerCount;
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Failed to batch fetch repo stars', error);
+  }
 
   return items.map(item => {
     const parts = (item.repository_url || '').split('/');
@@ -63,26 +82,33 @@ async function enrichWithStars(accessToken, items) {
 
 exports.getSuggestedIssues = asyncHandler(async (req, res) => {
   const {
-    language = '',
     commentsRange = '',
     timeFrame = 'month',
     page = 1,
     famousOnly = 'false',
   } = req.query;
 
+  let { language = '' } = req.query;
+
+  if (!language) {
+    const topLangs = await GitHubService.getUserTopLanguages(req.user.accessToken);
+    if (topLangs.length > 0) {
+      language = topLangs[0];
+    }
+  }
+
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
   const base = buildBaseQuery({ language, commentsRange, timeFrame });
 
-  let allItems;
-  let totalCount;
+  const perPage = 30;
 
   if (famousOnly === 'true') {
     const qA = `${base} ${FAMOUS_ORGS_A.map(o => `org:${o}`).join(' ')}`;
     const qB = `${base} ${FAMOUS_ORGS_B.map(o => `org:${o}`).join(' ')}`;
 
     const [resA, resB] = await Promise.all([
-      fetchIssues(req.user.accessToken, qA, 1),
-      fetchIssues(req.user.accessToken, qB, 1),
+      fetchIssues(req.user.accessToken, qA, pageNum, perPage),
+      fetchIssues(req.user.accessToken, qB, pageNum, perPage),
     ]);
 
     const seen = new Set();
@@ -94,18 +120,15 @@ exports.getSuggestedIssues = asyncHandler(async (req, res) => {
       })
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    totalCount = resA.total_count + resB.total_count;
+    const totalCount = resA.total_count + resB.total_count;
+    const pagedItems = merged.slice(0, perPage);
+    const hasMore = (pageNum * perPage) < totalCount;
 
-    const perPage = 30;
-    const start = (pageNum - 1) * perPage;
-    allItems = merged.slice(start, start + perPage);
-    const hasMore = merged.length > start + perPage;
-
-    const enriched = await enrichWithStars(req.user.accessToken, allItems);
-    return res.json({ items: enriched, total_count: totalCount, hasMore, currentPage: pageNum });
+    const enriched = await enrichWithStars(req.user.accessToken, pagedItems);
+    return res.json({ items: enriched, total_count: totalCount, hasMore, currentPage: pageNum, personalizedLang: language });
   }
 
-  const data = await fetchIssues(req.user.accessToken, base, pageNum);
+  const data = await fetchIssues(req.user.accessToken, base, pageNum, perPage);
   if (!data.items.length && !data.total_count) return sendError(res, 502, 'No data received from GitHub');
 
   const enriched = await enrichWithStars(req.user.accessToken, data.items);
@@ -113,7 +136,8 @@ exports.getSuggestedIssues = asyncHandler(async (req, res) => {
   res.json({
     items: enriched,
     total_count: data.total_count,
-    hasMore: data.total_count > pageNum * 100,
+    hasMore: data.total_count > pageNum * perPage,
     currentPage: pageNum,
+    personalizedLang: language,
   });
 });
