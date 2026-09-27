@@ -143,9 +143,9 @@ const SuggestedIssues = () => {
             defaultValue=""
           />
 
-          <div className="flex-1" />
+          <div className="flex-1 hidden sm:block" />
 
-          <div className="h-5 w-px bg-white/[0.08]" />
+          <div className="hidden sm:block h-5 w-px bg-white/[0.08]" />
 
           <button
             onClick={() => setFamousOnly(prev => !prev)}

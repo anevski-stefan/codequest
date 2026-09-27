@@ -205,64 +205,66 @@ const RepositoryDetails = () => {
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
-      <div className="shrink-0 border-b border-white/[0.05] px-6 pt-5 pb-4">
-        <div className="flex items-start gap-4">
-          <img src={repository.owner.avatar_url} alt={repository.owner.login} width={44} height={44}
-            loading="lazy" decoding="async" className="w-11 h-11 rounded-xl ring-1 ring-white/[0.08] shrink-0 mt-0.5" />
+      <div className="shrink-0 border-b border-white/[0.05] px-4 md:px-6 pt-5 pb-4">
+        <div className="flex flex-col md:flex-row md:items-start gap-4 md:justify-between">
+          <div className="flex items-start gap-3 md:gap-4 flex-1 min-w-0">
+            <img src={repository.owner.avatar_url} alt={repository.owner.login} width={44} height={44}
+              loading="lazy" decoding="async" className="w-11 h-11 rounded-xl ring-1 ring-white/[0.08] shrink-0 mt-0.5" />
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start gap-3 flex-wrap">
-              <a href={repository.html_url} target="_blank" rel="noopener noreferrer"
-                className="text-base font-bold text-white hover:text-blue-300 transition-colors flex items-center gap-1.5">
-                <span className="text-gray-500 font-normal">{repository.owner.login}/</span>{repository.full_name.split('/')[1]}
-                <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
-              </a>
-              {repository.language && (
-                <span className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full border"
-                  style={{ color: langColor, backgroundColor: `${langColor}14`, borderColor: `${langColor}30` }}>
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: langColor }} />
-                  {repository.language}
-                </span>
-              )}
-              {repository.license && (
-                <span className="flex items-center gap-1 text-[11px] text-gray-600">
-                  <Scale className="w-3 h-3" />{repository.license.name}
-                </span>
-              )}
-            </div>
-
-            {repository.description && (
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed max-w-2xl">{repository.description}</p>
-            )}
-
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1">
-              <span className="flex items-center gap-1 text-xs text-gray-600">
-                <Star className="w-3 h-3 text-amber-500/70" />{formatCount(repository.stargazers_count)}
-              </span>
-              <span className="flex items-center gap-1 text-xs text-gray-600">
-                <GitFork className="w-3 h-3" />{formatCount(repository.forks_count)}
-              </span>
-              <span className="flex items-center gap-1 text-xs text-gray-600">
-                <Eye className="w-3 h-3" />{formatCount(repository.watchers_count)}
-              </span>
-              <span className="flex items-center gap-1 text-xs text-gray-600">
-                <CircleDot className="w-3 h-3 text-green-500/70" />{repository.open_issues_count} issues
-              </span>
-              <span className="text-xs text-gray-500">Updated {formatRelativeDate(repository.updated_at)}</span>
-            </div>
-
-            {repository.topics?.length > 0 && (
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {repository.topics.slice(0, 8).map(t => (
-                  <span key={t} className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-blue-500/[0.08] border border-blue-500/[0.15] text-blue-400">
-                    <Tag className="w-2.5 h-2.5" />{t}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-2 md:gap-3 flex-wrap">
+                <a href={repository.html_url} target="_blank" rel="noopener noreferrer"
+                  className="text-base font-bold text-white hover:text-blue-300 transition-colors flex items-center gap-1.5">
+                  <span className="text-gray-500 font-normal truncate max-w-[120px] md:max-w-none">{repository.owner.login}/</span><span className="truncate">{repository.full_name.split('/')[1]}</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                </a>
+                {repository.language && (
+                  <span className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full border"
+                    style={{ color: langColor, backgroundColor: `${langColor}14`, borderColor: `${langColor}30` }}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: langColor }} />
+                    {repository.language}
                   </span>
-                ))}
+                )}
+                {repository.license && (
+                  <span className="flex items-center gap-1 text-[11px] text-gray-600">
+                    <Scale className="w-3 h-3" />{repository.license.name}
+                  </span>
+                )}
               </div>
-            )}
+
+              {repository.description && (
+                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed max-w-2xl line-clamp-2 md:line-clamp-none">{repository.description}</p>
+              )}
+
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-3 md:gap-x-4 gap-y-1.5">
+                <span className="flex items-center gap-1 text-xs text-gray-600">
+                  <Star className="w-3 h-3 text-amber-500/70" />{formatCount(repository.stargazers_count)}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-gray-600">
+                  <GitFork className="w-3 h-3" />{formatCount(repository.forks_count)}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-gray-600">
+                  <Eye className="w-3 h-3" />{formatCount(repository.watchers_count)}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-gray-600">
+                  <CircleDot className="w-3 h-3 text-green-500/70" />{repository.open_issues_count} <span className="hidden sm:inline">issues</span>
+                </span>
+                <span className="text-xs text-gray-500">Updated {formatRelativeDate(repository.updated_at)}</span>
+              </div>
+
+              {repository.topics?.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {repository.topics.slice(0, 8).map(t => (
+                    <span key={t} className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-blue-500/[0.08] border border-blue-500/[0.15] text-blue-400">
+                      <Tag className="w-2.5 h-2.5" />{t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
             <button
               onClick={() => starMutation.mutate(!isStarred)}
               disabled={starredLoading || starMutation.isPending}
