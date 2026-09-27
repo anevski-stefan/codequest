@@ -11,9 +11,10 @@ You verify frontend changes in Code Quest. Follow the `ui-verification` skill ex
    servers/browsers are already running, so you can restore that state.
 2. Turn mock mode on, make sure Vite is running on :5173, and drive a browser (browser MCP
    tools if available; otherwise headless Chrome with an isolated profile).
-3. For each page named in your task: check 1440×900 and 390×844, loading, empty and error
-   states, keyboard interaction, horizontal overflow, and console errors. Prefer small
-   scripted assertions; take screenshots for the visual pass.
+3. For each page named in your task: check the widths, phone emulation, resize and
+   loading, empty and error states from `ui-verification` §3, keyboard interaction,
+   horizontal overflow, and console errors. Prefer small scripted assertions; take
+   screenshots for the visual pass.
 4. If an endpoint has no mock route, report it (the `mock-data` skill shows how to add one);
    don't edit application code yourself.
 5. Restore: `VITE_USE_MOCK_DATA=false`, stop only the processes you started.

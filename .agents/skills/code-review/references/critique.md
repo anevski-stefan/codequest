@@ -41,8 +41,8 @@ Walk every angle. Skip none silently; an angle with nothing to say gets one line
 5. **Edge cases.** Empty, null, one item, thousands of items, long strings and unicode,
    unauthenticated user, private repo, GitHub rate limit or 404, refetch and re-render,
    double click, two tabs, stale cache, slow network.
-6. **States and interaction** (UI only). Loading, empty and error with Retry; 390px and
-   1440px; keyboard and focus; touch targets; design tokens, no violet, no emojis; motion
+6. **States and interaction** (UI only). Loading, empty and error with Retry; the widths in
+   `ui-verification`; keyboard and focus; touch targets; design tokens, no violet, no emojis; motion
    on `transform`/`opacity` only.
 7. **Performance and cost.** GitHub calls per page view and per item (N+1, unbatched
    GraphQL), cache keys and TTLs, AI tokens per request, re-renders from unstable

@@ -120,7 +120,8 @@ These apply even if no skill is active.
 - [ ] Nothing the change touches got worse (Non-negotiables 9); before/after compared
 - [ ] You ran the `code-review` checklist on your own diff before reporting, and before a
       commit `code-reviewer` + `change-critic` ran with every Must fix / Blocking resolved
-- [ ] UI checked at 1440px and 390px, loading / empty / error states included
+- [ ] UI checked at the four widths in `ui-verification` (390 emulated as a phone),
+      loading / empty / error states included
 - [ ] New endpoints have a mock route and validation
 - [ ] Committed by pathspec, Conventional Commits subject only — no body, no attribution
       trailer (`git-workflow`)

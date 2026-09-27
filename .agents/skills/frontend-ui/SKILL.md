@@ -103,6 +103,6 @@ spacing, alignment, readability, states, behaviour) and check it is still true a
 
 ## 9. Before you say it's done
 
-Activate `ui-verification` and check the change in a browser at 1440px and 390px, in
-mock mode, including loading, empty and error states. Run `npx tsc --noEmit -p .`,
-`npx eslint src`, `npm run build`.
+Activate `ui-verification` and check the change in a browser at the widths it lists,
+in mock mode, including loading, empty and error states. Run
+`npx tsc --noEmit -p .`, `npx eslint src`, `npm run build`.
