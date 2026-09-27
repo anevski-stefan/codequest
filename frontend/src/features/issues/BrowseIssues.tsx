@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { getIssues } from '../../services/github';
 import type { IssueParams, Language, IssueResponse } from '../../types/github';
 import debounce from '../../utils/debounce';
-import { SlidersHorizontal, X, Loader2, ChevronDown } from 'lucide-react';
+import { SlidersHorizontal, X, Loader2, ChevronDown, Search } from 'lucide-react';
 import IssueDetailsModal from '../../components/IssueDetailsModal';
 import IssueCard from '../../components/issues/IssueCard';
 import useIssueClaims, { claimFor } from '../../hooks/useIssueClaims';
@@ -37,7 +38,35 @@ const DEFAULT_FILTER: IssueParams = {
 
 const BrowseIssues = () => {
   usePageTitle('Browse issues');
-  const [filter, setFilter] = useState<IssueParams>(DEFAULT_FILTER);
+  const [params, setParams] = useSearchParams();
+  const initialFilter = useMemo<IssueParams>(() => {
+    return {
+      ...DEFAULT_FILTER,
+      q: params.get('q') || '',
+      language: params.get('language') || '',
+      sort: params.get('sort') || DEFAULT_FILTER.sort,
+      direction: (params.get('direction') as IssueParams['direction']) || DEFAULT_FILTER.direction,
+      state: (params.get('state') as IssueParams['state']) || DEFAULT_FILTER.state,
+      timeFrame: params.get('timeFrame') || DEFAULT_FILTER.timeFrame,
+      commentsRange: params.get('commentsRange') || DEFAULT_FILTER.commentsRange,
+      labels: params.getAll('labels') || [],
+    };
+  }, []);
+  const [filter, setFilter] = useState<IssueParams>(initialFilter);
+  const [searchQuery, setSearchQuery] = useState(initialFilter.q || '');
+
+  useEffect(() => {
+    const newParams = new URLSearchParams();
+    if (filter.q) newParams.set('q', filter.q);
+    if (filter.language) newParams.set('language', filter.language);
+    if (filter.sort !== DEFAULT_FILTER.sort) newParams.set('sort', filter.sort);
+    if (filter.direction !== DEFAULT_FILTER.direction) newParams.set('direction', filter.direction!);
+    if (filter.state !== DEFAULT_FILTER.state) newParams.set('state', filter.state);
+    if (filter.timeFrame !== DEFAULT_FILTER.timeFrame) newParams.set('timeFrame', filter.timeFrame);
+    if (filter.commentsRange !== DEFAULT_FILTER.commentsRange) newParams.set('commentsRange', filter.commentsRange);
+    filter.labels.forEach(l => newParams.append('labels', l));
+    setParams(newParams, { replace: true });
+  }, [filter, setParams]);
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [hideTaken, setHideTaken] = useState(false);
@@ -127,6 +156,20 @@ const BrowseIssues = () => {
         />
 
         <div className="hidden lg:flex items-center gap-2 pb-4 border-b border-white/[0.05] w-full flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              className="h-8 pl-8 pr-3 w-48 rounded-lg bg-[#363B52] border border-white/[0.09] text-[13px] text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-blue-500/50 focus:shadow-[0_0_0_3px_rgba(59,123,255,0.12)] transition-all"
+              value={searchQuery}
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                debouncedSetFilter({ q: e.target.value });
+              }}
+            />
+          </div>
+
           <FilterChip
             prefix="Time"
             options={timeFrameOptions}
@@ -247,6 +290,23 @@ const BrowseIssues = () => {
               </button>
             </div>
             <div className="px-5 py-5 space-y-6">
+              <div className="space-y-2">
+                <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-widest">Search</p>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Search keywords..."
+                    className="w-full pl-9 pr-3 h-11 bg-white/[0.05] border border-white/[0.08] rounded-xl text-sm text-gray-300 focus:outline-none focus:border-blue-500/60 transition-all"
+                    value={searchQuery}
+                    onChange={e => {
+                      setSearchQuery(e.target.value);
+                      debouncedSetFilter({ q: e.target.value });
+                    }}
+                  />
+                </div>
+              </div>
+
               {[
                 { label: 'Time Frame', options: timeFrameOptions, value: filter.timeFrame, onChange: handleTimeFrameChange },
                 { label: 'Sort By', options: sortOptions, value: filter.direction === 'asc' ? 'created-asc' : filter.sort, onChange: handleSortChange },

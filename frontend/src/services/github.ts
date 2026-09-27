@@ -131,6 +131,10 @@ const fetchIssues = async (searchQuery: string, sort: string, direction?: string
 export const getIssues = async (params: IssueParams): Promise<IssueResponse> => {
   let searchQuery = 'is:issue is:unlocked ';
   let startDate: string | undefined;
+  if (params.q) {
+    searchQuery += `${params.q} `;
+  }
+
   if (params.language) {
     searchQuery += `language:${params.language} `;
   }
@@ -578,3 +582,8 @@ export const getUserStarredCount = async (username?: string) => {
   return Array.isArray(response.data) ? response.data.length : 0;
 };
 
+export const getMergeLikelihoodBulk = async (repos: { owner: string; repo: string }[]) => {
+  if (repos.length === 0) return {};
+  const { data } = await api.post('/api/repos/metrics/merge-likelihood-bulk', { repos });
+  return data;
+};

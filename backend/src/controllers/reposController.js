@@ -1,5 +1,5 @@
 const githubService = require('../services/githubService');
-const { getMergeLikelihood } = require('../services/mergeLikelihoodService');
+const { getMergeLikelihood, getCachedMergeLikelihoodBulk } = require('../services/mergeLikelihoodService');
 const { badRequest, asyncHandler } = require('../utils/httpError');
 const { buildPagination, clampPage } = require('../utils/pagination');
 const { isValidNumber, isValidState } = require('../utils/validateParams');
@@ -215,4 +215,12 @@ exports.getPullDetails = asyncHandler(async (req, res) => {
     commits_data: commitsWithFiles
   };
   res.json(details);
+});
+exports.getMergeLikelihoodBulk = asyncHandler(async (req, res) => {
+  const { repos } = req.body;
+  if (!Array.isArray(repos)) {
+    return badRequest(res, 'repos must be an array of {owner, repo} objects');
+  }
+  const accessibleRepos = await githubService.verifyReposAccess(req.user.accessToken, repos);
+  res.json(await getCachedMergeLikelihoodBulk(accessibleRepos));
 });

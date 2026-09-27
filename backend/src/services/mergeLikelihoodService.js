@@ -91,9 +91,13 @@ async function readCacheBulk(repos) {
     return {};
   }
   
+  const requestedSet = new Set(repos.map(r => `${r.owner.toLowerCase()}/${r.repo.toLowerCase()}`));
+  
   const map = {};
   const now = Date.now();
   for (const row of data || []) {
+    const key = `${row.owner.toLowerCase()}/${row.repo.toLowerCase()}`;
+    if (!requestedSet.has(key)) continue;
     if (now - Date.parse(row.updated_at) < CACHE_TTL_MS) {
       map[`${row.owner}/${row.repo}`.toLowerCase()] = row.stats;
     }

@@ -6,6 +6,7 @@ const {
   getRepoContributors,
   getLotteryContributors,
   getMergeLikelihood,
+  getMergeLikelihoodBulk,
   getPulls,
   getPullDetails,
   checkRepoStarred,
@@ -17,6 +18,7 @@ const { aiChatLimiter } = require('../middleware/rateLimiter');
 const requireAuth = require('../middleware/requireAuth');
 const { validateOwnerRepo } = require('../utils/validateParams');
 router.use(requireAuth);
+router.post('/metrics/merge-likelihood-bulk', getMergeLikelihoodBulk);
 router.use('/:owner/:repo', validateOwnerRepo);
 router.get('/:owner/:repo', getRepoDetails);
 router.get('/:owner/:repo/contributors/stats', getRepoContributors);

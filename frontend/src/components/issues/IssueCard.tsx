@@ -99,6 +99,14 @@ const IssueCard = memo(({ issue, onOpen, onPrefetch, dateField = 'createdAt', in
         {issue.title}
       </h3>
 
+      {issue.updatedAt && !closed && (Date.now() - new Date(issue.updatedAt).getTime()) / (1000 * 60 * 60 * 24 * 30) >= 3 && (
+        <div className="flex">
+          <span className="inline-flex items-center h-5 px-1.5 rounded-[4px] border border-orange-500/20 bg-orange-500/10 text-[9px] font-bold tracking-wide uppercase text-orange-300/90">
+            No activity for {Math.floor((Date.now() - new Date(issue.updatedAt).getTime()) / (1000 * 60 * 60 * 24 * 30))} months
+          </span>
+        </div>
+      )}
+
       <div className="mt-auto flex items-center gap-3 min-h-[20px]">
         <div className="flex-1 min-w-0"><LabelsCellContent labels={issue.labels} /></div>
         <span

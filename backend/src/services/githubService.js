@@ -180,3 +180,25 @@ class GitHubService {
 }
 
 module.exports = GitHubService;
+
+exports.verifyReposAccess = async (token, repos) => {
+  if (repos.length === 0) return [];
+  // Batch up to 50 repos per GraphQL request
+  const batchSize = 50;
+  const accessible = new Set();
+  
+  for (let i = 0; i < repos.length; i += batchSize) {
+    const batch = repos.slice(i, i + batchSize);
+    const aliases = batch.map((r, idx) => `repo${idx}: repository(owner: "${r.owner}", name: "${r.repo}") { id }`).join('\n');
+    const query = `query {\n${aliases}\n}`;
+    try {
+      const result = await exports.request(token, 'POST', '/graphql', { data: { query } });
+      batch.forEach((r, idx) => {
+        if (result.data?.[`repo${idx}`]) accessible.add(`${r.owner}/${r.repo}`.toLowerCase());
+      });
+    } catch (e) {
+      // Ignore errors (e.g., totally invalid repos)
+    }
+  }
+  return repos.filter(r => accessible.has(`${r.owner}/${r.repo}`.toLowerCase()));
+};

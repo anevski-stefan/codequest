@@ -14,8 +14,9 @@ const FAMOUS_ORGS_B = [
   'prisma', 'storybookjs', 'mozilla', 'huggingface', 'langchain-ai',
 ];
 
-function buildBaseQuery({ language, commentsRange, timeFrame }) {
+function buildBaseQuery({ language, commentsRange, timeFrame, q: searchKeyword }) {
   let q = `is:issue is:open no:assignee label:${LABEL_OR} `;
+  if (searchKeyword) q += `${searchKeyword} `;
   if (language) q += `language:${language} `;
   if (commentsRange === '0') q += 'comments:0 ';
   else if (commentsRange === '1-5') q += 'comments:1..5 ';
@@ -141,6 +142,7 @@ exports.getSuggestedIssues = asyncHandler(async (req, res) => {
     timeFrame = 'month',
     page = 1,
     famousOnly = 'false',
+    q = '',
   } = req.query;
 
   let { language = '' } = req.query;
@@ -153,7 +155,7 @@ exports.getSuggestedIssues = asyncHandler(async (req, res) => {
   }
 
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
-  const base = buildBaseQuery({ language, commentsRange, timeFrame });
+  const base = buildBaseQuery({ language, commentsRange, timeFrame, q });
 
   const perPage = 30;
 

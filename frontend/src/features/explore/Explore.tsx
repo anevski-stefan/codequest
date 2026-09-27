@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect, useRef, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Search, Users, FolderGit2, X, ArrowUpRight, SearchX } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useDebounce } from '../../hooks/useDebounce';
-import { api, searchTopContributors } from '../../services/github';
+import { api, searchTopContributors, getMergeLikelihoodBulk } from '../../services/github';
 import type { GithubUser, GitHubRepository as Repository } from '../../types/github';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import EmptyState from '../../components/ui/EmptyState';
@@ -83,6 +83,15 @@ const Explore = () => {
       const { data } = await api.get<{ items: Repository[]; total_count: number }>('/api/github/search/repositories', {
         params: { q, per_page: PER_PAGE, page: pageParam, ...(sort ? { sort, order: 'desc' } : {}) },
       });
+      
+      if (data.items?.length > 0) {
+        const mlBulk = await getMergeLikelihoodBulk(data.items.map(r => ({ owner: r.full_name.split('/')[0], repo: r.full_name.split('/')[1] })));
+        data.items = data.items.map(repo => ({
+          ...repo,
+          mergeLikelihood: mlBulk[repo.full_name.toLowerCase()]
+        }));
+      }
+
       return data;
     },
     initialPageParam: 1,
@@ -104,6 +113,13 @@ const Explore = () => {
   });
 
   const repos = useMemo(() => repoQuery.data?.pages.flatMap(p => p.items) ?? [], [repoQuery.data]);
+  const mlQuery = useQuery({
+    queryKey: ['merge-likelihood-bulk', repos.map(r => r.full_name)],
+    queryFn: () => getMergeLikelihoodBulk(repos.map(r => ({ owner: r.full_name.split('/')[0], repo: r.full_name.split('/')[1] }))),
+    enabled: repos.length > 0,
+    staleTime: 15 * 60 * 1000,
+  });
+
   const total = repoQuery.data?.pages[0]?.total_count ?? 0;
   const people = useMemo(() => peopleQuery.data?.pages.flatMap(p => p.users) ?? [], [peopleQuery.data]);
 
@@ -233,7 +249,7 @@ const Explore = () => {
             <>
               <div className="px-6 lg:px-8 py-5 grid grid-cols-1 lg:grid-cols-2 gap-2.5 max-w-[1400px]">
                 {repos.map((repo, i) => (
-                  <RepoResultCard key={repo.id} repo={repo} index={i} onTopic={t => search(`topic:${t}`, { sort: 'stars' })} />
+                  <RepoResultCard key={repo.id} repo={repo} index={i} mergeLikelihood={mlQuery.data?.[repo.full_name.toLowerCase()]} onTopic={t => search(`topic:${t}`, { sort: 'stars' })} />
                 ))}
               </div>
               {repoQuery.hasNextPage && <LoadMoreButton onClick={() => repoQuery.fetchNextPage()} isLoading={repoQuery.isFetchingNextPage} />}
