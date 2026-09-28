@@ -11,6 +11,7 @@ import { Toaster } from 'react-hot-toast';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 60 * 1000,
       retry: (failureCount, error) => {
         const status = (error as { response?: { status?: number } })?.response?.status;
         if (status && status >= 400 && status < 500) return false;
