@@ -50,10 +50,10 @@ const RepoResultCard = memo(({ repo, index, onTopic, mergeLikelihood }: Props) =
           <h3 className="text-[14px] font-semibold text-gray-100 group-hover:text-white truncate transition-colors">
             <span className="text-gray-500 font-normal">{owner}/</span>{name}
           </h3>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
             <p className="text-[11px] text-gray-500">Updated {formatRelativeDate(repo.updated_at)}</p>
             {likelihood !== 'unknown' && (
-              <span className={`inline-flex items-center h-4 px-1.5 rounded-[4px] border text-[9px] font-bold tracking-wide uppercase ${likelihoodTier.cls}`}>
+              <span className={`inline-flex items-center h-4 px-1.5 rounded-[4px] border text-[9px] font-bold tracking-wide uppercase whitespace-nowrap ${likelihoodTier.cls}`}>
                 {likelihood} merge rate
               </span>
             )}
