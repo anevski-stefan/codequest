@@ -1,10 +1,20 @@
 const rateLimit = require('express-rate-limit');
-const { errorBody } = require('../utils/httpError');
+const { errorBody, formatWait } = require('../utils/httpError');
+
+const SIGNED_IN_MAX = 900;
+const ANONYMOUS_MAX = 100;
+
+function rateLimitMessage(retryAfterSeconds) {
+  const seconds = parseInt(retryAfterSeconds, 10);
+  const wait = Number.isFinite(seconds) && seconds > 0 ? `in ${formatWait(seconds)}` : 'shortly';
+  return `Too many requests to Code Quest. Try again ${wait}.`;
+}
 
 const errorHandler = (req, res) => {
+  const retryAfter = res.getHeader('Retry-After');
   res.status(429).json({
-    ...errorBody('Too many requests', 'Please try again later'),
-    retryAfter: res.getHeader('Retry-After')
+    ...errorBody(rateLimitMessage(retryAfter), undefined, 'RATE_LIMIT'),
+    retryAfter
   });
 };
 
@@ -30,12 +40,15 @@ function makeLimiter({ max, windowMs = DEFAULTS.windowMs, keyGenerator = ipKeyGe
   });
 }
 
+const globalMax = req => (req.user ? SIGNED_IN_MAX : ANONYMOUS_MAX);
+const skipGlobal = req => req.path === '/health'
+  || req.path.startsWith('/auth')
+  || (!!req.user && req.path === '/api/activity/track');
+
 const limiter = makeLimiter({
-  max: 100,
+  max: globalMax,
   keyGenerator: userAwareKeyGenerator,
-  skip: req => {
-    return req.path === '/health' || req.path.startsWith('/auth');
-  }
+  skip: skipGlobal
 });
 const authLimiter = makeLimiter({ max: 30 });
 const meLimiter = makeLimiter({ max: 120 });
@@ -44,7 +57,7 @@ const feedbackLimiter = makeLimiter({ max: 20 });
 const aiChatLimiter = makeLimiter({ max: 40, keyGenerator: userAwareKeyGenerator });
 const aiKeysLimiter = makeLimiter({ max: 30, keyGenerator: userAwareKeyGenerator });
 const trackLimiter = makeLimiter({ max: 300, keyGenerator: userAwareKeyGenerator });
-const prTrackerLimiter = makeLimiter({ max: 12, keyGenerator: userAwareKeyGenerator });
+const prTrackerLimiter = makeLimiter({ max: 60, keyGenerator: userAwareKeyGenerator });
 
 module.exports = limiter;
 module.exports.authLimiter = authLimiter;
@@ -55,3 +68,5 @@ module.exports.aiChatLimiter = aiChatLimiter;
 module.exports.aiKeysLimiter = aiKeysLimiter;
 module.exports.trackLimiter = trackLimiter;
 module.exports.prTrackerLimiter = prTrackerLimiter;
+module.exports.globalMax = globalMax;
+module.exports.rateLimitMessage = rateLimitMessage;

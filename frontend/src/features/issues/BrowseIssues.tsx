@@ -19,7 +19,7 @@ import FilterChip from '../../components/ui/FilterChip';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
 import PageHeader from '../../components/ui/PageHeader';
-import { extractErrorMessage, isRateLimitError } from '../../utils/extractErrorMessage';
+import { extractErrorMessage, rateLimitTitle } from '../../utils/extractErrorMessage';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const TAKEN: ReadonlySet<string> = new Set(['requested', 'in_progress', 'closed']);
@@ -101,7 +101,7 @@ const BrowseIssues = () => {
   const allIssues = useMemo(() => data?.pages.flatMap(p => p.issues) ?? [], [data]);
   const errorView = isError && (
     <ErrorDisplay
-      title={isRateLimitError(error) ? 'GitHub rate limit reached' : 'Failed to load issues'}
+      title={rateLimitTitle(error) ?? 'Failed to load issues'}
       error={extractErrorMessage(error)}
       onRetry={() => (isFetchNextPageError ? fetchNextPage() : refetch())}
     />

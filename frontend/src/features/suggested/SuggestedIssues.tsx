@@ -13,7 +13,7 @@ import useIssueClaims, { claimFor } from '../../hooks/useIssueClaims';
 import FilterChip from '../../components/ui/FilterChip';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
-import { extractErrorMessage, isRateLimitError } from '../../utils/extractErrorMessage';
+import { extractErrorMessage, rateLimitTitle } from '../../utils/extractErrorMessage';
 
 const LANGUAGES = [
   { value: '', label: 'Any Language' },
@@ -98,7 +98,7 @@ const SuggestedIssues = () => {
 
   const errorView = error && (
     <ErrorDisplay
-      title={isRateLimitError(error) ? 'GitHub rate limit reached' : 'Failed to load issues'}
+      title={rateLimitTitle(error) ?? 'Failed to load issues'}
       error={extractErrorMessage(error)}
       onRetry={() => (isFetchNextPageError ? fetchNextPage() : refetch())}
     />

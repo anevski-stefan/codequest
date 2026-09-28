@@ -21,7 +21,7 @@ import { motion } from 'framer-motion';
 import { LANGUAGE_COLORS } from '../../constants/languageColors';
 import { formatCount } from '../../utils/formatCount';
 import type { GitHubRepository as Repository } from '../../types/github';
-import { extractErrorMessage } from '../../utils/extractErrorMessage';
+import { extractErrorMessage, rateLimitTitle } from '../../utils/extractErrorMessage';
 import type { TopContributor, LotteryContributor, MergeLikelihood, PullRequest, PullRequestsResult, PullRequestCounts } from './types';
 import { BAR_COLORS } from './types';
 import { RepoSidebar } from './components/RepoSidebar';
@@ -244,12 +244,8 @@ const RepositoryDetails = () => {
     return (
       <div className="p-6 max-w-2xl">
         <ErrorDisplay
-          title={status === 404 ? 'Repository not found' : status === 429 || status === 403 ? 'GitHub rate limit reached' : "Couldn't load this repository"}
-          error={status === 404
-            ? `${owner}/${repo} doesn't exist or is private.`
-            : status === 429 || status === 403
-              ? 'GitHub is limiting requests right now. Wait a minute and try again.'
-              : extractErrorMessage(repoError)}
+          title={rateLimitTitle(repoError) ?? (status === 404 ? 'Repository not found' : "Couldn't load this repository")}
+          error={status === 404 ? `${owner}/${repo} doesn't exist or is private.` : extractErrorMessage(repoError)}
           onRetry={status === 404 ? undefined : () => refetchRepo()}
         />
       </div>

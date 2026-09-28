@@ -119,5 +119,6 @@ module.exports = {
   devDetails,
   githubErrorResponse,
   detectRateLimit,
+  formatWait,
   GitHubApiError
 };

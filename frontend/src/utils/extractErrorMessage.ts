@@ -8,7 +8,11 @@ export function extractErrorMessage(err: unknown, fallback = 'Unknown error'): s
   return fallback;
 }
 
-export function isRateLimitError(err: unknown): boolean {
-  const code = (err as { response?: { data?: { code?: string } } } | null)?.response?.data?.code;
-  return code === 'GITHUB_RATE_LIMIT';
+const errorCode = (err: unknown) => (err as { response?: { data?: { code?: string } } } | null)?.response?.data?.code;
+
+export function rateLimitTitle(err: unknown): string | null {
+  const code = errorCode(err);
+  if (code === 'GITHUB_RATE_LIMIT') return 'GitHub rate limit reached';
+  if (code === 'RATE_LIMIT') return 'Request limit reached';
+  return null;
 }
