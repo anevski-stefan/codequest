@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueries } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Search, Users, FolderGit2, X, ArrowUpRight, SearchX } from 'lucide-react';
 import { usePageTitle } from '../../hooks/usePageTitle';
@@ -8,12 +8,14 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { api, searchTopContributors, getMergeLikelihoodBulk } from '../../services/github';
 import type { GithubUser, GitHubRepository as Repository } from '../../types/github';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
+import { extractErrorMessage, rateLimitTitle } from '../../utils/extractErrorMessage';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
 import FilterChip from '../../components/ui/FilterChip';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { easeOut } from '../../lib/motion';
 import RepoResultCard from './components/RepoResultCard';
+import type { MergeLikelihood } from './types';
 import ExploreHome from './components/ExploreHome';
 
 type Tab = 'repos' | 'people';
@@ -83,15 +85,6 @@ const Explore = () => {
       const { data } = await api.get<{ items: Repository[]; total_count: number }>('/api/github/search/repositories', {
         params: { q, per_page: PER_PAGE, page: pageParam, ...(sort ? { sort, order: 'desc' } : {}) },
       });
-      
-      if (data.items?.length > 0) {
-        const mlBulk = await getMergeLikelihoodBulk(data.items.map(r => ({ owner: r.full_name.split('/')[0], repo: r.full_name.split('/')[1] })));
-        data.items = data.items.map(repo => ({
-          ...repo,
-          mergeLikelihood: mlBulk[repo.full_name.toLowerCase()]
-        }));
-      }
-
       return data;
     },
     initialPageParam: 1,
@@ -113,11 +106,17 @@ const Explore = () => {
   });
 
   const repos = useMemo(() => repoQuery.data?.pages.flatMap(p => p.items) ?? [], [repoQuery.data]);
-  const mlQuery = useQuery({
-    queryKey: ['merge-likelihood-bulk', repos.map(r => r.full_name)],
-    queryFn: () => getMergeLikelihoodBulk(repos.map(r => ({ owner: r.full_name.split('/')[0], repo: r.full_name.split('/')[1] }))),
-    enabled: repos.length > 0,
-    staleTime: 15 * 60 * 1000,
+  const mergeLikelihoods = useQueries({
+    queries: (repoQuery.data?.pages ?? []).map(page => ({
+      queryKey: ['merge-likelihood-bulk', page.items.map(r => r.full_name)],
+      queryFn: () => getMergeLikelihoodBulk(page.items.map(r => {
+        const [owner, repo] = r.full_name.split('/');
+        return { owner, repo };
+      })),
+      enabled: page.items.length > 0,
+      staleTime: 15 * 60 * 1000,
+    })),
+    combine: (results): Record<string, MergeLikelihood> => Object.assign({}, ...results.map(r => r.data ?? {})),
   });
 
   const total = repoQuery.data?.pages[0]?.total_count ?? 0;
@@ -129,7 +128,6 @@ const Explore = () => {
   const showHome = tab === 'repos' && !q;
   const busy = tab === 'repos' ? repoQuery.isFetching && !repoQuery.isFetchingNextPage : peopleQuery.isFetching && !peopleQuery.isFetchingNextPage;
   const error = (tab === 'repos' ? repoQuery.error : peopleQuery.error) as (Error & { response?: { status?: number } }) | null;
-  const rateLimited = error?.response?.status === 403 || error?.response?.status === 429 || /rate limit/i.test(error?.message ?? '');
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -218,8 +216,8 @@ const Explore = () => {
         ) : error ? (
           <div className="p-6 max-w-2xl">
             <ErrorDisplay
-              title={rateLimited ? 'GitHub rate limit reached' : 'Search failed'}
-              error={rateLimited ? 'GitHub is limiting search requests. Wait a minute and try again.' : error.message}
+              title={rateLimitTitle(error) ?? 'Search failed'}
+              error={extractErrorMessage(error)}
               onRetry={() => (tab === 'repos' ? repoQuery.refetch() : peopleQuery.refetch())}
             />
           </div>
@@ -249,7 +247,7 @@ const Explore = () => {
             <>
               <div className="px-6 lg:px-8 py-5 grid grid-cols-1 lg:grid-cols-2 gap-2.5 max-w-[1400px]">
                 {repos.map((repo, i) => (
-                  <RepoResultCard key={repo.id} repo={repo} index={i} mergeLikelihood={mlQuery.data?.[repo.full_name.toLowerCase()]} onTopic={t => search(`topic:${t}`, { sort: 'stars' })} />
+                  <RepoResultCard key={repo.id} repo={repo} index={i} mergeLikelihood={mergeLikelihoods[repo.full_name.toLowerCase()]} onTopic={t => search(`topic:${t}`, { sort: 'stars' })} />
                 ))}
               </div>
               {repoQuery.hasNextPage && <LoadMoreButton onClick={() => repoQuery.fetchNextPage()} isLoading={repoQuery.isFetchingNextPage} />}

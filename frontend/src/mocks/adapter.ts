@@ -153,6 +153,10 @@ const routes: [string, RegExp, Handler][] = [
   ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/contributors\/stats$/, m => topContributorsFor(`${m[1]}/${m[2]}`)],
   ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/lottery-contributors$/, m => lotteryFor(`${m[1]}/${m[2]}`)],
   ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/merge-likelihood$/, m => likelihoodFor(`${m[1]}/${m[2]}`)],
+  ['post', /^\/api\/repos\/metrics\/merge-likelihood-bulk$/, (_, __, body) => Object.fromEntries(
+    ((body as { repos?: { owner: string; repo: string }[] })?.repos ?? [])
+      .map(r => [`${r.owner}/${r.repo}`.toLowerCase(), likelihoodFor(`${r.owner}/${r.repo}`)]),
+  )],
   ['get', /^\/api\/repos\/([^/]+)\/([^/]+)\/pulls\/(\d+)$/, m => {
     const repo = repoFrom(m[1], m[2]);
     return repo ? pullDetails(repo, Number(m[3])) : status(404);

@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { setupCache, buildMemoryStorage, buildKeyGenerator } = require('axios-cache-interceptor');
 const { isRetryableStatus, getRetryDelayMs } = require('../utils/retry');
 const { detectRateLimit } = require('../utils/httpError');
+const logger = require('../utils/logger');
 
 const API_BASE = 'https://api.github.com';
 const CACHE_ENABLED = process.env.GITHUB_CACHE_ENABLED !== 'false';
@@ -15,6 +16,30 @@ const MAX_ENTRIES = (() => {
   return Number.isInteger(raw) && raw > 0 ? raw : 1000;
 })();
 const TOKEN_VALIDATION_TTL_MS = 10 * 60 * 1000;
+const REPO_ACCESS_BATCH = 50;
+const REPO_ACCESS_TTL_MS = 10 * 60 * 1000;
+
+const isCacheableGraphQLResponse = ({ status, data }) => status >= 200 && status < 300
+  && !!data?.data
+  && !data?.errors?.some(e => e?.type === 'RATE_LIMITED');
+
+const GRAPHQL_CACHE = {
+  methods: ['post'],
+  cachePredicate: { responseMatch: isCacheableGraphQLResponse },
+};
+
+function buildRepoAccessQuery(repos) {
+  const defs = [];
+  const parts = [];
+  const variables = {};
+  repos.forEach((r, i) => {
+    defs.push(`$o${i}: String!`, `$n${i}: String!`);
+    variables[`o${i}`] = r.owner;
+    variables[`n${i}`] = r.repo;
+    parts.push(`r${i}: repository(owner: $o${i}, name: $n${i}) { id }`);
+  });
+  return { query: `query(${defs.join(', ')}) { ${parts.join('\n')} }`, variables };
+}
 
 const storage = buildMemoryStorage(false, 5 * 60 * 1000, MAX_ENTRIES);
 
@@ -62,8 +87,9 @@ class GitHubService {
     const isGraphQL = method === 'POST' && path === '/graphql';
     const ttlMs = options.cacheTtlMs ?? DEFAULT_TTL_MS;
     
-    const cacheConfig = CACHE_ENABLED && (isReadOnly || (isGraphQL && options.cacheTtlMs)) && options.cache !== false
-      ? { ttl: ttlMs }
+    const cacheGraphQL = isGraphQL && !!options.cacheTtlMs;
+    const cacheConfig = CACHE_ENABLED && (isReadOnly || cacheGraphQL) && options.cache !== false
+      ? { ttl: ttlMs, ...(cacheGraphQL ? GRAPHQL_CACHE : {}) }
       : false;
 
     const maxAttempts = 1 + (options.maxRetries ?? (isReadOnly ? 2 : 0));
@@ -172,6 +198,27 @@ class GitHubService {
     }
   }
 
+  static async verifyReposAccess(token, repos) {
+    const accessible = new Set();
+    for (let i = 0; i < repos.length; i += REPO_ACCESS_BATCH) {
+      const batch = repos.slice(i, i + REPO_ACCESS_BATCH);
+      const { query, variables } = buildRepoAccessQuery(batch);
+      try {
+        const result = await GitHubService.request(token, 'POST', '/graphql', {
+          data: { query, variables },
+          cacheTtlMs: REPO_ACCESS_TTL_MS,
+        });
+        batch.forEach((r, idx) => {
+          if (result.data?.[`r${idx}`]) accessible.add(`${r.owner}/${r.repo}`.toLowerCase());
+        });
+      } catch (error) {
+        if (error.code === 'GITHUB_RATE_LIMIT') throw error;
+        logger.warn('[github] repository access check failed', { message: error.message });
+      }
+    }
+    return repos.filter(r => accessible.has(`${r.owner}/${r.repo}`.toLowerCase()));
+  }
+
   static async searchIssues(token, query, options = {}) {
     return GitHubService.request(token, 'GET', '/search/issues', {
       params: {
@@ -185,25 +232,5 @@ class GitHubService {
 }
 
 module.exports = GitHubService;
-
-exports.verifyReposAccess = async (token, repos) => {
-  if (repos.length === 0) return [];
-  // Batch up to 50 repos per GraphQL request
-  const batchSize = 50;
-  const accessible = new Set();
-  
-  for (let i = 0; i < repos.length; i += batchSize) {
-    const batch = repos.slice(i, i + batchSize);
-    const aliases = batch.map((r, idx) => `repo${idx}: repository(owner: "${r.owner}", name: "${r.repo}") { id }`).join('\n');
-    const query = `query {\n${aliases}\n}`;
-    try {
-      const result = await exports.request(token, 'POST', '/graphql', { data: { query } });
-      batch.forEach((r, idx) => {
-        if (result.data?.[`repo${idx}`]) accessible.add(`${r.owner}/${r.repo}`.toLowerCase());
-      });
-    } catch (e) {
-      // Ignore errors (e.g., totally invalid repos)
-    }
-  }
-  return repos.filter(r => accessible.has(`${r.owner}/${r.repo}`.toLowerCase()));
-};
+module.exports.buildRepoAccessQuery = buildRepoAccessQuery;
+module.exports.isCacheableGraphQLResponse = isCacheableGraphQLResponse;

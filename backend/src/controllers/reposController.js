@@ -1,5 +1,5 @@
 const githubService = require('../services/githubService');
-const { getMergeLikelihood, getCachedMergeLikelihoodBulk } = require('../services/mergeLikelihoodService');
+const { getMergeLikelihood, getCachedMergeLikelihoodBulk, normalizeBulkRepos } = require('../services/mergeLikelihoodService');
 const { badRequest, sendError, asyncHandler } = require('../utils/httpError');
 const { buildPagination, clampPage } = require('../utils/pagination');
 const { isValidNumber, isValidState } = require('../utils/validateParams');
@@ -228,10 +228,10 @@ exports.getIssueDetails = asyncHandler(async (req, res) => {
   res.json(issue);
 });
 exports.getMergeLikelihoodBulk = asyncHandler(async (req, res) => {
-  const { repos } = req.body;
-  if (!Array.isArray(repos)) {
-    return badRequest(res, 'repos must be an array of {owner, repo} objects');
-  }
-  const accessibleRepos = await githubService.verifyReposAccess(req.user.accessToken, repos);
-  res.json(await getCachedMergeLikelihoodBulk(accessibleRepos));
+  const { error, repos } = normalizeBulkRepos(req.body?.repos);
+  if (error) return badRequest(res, error);
+  const cached = await getCachedMergeLikelihoodBulk(repos);
+  const hits = repos.filter(r => cached[`${r.owner}/${r.repo}`]);
+  const accessible = await githubService.verifyReposAccess(req.user.accessToken, hits);
+  res.json(Object.fromEntries(accessible.map(r => [`${r.owner}/${r.repo}`, cached[`${r.owner}/${r.repo}`]])));
 });

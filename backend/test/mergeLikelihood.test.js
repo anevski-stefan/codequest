@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { computeMergeStats, median } = require('../src/services/mergeLikelihoodService');
+const { computeMergeStats, median, normalizeBulkRepos, MAX_BULK_REPOS } = require('../src/services/mergeLikelihoodService');
 
 const NOW = Date.parse('2026-09-26T12:00:00Z');
 const ago = d => new Date(NOW - d * 86400000).toISOString();
@@ -83,4 +83,22 @@ test('no outside PRs at all yields nulls and unknown', () => {
     { likelihood: s.likelihood, rate: s.merge_rate, days: s.median_days_to_merge, n: s.sample_size },
     { likelihood: 'unknown', rate: null, days: null, n: 0 },
   );
+});
+
+test('bulk repos are lowercased and deduplicated to match the cache', () => {
+  const { repos } = normalizeBulkRepos([
+    { owner: 'microsoft', repo: 'TypeScript' },
+    { owner: 'Microsoft', repo: 'typescript' },
+    { owner: 'facebook', repo: 'react' },
+  ]);
+  assert.deepEqual(repos, [{ owner: 'microsoft', repo: 'typescript' }, { owner: 'facebook', repo: 'react' }]);
+});
+
+test('bulk repos reject too many items, non-arrays and hostile names', () => {
+  const many = Array.from({ length: MAX_BULK_REPOS + 1 }, (_, i) => ({ owner: 'o', repo: `r${i}` }));
+  assert.match(normalizeBulkRepos(many).error, /at most/);
+  assert.match(normalizeBulkRepos('facebook/react').error, /must be an array/);
+  assert.ok(normalizeBulkRepos([{ owner: 'x") { id } viewer { login', repo: 'y' }]).error);
+  assert.ok(normalizeBulkRepos([null]).error);
+  assert.deepEqual(normalizeBulkRepos([]), { repos: [] });
 });

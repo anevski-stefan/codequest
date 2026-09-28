@@ -2,6 +2,7 @@ const githubService = require('./githubService');
 const { getSupabase } = require('../config/supabase');
 const logger = require('../utils/logger');
 const { isBotAccount } = require('../utils/bots');
+const { isValidOwner, isValidRepo } = require('../utils/validateParams');
 
 /**
  * Merge Likelihood: how often, and how fast, a repository merges pull
@@ -131,8 +132,25 @@ async function getMergeLikelihood(token, rawOwner, rawRepo) {
   return stats;
 }
 
+const MAX_BULK_REPOS = 100;
+
+function normalizeBulkRepos(repos) {
+  if (!Array.isArray(repos)) return { error: 'repos must be an array of {owner, repo} objects' };
+  if (repos.length > MAX_BULK_REPOS) return { error: `Send at most ${MAX_BULK_REPOS} repositories at a time` };
+  if (!repos.every(r => r && isValidOwner(r.owner) && isValidRepo(r.repo))) {
+    return { error: 'Each repo needs a valid owner and name' };
+  }
+  const unique = new Map();
+  for (const r of repos) {
+    const owner = r.owner.toLowerCase();
+    const repo = r.repo.toLowerCase();
+    unique.set(`${owner}/${repo}`, { owner, repo });
+  }
+  return { repos: [...unique.values()] };
+}
+
 async function getCachedMergeLikelihoodBulk(repos) {
   return readCacheBulk(repos);
 }
 
-module.exports = { getMergeLikelihood, getCachedMergeLikelihoodBulk, computeMergeStats, isOutside, median, MIN_SAMPLE };
+module.exports = { getMergeLikelihood, getCachedMergeLikelihoodBulk, normalizeBulkRepos, MAX_BULK_REPOS, computeMergeStats, isOutside, median, MIN_SAMPLE };
