@@ -9,7 +9,7 @@ const logger = require('../utils/logger');
  */
 
 const GEMINI_BASE_URL = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
-const GEMINI_MODEL = process.env.EXPLAIN_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL = process.env.EXPLAIN_MODEL || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const GEMINI_FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
 const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || 'https://api.openai.com';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
