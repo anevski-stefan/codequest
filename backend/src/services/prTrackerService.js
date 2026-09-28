@@ -4,12 +4,14 @@ const { getCachedMergeLikelihoodBulk } = require('./mergeLikelihoodService');
 const { OUTCOME_EVENTS, recordOutcome } = require('./outcomeService');
 const logger = require('../utils/logger');
 const { isBotAccount } = require('../utils/bots');
+const { isValidOwner } = require('../utils/validateParams');
 
-const SYNC_COOLDOWN_MS = 5 * 60 * 1000;
+const SYNC_COOLDOWN_MS = 4 * 60 * 1000;
 const SILENCE_FLOOR_DAYS = 14;
 const SILENCE_ABANDONED_DAYS = 90;
 const SILENCE_BASELINE_FACTOR = 2;
 const MERGED_WINDOW_DAYS = 30;
+const ASSIGNED_WINDOW_DAYS = 30;
 const FAILED_CHECK_CONCLUSIONS = new Set(['FAILURE', 'TIMED_OUT', 'STARTUP_FAILURE', 'ACTION_REQUIRED']);
 const FAILED_STATUS_STATES = new Set(['FAILURE', 'ERROR']);
 const ATTRIBUTED_EVENTS = ['pr_opened', 'pr_merged'];
@@ -162,9 +164,38 @@ function planMergedPRNotifications(mergedPRs, { now, seen, viewerLogin, tracking
   return planned;
 }
 
+const sameLogin = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+
+function planAssignedIssueNotifications(assignedIssues, { now, seen, viewerLogin, trackingSince }) {
+  const planned = [];
+  if (!viewerLogin) return planned;
+  for (const issue of assignedIssues) {
+    const parts = splitNameWithOwner(issue);
+    if (!parts || !issue.url) continue;
+    const assignment = (issue.timelineItems?.nodes ?? [])
+      .filter(e => e?.createdAt && sameLogin(e.assignee?.login, viewerLogin))
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
+    if (!assignment || sameLogin(assignment.actor?.login, viewerLogin)) continue;
+    if (daysBetween(now, assignment.createdAt) > ASSIGNED_WINDOW_DAYS) continue;
+    const key = `issue_assigned:${issue.url}:${assignment.createdAt}`;
+    if (seen.has(key)) continue;
+    const by = isBotAuthor(assignment.actor) ? null : assignment.actor.login;
+    planned.push({
+      key,
+      type: 'issue_assigned',
+      title: `You were assigned to ${parts.owner}/${parts.repo}#${issue.number}`,
+      message: by ? `"${issue.title}", assigned by ${by}` : `"${issue.title}"`,
+      link: panelLink(parts.owner, parts.repo, { issueNumber: issue.number }),
+      read: Number.isFinite(trackingSince) && Date.parse(assignment.createdAt) < trackingSince,
+    });
+  }
+  return planned;
+}
+
 function planNotifications({
   openPRs = [],
   mergedPRs = [],
+  assignedIssues = [],
   now = Date.now(),
   seen = new Set(),
   medianDaysByRepo = new Map(),
@@ -174,6 +205,7 @@ function planNotifications({
   return [
     ...planOpenPRNotifications(openPRs, { now, seen, medianDaysByRepo, viewerLogin }),
     ...planMergedPRNotifications(mergedPRs, { now, seen, viewerLogin, trackingSince }),
+    ...planAssignedIssueNotifications(assignedIssues, { now, seen, viewerLogin, trackingSince }),
   ];
 }
 
@@ -295,6 +327,49 @@ async function fetchPullRequests(token) {
   };
 }
 
+const ASSIGNED_ISSUES_QUERY = `
+  query($q: String!) {
+    search(query: $q, type: ISSUE, first: 50) {
+      nodes {
+        ... on Issue {
+          number
+          title
+          url
+          repository { nameWithOwner }
+          timelineItems(last: 10, itemTypes: [ASSIGNED_EVENT]) {
+            nodes {
+              ... on AssignedEvent {
+                createdAt
+                actor { __typename login }
+                assignee { __typename ... on User { login } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+async function fetchAssignedIssues(token, viewerLogin, now) {
+  if (!isValidOwner(viewerLogin)) return [];
+  const since = new Date(now - ASSIGNED_WINDOW_DAYS * DAY_MS).toISOString().slice(0, 10);
+  try {
+    const result = await githubService.request(token, 'POST', '/graphql', {
+      data: {
+        query: ASSIGNED_ISSUES_QUERY,
+        variables: { q: `is:issue is:open assignee:${viewerLogin} updated:>=${since} sort:updated-desc` },
+      },
+      cacheTtlMs: SYNC_COOLDOWN_MS,
+    });
+    if (result?.errors?.length) logger.warn('[pr-tracker] partial GraphQL errors on assigned issues', { count: result.errors.length });
+    return (result.data?.search?.nodes ?? []).filter(Boolean);
+  } catch (err) {
+    logger.warn('[pr-tracker] assigned issues fetch failed', { message: err.message });
+    return [];
+  }
+}
+
 async function getSeenKeys(supabase, userId, keys) {
   if (keys.length === 0) return new Set();
   const { data, error } = await supabase
@@ -373,22 +448,36 @@ async function insertNotification(supabase, userId, planned) {
 }
 
 const inFlight = new Set();
+const lastSyncAt = new Map();
+const MAX_TRACKED_USERS = 10000;
+
+function isCoolingDown(lastAt, now) {
+  return lastAt !== undefined && now - lastAt < SYNC_COOLDOWN_MS;
+}
+
+function rememberSync(key, now) {
+  lastSyncAt.set(key, now);
+  if (lastSyncAt.size <= MAX_TRACKED_USERS) return;
+  for (const [k, at] of lastSyncAt) if (!isCoolingDown(at, now)) lastSyncAt.delete(k);
+}
 
 exports.sync = async (userId, token) => {
+  const now = Date.now();
   const lockKey = String(userId);
-  if (inFlight.has(lockKey)) return;
+  if (inFlight.has(lockKey) || isCoolingDown(lastSyncAt.get(lockKey), now)) return;
   inFlight.add(lockKey);
   const supabase = getSupabase();
 
   try {
     const { viewerLogin, openPRs, mergedPRs } = await fetchPullRequests(token);
-    const [medianDaysByRepo, outcomeKeys, trackingSince] = await Promise.all([
+    const [medianDaysByRepo, outcomeKeys, trackingSince, assignedIssues] = await Promise.all([
       getMedianDaysByRepo(openPRs.map(pr => pr.repository?.nameWithOwner)),
       getOutcomeKeys(supabase, userId, [...openPRs, ...mergedPRs]),
       getTrackingSince(supabase, userId),
+      fetchAssignedIssues(token, viewerLogin, now),
     ]);
 
-    const candidates = planNotifications({ openPRs, mergedPRs, now: Date.now(), medianDaysByRepo, viewerLogin, trackingSince });
+    const candidates = planNotifications({ openPRs, mergedPRs, assignedIssues, now, medianDaysByRepo, viewerLogin, trackingSince });
     const seen = await getSeenKeys(supabase, userId, candidates.map(item => item.key));
     const planned = candidates.filter(item => !seen.has(item.key));
     for (const item of planned) {
@@ -400,7 +489,9 @@ exports.sync = async (userId, token) => {
         await recordOutcome(supabase, { userId, ...outcome }, { serverOnly: true });
       }
     }
+    rememberSync(lockKey, now);
   } catch (err) {
+    if (err.code === 'GITHUB_RATE_LIMIT') rememberSync(lockKey, now);
     logger.warn('[pr-tracker] sync error', { message: err.message });
   } finally {
     inFlight.delete(lockKey);
@@ -408,6 +499,7 @@ exports.sync = async (userId, token) => {
 };
 
 exports.planNotifications = planNotifications;
+exports.isCoolingDown = isCoolingDown;
 exports.toNotificationRow = toNotificationRow;
 exports.buildSeenKeys = buildSeenKeys;
 exports.silenceThresholdDays = silenceThresholdDays;

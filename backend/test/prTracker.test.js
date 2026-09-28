@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { planNotifications, toNotificationRow, buildSeenKeys, silenceThresholdDays, planAttributedOutcomes, buildOutcomeKeys } = require('../src/services/prTrackerService');
+const { planNotifications, toNotificationRow, buildSeenKeys, silenceThresholdDays, planAttributedOutcomes, buildOutcomeKeys, isCoolingDown } = require('../src/services/prTrackerService');
 
 const NOW = Date.parse('2026-09-26T12:00:00Z');
 const ago = d => new Date(NOW - d * 86400000).toISOString();
@@ -379,4 +379,72 @@ test('private repositories and the viewer\'s own repositories are never attribut
   assert.deepEqual(attribute({ rows, openPRs: [pullRequest({ issueNumber: 42, isPrivate: true })] }), []);
   const own = planAttributedOutcomes({ openPRs: [pullRequest({ issueNumber: 42 })], viewerLogin: 'vercel', ...buildOutcomeKeys(rows) });
   assert.deepEqual(own, []);
+});
+
+test('a reload soon after a sync does not sync again', () => {
+  assert.equal(isCoolingDown(undefined, NOW), false);
+  assert.equal(isCoolingDown(NOW - 60 * 1000, NOW), true);
+  assert.equal(isCoolingDown(NOW - 4 * 60 * 1000, NOW), false);
+});
+
+const assignedIssue = (events, overrides = {}) => ({
+  number: 482,
+  title: 'Focus ring missing on icon-only buttons',
+  url: 'https://github.com/lumen-ui/lumen/issues/482',
+  repository: { nameWithOwner: 'lumen-ui/lumen' },
+  timelineItems: { nodes: events },
+  ...overrides,
+});
+const assigned = (daysAgo, actor, assignee = 'me') => ({
+  createdAt: ago(daysAgo), actor: { login: actor }, assignee: { __typename: 'User', login: assignee },
+});
+const assignedPlan = (issues, overrides = {}) =>
+  plan({ assignedIssues: issues, viewerLogin: 'Me', ...overrides }).filter(item => item.type === 'issue_assigned');
+
+test('a maintainer assigning an issue to the viewer is a notification', () => {
+  const [item] = assignedPlan([assignedIssue([assigned(1, 'maintainer')])]);
+  assert.equal(item.title, 'You were assigned to lumen-ui/lumen#482');
+  assert.equal(item.message, '"Focus ring missing on icon-only buttons", assigned by maintainer');
+  assert.equal(item.link, '/explore/lumen-ui/lumen?issue=482');
+  assert.equal(item.key, `issue_assigned:https://github.com/lumen-ui/lumen/issues/482:${ago(1)}`);
+});
+
+test('assigning yourself is not a notification', () => {
+  assert.deepEqual(assignedPlan([assignedIssue([assigned(1, 'me')])]), []);
+});
+
+test('only the latest assignment to the viewer counts, not other assignees', () => {
+  const [item] = assignedPlan([assignedIssue([assigned(20, 'maintainer'), assigned(2, 'maintainer'), assigned(1, 'maintainer', 'someone-else')])]);
+  assert.equal(item.key.endsWith(ago(2)), true);
+});
+
+test('assignments older than the window or already seen are skipped', () => {
+  assert.deepEqual(assignedPlan([assignedIssue([assigned(31, 'maintainer')])]), []);
+  const key = `issue_assigned:https://github.com/lumen-ui/lumen/issues/482:${ago(1)}`;
+  assert.deepEqual(assignedPlan([assignedIssue([assigned(1, 'maintainer')])], { seen: new Set([key]) }), []);
+});
+
+test('an assignment from before the user signed up arrives already read', () => {
+  const trackingSince = Date.parse(ago(5));
+  const [before, after] = assignedPlan([
+    assignedIssue([assigned(10, 'maintainer')], { number: 1, url: 'https://github.com/lumen-ui/lumen/issues/1' }),
+    assignedIssue([assigned(1, 'maintainer')], { number: 2, url: 'https://github.com/lumen-ui/lumen/issues/2' }),
+  ], { trackingSince });
+  assert.equal(before.read, true);
+  assert.equal(after.read, false);
+});
+
+test('without a viewer login or an assignment event nothing is planned', () => {
+  assert.deepEqual(assignedPlan([assignedIssue([assigned(1, 'maintainer')])], { viewerLogin: null }), []);
+  assert.deepEqual(assignedPlan([assignedIssue([])]), []);
+});
+
+test('the cooldown is shorter than the five-minute poll, so a poll that arrives early still syncs', () => {
+  const poll = 5 * 60 * 1000;
+  assert.equal(isCoolingDown(NOW - (poll - 30 * 1000), NOW), false);
+});
+
+test('an assignment done by a bot does not name the bot as the one who assigned it', () => {
+  const [item] = assignedPlan([assignedIssue([{ ...assigned(1, 'k8s-ci-robot'), actor: { login: 'k8s-ci-robot', __typename: 'Bot' } }])]);
+  assert.equal(item.message, '"Focus ring missing on icon-only buttons"');
 });

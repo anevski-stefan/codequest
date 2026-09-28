@@ -448,7 +448,7 @@ export const HACKATHONS = HACKATHON_SEEDS.map(([title, location, source, prize, 
 });
 
 export const NOTIFICATIONS = [
-  { id: 'n1', user_id: 'me', type: 'assigned', title: 'You were assigned to lumen-ui/lumen#482', message: 'Focus ring missing on icon-only buttons. The maintainer asked for a test case with the fix.', link: '/explore/lumen-ui/lumen?issue=482', is_read: false, created_at: daysAgo(0, 2) },
+  { id: 'n1', user_id: 'me', type: 'issue_assigned', title: 'You were assigned to lumen-ui/lumen#482', message: '"Focus ring missing on icon-only buttons", assigned by marta-ivanova', link: '/explore/lumen-ui/lumen?issue=482', is_read: false, created_at: daysAgo(0, 2) },
   { id: 'n2', user_id: 'me', type: 'comment', title: 'New reply on tidewater/ledger-cli#412', message: 'lina-okafor: "Could I work on this? I have a rough idea of the fix."', link: '/explore/tidewater/ledger-cli?issue=412', is_read: false, created_at: daysAgo(0, 7) },
   { id: 'n3', user_id: 'me', type: 'merged', title: 'Your pull request was merged', message: 'supabase/supabase#30121 — docs: clarify install steps on Windows', link: null, is_read: true, created_at: daysAgo(3) },
   { id: 'n4', user_id: 'me', type: 'hackathon', title: 'Civic Tech Skopje opens registration', message: 'The event starts in two weeks. Teams of up to four.', link: '/hackathons', is_read: true, created_at: daysAgo(6) },
