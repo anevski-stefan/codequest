@@ -14,6 +14,7 @@ import { NotificationsDropdown } from './ui/NotificationsDropdown';
 import { easeOut } from '../lib/motion';
 import { USE_MOCK_DATA } from '../mocks/flag';
 import { usePrTrackerSync } from '../hooks/usePrTrackerSync';
+import { useCloseAtDesktop } from '../hooks/useCloseAtDesktop';
 
 interface LayoutProps {
   children?: ReactNode;
@@ -265,6 +266,8 @@ const Layout = ({ children }: LayoutProps) => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isAuthenticated]);
+
+  useCloseAtDesktop(setIsMobileOpen);
 
   useEffect(() => {
     document.body.style.overflow = isMobileOpen ? 'hidden' : '';

@@ -13,6 +13,7 @@ import { timeFrameOptions, sortOptions, commentRanges, languageOptions } from '.
 import { BEGINNER_LABELS } from '../../constants/issueLabels';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import useIssueComments from '../../hooks/useIssueComments';
+import { useCloseAtDesktop } from '../../hooks/useCloseAtDesktop';
 import { CardSkeletonList } from '../../components/skeletons';
 import { ErrorDisplay } from '../../components/ui/ErrorDisplay';
 import FilterChip from '../../components/ui/FilterChip';
@@ -70,6 +71,7 @@ const BrowseIssues = () => {
   }, [filter, setParams]);
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  useCloseAtDesktop(setIsMobileFiltersOpen);
   const [hideTaken, setHideTaken] = useState(false);
 
   const {
