@@ -72,6 +72,16 @@ const BrowseIssues = () => {
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   useCloseAtDesktop(setIsMobileFiltersOpen);
+  useEffect(() => {
+    if (!isMobileFiltersOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      (document.activeElement as HTMLElement | null)?.blur();
+      setIsMobileFiltersOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMobileFiltersOpen]);
   const [hideTaken, setHideTaken] = useState(false);
 
   const {

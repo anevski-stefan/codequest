@@ -259,7 +259,7 @@ const Layout = ({ children }: LayoutProps) => {
         if (!isAuthenticated) return;
         e.preventDefault();
         setIsPaletteOpen(o => !o);
-      } else if (e.key === 'Escape') {
+      } else if (e.key === 'Escape' && !e.defaultPrevented) {
         setIsMobileOpen(false);
       }
     };
