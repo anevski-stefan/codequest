@@ -12,7 +12,7 @@ const passport = require('passport');
 require('./config/passport');
 const etagMiddleware = require('./middleware/etagMiddleware');
 const requestLogger = require('./middleware/requestLogger');
-const csrfGuard = require('./middleware/csrfGuard');
+const createCsrfGuard = require('./middleware/csrfGuard');
 const hackathonRoutes = require('./routes/hackathonRoutes');
 const authRoutes = require('./routes/authRoutes');
 const issuesRoutes = require('./routes/issuesRoutes');
@@ -86,7 +86,7 @@ if (requestedSessionStore === 'supabase') {
 
 const corsOrigin = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : (process.env.CLIENT_URL || 'http://localhost:5173');
+  : [process.env.CLIENT_URL || 'http://localhost:5173'];
 
 app.use(helmet());
 app.use(compression());
@@ -125,7 +125,7 @@ app.get('/health', (req, res) => {
   });
 });
 app.use(limiter);
-app.use(csrfGuard);
+app.use(createCsrfGuard(corsOrigin));
 app.use('/api/activity', activityRoutes);
 app.use('/api/issues', issuesRoutes);
 app.use('/api/repos', reposRoutes);
