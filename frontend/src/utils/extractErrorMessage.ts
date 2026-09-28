@@ -7,3 +7,8 @@ export function extractErrorMessage(err: unknown, fallback = 'Unknown error'): s
   }
   return fallback;
 }
+
+export function isRateLimitError(err: unknown): boolean {
+  const code = (err as { response?: { data?: { code?: string } } } | null)?.response?.data?.code;
+  return code === 'GITHUB_RATE_LIMIT';
+}

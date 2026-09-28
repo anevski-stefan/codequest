@@ -43,13 +43,62 @@ function devDetails(details) {
   return process.env.NODE_ENV !== 'production' ? details : undefined;
 }
 
+// GitHub signals rate limits with 403 as well as 429; a plain 403 is a permission error.
+// GraphQL reports an exhausted budget as HTTP 200 with an error of type RATE_LIMITED.
+function detectRateLimit(response, now = Date.now()) {
+  if (!response) return null;
+  const headers = response.headers || {};
+  const message = String(response.data?.message || '');
+  const graphqlLimited = response.status === 200
+    && Array.isArray(response.data?.errors)
+    && response.data.errors.some(e => e?.type === 'RATE_LIMITED');
+  if (response.status !== 403 && response.status !== 429 && !graphqlLimited) return null;
+  const secondary = /secondary rate limit/i.test(message);
+  const exhausted = headers['x-ratelimit-remaining'] === '0';
+  if (!secondary && !exhausted && !graphqlLimited && response.status !== 429) return null;
+
+  const retryAfter = parseInt(headers['retry-after'], 10);
+  const reset = parseInt(headers['x-ratelimit-reset'], 10);
+  let retryAfterSeconds = 60;
+  if (Number.isFinite(retryAfter) && retryAfter > 0) retryAfterSeconds = retryAfter;
+  else if ((exhausted || graphqlLimited) && Number.isFinite(reset)) retryAfterSeconds = Math.max(1, Math.ceil(reset - now / 1000));
+
+  let kind = 'unknown';
+  if (exhausted || graphqlLimited) kind = 'primary';
+  else if (secondary) kind = 'secondary';
+
+  return {
+    kind,
+    resource: headers['x-ratelimit-resource'] || (graphqlLimited ? 'graphql' : null),
+    githubStatus: response.status,
+    remaining: headers['x-ratelimit-remaining'] ?? null,
+    message: message || null,
+    retryAfterSeconds
+  };
+}
+
+function formatWait(seconds) {
+  if (seconds < 60) return `${seconds} second${seconds === 1 ? '' : 's'}`;
+  const minutes = Math.ceil(seconds / 60);
+  return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+}
+
 class GitHubApiError extends Error {
   constructor(message, originalError) {
     super(message);
     this.name = 'GitHubApiError';
     this.originalError = originalError;
-    this.status = originalError?.response?.status || 500;
+    const githubStatus = originalError?.response?.status;
+    this.status = githubStatus >= 400 ? githubStatus : 500;
     this.details = devDetails(originalError?.response?.data?.message);
+    const rateLimit = detectRateLimit(originalError?.response);
+    if (rateLimit) {
+      this.status = 429;
+      this.code = 'GITHUB_RATE_LIMIT';
+      this.rateLimit = rateLimit;
+      this.retryAfterSeconds = rateLimit.retryAfterSeconds;
+      this.message = `GitHub is limiting requests from your account. Try again in ${formatWait(rateLimit.retryAfterSeconds)}.`;
+    }
   }
 }
 
@@ -69,5 +118,6 @@ module.exports = {
   asyncHandler,
   devDetails,
   githubErrorResponse,
+  detectRateLimit,
   GitHubApiError
 };

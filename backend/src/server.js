@@ -13,6 +13,7 @@ require('./config/passport');
 const etagMiddleware = require('./middleware/etagMiddleware');
 const requestLogger = require('./middleware/requestLogger');
 const createCsrfGuard = require('./middleware/csrfGuard');
+const { sendError } = require('./utils/httpError');
 const hackathonRoutes = require('./routes/hackathonRoutes');
 const authRoutes = require('./routes/authRoutes');
 const issuesRoutes = require('./routes/issuesRoutes');
@@ -153,11 +154,11 @@ app.use((err, req, res, next) => {
   }
   if (err.name === 'GitHubApiError') {
     const log = err.status >= 500 ? logger.error.bind(logger) : logger.warn.bind(logger);
-    log(`[github] ${err.status} ${err.message}`, err.details);
-    return res.status(err.status).json({
-      error: err.message,
-      details: err.details
-    });
+    log(`[github] ${err.status} ${err.message}`, err.rateLimit
+      ? { ...err.rateLimit, url: err.originalError?.config?.url }
+      : err.details);
+    if (err.retryAfterSeconds) res.set('Retry-After', String(err.retryAfterSeconds));
+    return sendError(res, err.status, err.message, err.details, err.code);
   }
   logger.error('[server] Unhandled error:', err);
   res.status(err.status || 500).json({

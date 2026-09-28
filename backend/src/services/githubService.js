@@ -2,6 +2,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const { setupCache, buildMemoryStorage, buildKeyGenerator } = require('axios-cache-interceptor');
 const { isRetryableStatus, getRetryDelayMs } = require('../utils/retry');
+const { detectRateLimit } = require('../utils/httpError');
 
 const API_BASE = 'https://api.github.com';
 const CACHE_ENABLED = process.env.GITHUB_CACHE_ENABLED !== 'false';
@@ -82,7 +83,9 @@ class GitHubService {
         });
         
         if (isGraphQL && response.data?.errors && !response.data?.data) {
-          throw new Error(`GraphQL Errors: ${response.data.errors.map(e => e.message).join(', ')}`);
+          const graphqlError = new Error(`GraphQL Errors: ${response.data.errors.map(e => e.message).join(', ')}`);
+          graphqlError.response = response;
+          throw graphqlError;
         }
 
         if (options.fullResponse) {
@@ -92,7 +95,7 @@ class GitHubService {
       } catch (error) {
         lastError = error;
         const status = error.response?.status;
-        if (!isRetryableStatus(status) || attempt >= maxAttempts) break;
+        if (!isRetryableStatus(status) || detectRateLimit(error.response) || attempt >= maxAttempts) break;
         const delayMs = getRetryDelayMs(error.response?.headers, attempt, { fallbackBaseMs: 1000, fallbackCapMs: 10000 });
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }

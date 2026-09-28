@@ -19,6 +19,7 @@ import FilterChip from '../../components/ui/FilterChip';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
 import PageHeader from '../../components/ui/PageHeader';
+import { extractErrorMessage, isRateLimitError } from '../../utils/extractErrorMessage';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const TAKEN: ReadonlySet<string> = new Set(['requested', 'in_progress', 'closed']);
@@ -85,7 +86,7 @@ const BrowseIssues = () => {
 
   const {
     data, isLoading, isError, isPlaceholderData, error,
-    fetchNextPage, hasNextPage, isFetchingNextPage, refetch
+    fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, isFetchNextPageError, refetch
   } = useInfiniteQuery<IssueResponse, Error>({
     queryKey: ['issues', filter],
     queryFn: ({ pageParam }) => getIssues({ ...filter, page: pageParam as number }),
@@ -98,6 +99,13 @@ const BrowseIssues = () => {
   });
 
   const allIssues = useMemo(() => data?.pages.flatMap(p => p.issues) ?? [], [data]);
+  const errorView = isError && (
+    <ErrorDisplay
+      title={isRateLimitError(error) ? 'GitHub rate limit reached' : 'Failed to load issues'}
+      error={extractErrorMessage(error)}
+      onRetry={() => (isFetchNextPageError ? fetchNextPage() : refetch())}
+    />
+  );
   const { claims, loading: claimsLoading } = useIssueClaims(allIssues);
   const visibleIssues = useMemo(
     () => (hideTaken ? allIssues.filter(i => !TAKEN.has(claimFor(claims, i)?.status ?? '')) : allIssues),
@@ -126,7 +134,7 @@ const BrowseIssues = () => {
 
   useEffect(() => () => { debouncedSetFilter.cancel(); }, [debouncedSetFilter]);
 
-  const showLoading = isLoading || !initialFetchComplete;
+  const showLoading = isLoading || !initialFetchComplete || (isError && isFetching && !isFetchingNextPage);
   const activeFilterCount = [
     filter.timeFrame !== 'all',
     filter.sort !== 'created' || filter.direction === 'asc',
@@ -364,9 +372,7 @@ const BrowseIssues = () => {
           <div className="px-4 lg:px-6 xl:px-8 py-4"><CardSkeletonList count={8} /></div>
         ) : (
           <>
-            {isError && error instanceof Error && (
-              <div className="p-6"><ErrorDisplay title="Failed to load issues" error={error.message} onRetry={() => refetch()} /></div>
-            )}
+            {isError && !isFetchNextPageError && <div className="p-6">{errorView}</div>}
 
             {!isError && allIssues.length === 0 && initialFetchComplete && (
               <EmptyState
@@ -392,7 +398,9 @@ const BrowseIssues = () => {
               </div>
             )}
 
-            {!isLoading && hasNextPage && allIssues.length > 0 && (
+            {isFetchNextPageError && !isFetchingNextPage && <div className="px-4 lg:px-6 xl:px-8 pb-4">{errorView}</div>}
+
+            {!isLoading && hasNextPage && allIssues.length > 0 && (!isFetchNextPageError || isFetchingNextPage) && (
               <LoadMoreButton onClick={() => fetchNextPage()} isLoading={isFetchingNextPage} />
             )}
 

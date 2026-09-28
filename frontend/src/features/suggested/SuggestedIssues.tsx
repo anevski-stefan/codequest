@@ -13,6 +13,7 @@ import useIssueClaims, { claimFor } from '../../hooks/useIssueClaims';
 import FilterChip from '../../components/ui/FilterChip';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadMoreButton from '../../components/ui/LoadMoreButton';
+import { extractErrorMessage, isRateLimitError } from '../../utils/extractErrorMessage';
 
 const LANGUAGES = [
   { value: '', label: 'Any Language' },
@@ -72,7 +73,7 @@ const SuggestedIssues = () => {
 
   const filterKey = { language, timeFrame, commentsRange, famousOnly };
 
-  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
+  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, isFetchNextPageError } =
     useInfiniteQuery({
       queryKey: ['suggested-issues-v2', filterKey],
       queryFn: ({ pageParam = 1 }) =>
@@ -95,9 +96,13 @@ const SuggestedIssues = () => {
   const hiddenCount = allIssues.length - visibleIssues.length;
   const totalCount = data?.pages[0]?.totalCount ?? 0;
 
-  const isRateLimitError =
-    error instanceof Error &&
-    (error.message.includes('rate limit') || error.message.includes('secondary rate limit'));
+  const errorView = error && (
+    <ErrorDisplay
+      title={isRateLimitError(error) ? 'GitHub rate limit reached' : 'Failed to load issues'}
+      error={extractErrorMessage(error)}
+      onRetry={() => (isFetchNextPageError ? fetchNextPage() : refetch())}
+    />
+  );
 
   const [owner, repo] = (selectedIssue?.repository?.fullName ?? '').split('/');
 
@@ -175,15 +180,10 @@ const SuggestedIssues = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {isLoading ? (
+        {isLoading || (error && isFetching && !isFetchingNextPage) ? (
           <div className="px-4 lg:px-6 xl:px-8 py-4"><CardSkeletonList count={8} /></div>
-        ) : error instanceof Error ? (
-          <div className="p-6">
-            <ErrorDisplay
-              title={isRateLimitError ? 'GitHub API rate limit exceeded' : 'Failed to load issues'}
-              error={isRateLimitError ? 'Please wait a few minutes before trying again.' : error.message}
-            />
-          </div>
+        ) : errorView && !isFetchNextPageError ? (
+          <div className="p-6">{errorView}</div>
         ) : allIssues.length === 0 ? (
           <EmptyState icon={GitPullRequest} title="No issues found for these filters" subtitle="Try widening the time frame or removing the language filter" />
         ) : (
@@ -208,7 +208,9 @@ const SuggestedIssues = () => {
               </p>
             )}
 
-            {hasNextPage && (
+            {isFetchNextPageError && !isFetchingNextPage && <div className="px-4 lg:px-6 xl:px-8 pb-4">{errorView}</div>}
+
+            {hasNextPage && (!isFetchNextPageError || isFetchingNextPage) && (
               <LoadMoreButton onClick={() => fetchNextPage()} isLoading={isFetchingNextPage} />
             )}
 
