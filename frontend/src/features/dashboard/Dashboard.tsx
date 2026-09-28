@@ -34,6 +34,8 @@ const greeting = () => {
 const todayLabel = () =>
   new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
+const ISSUE_GRID = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2.5';
+
 const daysLeft = (d: string) => Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
 const daysLeftLabel = (d: string) => {
   const n = daysLeft(d);
@@ -257,7 +259,7 @@ const Dashboard = () => {
 
         {checklistReady && <SetupChecklist steps={steps} />}
 
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8">
           <div className="space-y-8 min-w-0">
             {assigned.isError ? (
               <Section title="In progress" delay={0.05}>
@@ -265,7 +267,7 @@ const Dashboard = () => {
               </Section>
             ) : assignedIssues.length > 0 && (
               <Section title="In progress" to="/assigned" delay={0.05}>
-                <div className="grid md:grid-cols-2 gap-2.5">
+                <div className={ISSUE_GRID}>
                   {assignedIssues.slice(0, 2).map((issue, i) => (
                     <IssueCard key={issue.id} issue={issue} index={i} dateField="updatedAt" onOpen={handleViewComments} onPrefetch={prefetchComments} />
                   ))}
@@ -275,7 +277,7 @@ const Dashboard = () => {
 
             <Section title="Picked for you" to="/suggested" cta="More suggestions" delay={0.1}>
               {suggested.isLoading ? (
-                <div className="grid md:grid-cols-2 gap-2.5">{[0, 1, 2, 3].map(i => <CardSkeleton key={i} />)}</div>
+                <div className={ISSUE_GRID}>{[0, 1, 2, 3].map(i => <CardSkeleton key={i} />)}</div>
               ) : suggested.isError ? (
                 <ErrorDisplay error={suggested.error?.message || 'Failed to load suggestions'} onRetry={() => suggested.refetch()} />
               ) : picks.length === 0 ? (
@@ -283,7 +285,7 @@ const Dashboard = () => {
                   No suggestions right now. <Link to="/issues" className="text-blue-300 hover:text-blue-200 font-semibold">Browse all issues</Link>
                 </div>
               ) : (
-                <div className="grid md:grid-cols-2 gap-2.5">
+                <div className={ISSUE_GRID}>
                   {picks.map((issue, i) => (
                     <IssueCard key={`${issue.repository.fullName}-${issue.number}`} issue={issue} index={i} onOpen={handleViewComments} onPrefetch={prefetchComments} claim={claimFor(claims, issue)} claimLoading={claimsLoading} />
                   ))}
